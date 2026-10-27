@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Uzlādes Radars</title>
+  <meta name="description" content="Где зарядить электромобиль в Риге: станции, разъёмы, мощность и цены по сетям.">
+  <meta name="theme-color" content="#0a1820">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top">
+    <h1>Uzlādes Radars</h1>
+    <div class="top-actions">
+      <button id="btn-install" class="pill" hidden></button>
+      <button id="btn-lang" class="pill" aria-label="Language"></button>
+      <button id="btn-theme" class="pill" aria-label="Theme"></button>
+    </div>
+  </header>
+
+  <div class="filters" id="filters" role="group"></div>
+
+  <main>
+    <div id="map" aria-label="Map"></div>
+    <div id="status" class="status" role="status" hidden></div>
+    <div id="toast" class="toast" role="status" hidden></div>
+  </main>
+
+  <section class="sheet" id="sheet" data-open="false">
+    <button class="grab" id="grab" aria-expanded="false"><span></span></button>
+    <nav class="tabs" id="tabs" role="tablist"></nav>
+    <div class="panel" id="panel"></div>
+  </section>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="logic.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
