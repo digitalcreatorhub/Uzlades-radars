@@ -1,0 +1,33 @@
+name: Fetch NPP data
+
+# Первый шаг: ручной запуск, чтобы посмотреть, что отдаёт национальная точка доступа.
+# Расписание добавим, когда будет готов разбор данных.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch datasets
+        env:
+          NPP_API_KEY: ${{ secrets.NPP_API_KEY }}
+          NPP_API_KEY_PRICES: ${{ secrets.NPP_API_KEY_PRICES }}
+        run: bash scripts/fetch_npp.sh 978835ee-f55b-481c-9791-ba0395d3619a a377a160-baa1-4b67-b4e8-6612cd289e22
+
+      - name: Commit results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          if git diff --cached --quiet; then
+            echo "Нет изменений"
+          else
+            git commit -m "Update NPP raw data"
+            git push
+          fi
