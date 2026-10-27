@@ -622,7 +622,7 @@ select {
 .live-busy i { background: transparent; box-shadow: inset 0 0 0 2px currentColor; }
 .live-out i { border-radius: 2px; background: transparent; box-shadow: inset 0 0 0 2px currentColor; }
 .live-unknown i { background: transparent; box-shadow: inset 0 0 0 2px currentColor; opacity: 0.6; }
-.live-line { margin-top: 8px; }
+.live-line { margin-top: 8px; display: flex; align-items: center; flex-wrap: wrap; gap: 2px 8px; }
 .row .live-line { margin-top: 5px; }
 .row .live { font-size: 11.5px; padding: 2px 9px 2px 7px; }
 .live-note { font-size: 12px; color: var(--muted); margin: -4px 0 10px; }
@@ -691,4 +691,169 @@ select {
 .usual .note { margin: 8px 0 0; }
 .usual-line { font-size: 12.5px; color: var(--muted); margin: -2px 0 10px; }
 
-.live-time { font-size: 12px; color: var(--muted); margin-left: 6px; }
+.live-time { font-size: 12px; color: var(--muted); margin-left: 0; }
+
+/* ---------- профиль машины, избранное, поиск, маршрут ---------- */
+input[type="text"], input[type="search"], input[type="number"] {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 14px;
+  border: 1px solid var(--line-2);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px; /* меньше 16 px: iPhone увеличивает страницу при вводе */
+  font-weight: 600;
+  appearance: none;
+  -webkit-appearance: none;
+}
+input::placeholder { color: var(--muted); font-weight: 500; opacity: 0.85; }
+input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.pill-icon { padding: 0; display: grid; place-items: center; }
+.pill-icon.on { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 50%, transparent); }
+.chip svg { width: 16px; height: 16px; margin-right: 6px; flex: none; }
+
+/* вкладки: пять штук, подписи короче */
+.tabs { gap: 2px; }
+.tab { font-size: 12.5px; padding: 0 2px; min-width: 0; white-space: nowrap; position: relative; }
+.tab-star { color: var(--c-dc); margin-right: 3px; font-size: 12px; }
+.tab em { font-style: normal; font-size: 10.5px; font-weight: 800; margin-left: 4px; padding: 1px 5px; border-radius: 8px; background: var(--accent-soft); color: var(--accent); }
+
+.icon-btn {
+  width: 34px; height: 34px; padding: 0; flex: none;
+  display: inline-grid; place-items: center;
+  border-radius: 12px;
+  border: 1px solid var(--line-2);
+  background: var(--tile);
+  color: var(--muted);
+}
+.icon-btn[aria-pressed="true"] { color: var(--c-dc); border-color: color-mix(in srgb, var(--c-dc) 55%, transparent); background: color-mix(in srgb, var(--c-dc) 14%, transparent); }
+.best-head .best-title { flex: 1; min-width: 0; }
+.best-side { display: flex; align-items: center; gap: 10px; flex: none; }
+.fav-mark { color: var(--c-dc); }
+.warn { color: var(--c-dc); font-size: 13px; }
+
+.car-line {
+  width: 100%; display: flex; align-items: center; gap: 8px;
+  padding: 7px 12px; margin: 0 0 8px;
+  border-radius: 14px; border: 1px solid var(--line);
+  background: var(--surface-2); color: var(--text-soft);
+  font-size: 12.5px; text-align: left; line-height: 1.3;
+}
+.car-line svg { width: 18px; height: 18px; color: var(--accent); flex: none; }
+.car-line span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.car-line b { color: var(--text); font-weight: 700; }
+
+/* поиск по списку */
+.search { position: relative; margin-bottom: 8px; }
+.search > svg { position: absolute; left: 13px; top: 12px; color: var(--muted); pointer-events: none; }
+.search input { padding-left: 40px; padding-right: 40px; }
+.search-x {
+  position: absolute; right: 5px; top: 5px; width: 34px; height: 34px;
+  border: 0; border-radius: 10px; background: transparent; color: var(--muted);
+  display: grid; place-items: center;
+}
+.search-x[hidden] { display: none; }
+.search-x svg { width: 16px; height: 16px; }
+
+/* что ещё известно о станции */
+.insights { display: grid; gap: 6px; margin: 0 0 12px; }
+.insight {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 9px 12px; border-radius: 14px;
+  background: var(--surface-2); border: 1px solid var(--line);
+  font-size: 13.5px; line-height: 1.35;
+}
+.insight i { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); margin-top: 6px; flex: none; }
+.insight small { color: var(--muted); font-size: 12px; }
+.rel-good i { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+.rel-mid i { background: var(--c-dc); }
+.rel-bad i, .px-up i { background: var(--busy); }
+.px-down i { background: var(--ok); }
+
+.est {
+  margin: 0 0 12px; padding: 12px 14px; border-radius: 18px;
+  background: linear-gradient(180deg, var(--accent-soft), transparent 120%), var(--surface-2);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.est-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.est-head svg { width: 18px; height: 18px; color: var(--accent); }
+.est-head span { margin-left: auto; color: var(--muted); font-size: 12px; text-align: right; }
+.est p { margin: 2px 0; font-size: 14px; }
+.est small { display: block; margin-top: 6px; color: var(--muted); font-size: 11.5px; }
+.est-none { border-color: var(--line); background: var(--surface-2); }
+.est-none svg { color: var(--muted); }
+
+.cmp { margin: 0 0 12px; padding: 12px 14px; border-radius: 18px; background: var(--surface-2); border: 1px solid var(--line); }
+.cmp-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+.cmp-head small { color: var(--muted); font-size: 11.5px; text-align: right; }
+.cmp-grid { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }
+.cmp-cell { padding: 8px 10px; border-radius: 12px; background: var(--tile); border: 1px solid var(--line); }
+.cmp-cell span { display: block; font-size: 11.5px; color: var(--muted); }
+.cmp-cell b { font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.cmp-cell.is-ev b { color: var(--accent); }
+.cmp-cell.is-petrol b { color: var(--busy); }
+.cmp p { margin: 8px 0 0; font-size: 13.5px; font-weight: 600; }
+
+.tools { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0 0; }
+.tool {
+  height: 40px; padding: 0 6px; border-radius: 13px;
+  border: 1px solid var(--line-2); background: var(--surface-2);
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  font-size: 12.5px; font-weight: 700; color: var(--text-soft); white-space: nowrap;
+}
+.tool svg { width: 16px; height: 16px; flex: none; }
+.tool[aria-pressed="true"] { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 50%, transparent); background: var(--accent-soft); }
+.tool[data-fav][aria-pressed="true"] { color: var(--c-dc); border-color: color-mix(in srgb, var(--c-dc) 50%, transparent); background: color-mix(in srgb, var(--c-dc) 12%, transparent); }
+.tool[aria-disabled="true"] { opacity: 0.5; }
+
+/* маршрут */
+.route-form { display: grid; gap: 8px; margin-bottom: 12px; }
+.route-form label { display: grid; gap: 4px; }
+.route-form label > span { font-size: 12px; font-weight: 700; color: var(--muted); }
+.route-form .btn { width: 100%; margin-top: 2px; }
+.route-sum { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 2px 0 10px; font-size: 14px; font-weight: 700; }
+.route-ok, .route-warn { margin: 0 0 12px; padding: 11px 14px; border-radius: 16px; font-size: 13.5px; font-weight: 600; line-height: 1.4; }
+.route-ok { background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); color: var(--text); }
+.route-warn { background: color-mix(in srgb, var(--busy) 12%, transparent); border: 1px solid color-mix(in srgb, var(--busy) 40%, transparent); }
+.pin span {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: grid; place-items: center;
+  font: 800 13px/1 "Manrope", system-ui, sans-serif;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+}
+.pin-stop span { background: var(--accent-grad); color: var(--accent-ink); border: 2px solid var(--bg); }
+.pin-end span { background: var(--text); color: var(--bg); border: 2px solid var(--accent); }
+.leaflet-marker-icon.pin { background: none; border: 0; }
+
+/* окно «Моя машина» */
+.car-card { max-height: calc(100dvh - 32px); overflow-y: auto; scrollbar-width: none; }
+.car-card::-webkit-scrollbar { display: none; }
+.modal-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
+.modal-head h2 { margin: 0; }
+.fld { display: grid; gap: 5px; margin: 0 0 10px; min-width: 0; }
+.fld > span { font-size: 12px; font-weight: 700; color: var(--muted); }
+.fld select { width: 100%; height: 44px; font-size: 15px; }
+.fld-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
+.checks { display: flex; flex-wrap: wrap; gap: 8px; }
+.check { display: inline-flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--line); font-size: 14px; font-weight: 600; cursor: pointer; }
+.check input { width: 18px; height: 18px; accent-color: var(--accent); margin: 0; }
+.check.wide { display: flex; margin: 0 0 12px; }
+.modal-actions { margin-top: 6px; }
+.modal-actions .btn[hidden] { display: none; }
+@media (max-width: 380px) { .fld-grid { grid-template-columns: 1fr; } }
+
+/* низкие экраны (iPhone SE/mini и т.п.): плотнее, чтобы кнопки маршрута были видны без прокрутки */
+@media (max-height: 820px) {
+  .tabs { margin-bottom: 6px; }
+  .tab { height: 34px; }
+  .seg { margin-bottom: 4px; }
+  .seg button { height: 32px; }
+  .origin-line { margin-bottom: 4px; }
+  .best { padding: 12px; }
+  .best .facts { margin: 8px 0; }
+  .live-line { margin-top: 6px; }
+}
+.car-card .modal-actions { position: sticky; bottom: -20px; margin: 6px -22px -20px; padding: 12px 22px 20px; background: linear-gradient(180deg, transparent, var(--surface) 28%); }
