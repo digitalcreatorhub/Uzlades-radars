@@ -1,0 +1,144 @@
+<d2:payload xmlns:d2="http://datex2.eu/schema/3/d2Payload" xmlns:com="http://datex2.eu/schema/3/common" xmlns:loc="http://datex2.eu/schema/3/locationReferencing" xmlns:egi="http://datex2.eu/schema/3/energyInfrastructure" xmlns:fac="http://datex2.eu/schema/3/facilities" xmlns:roa="http://datex2.eu/schema/3/roadTrafficData" xmlns:sit="http://datex2.eu/schema/3/situation" xmlns:vms="http://datex2.eu/schema/3/vms" xmlns:prk="http://datex2.eu/schema/3/parking" xmlns:comx="http://datex2.eu/schema/3/commonExtension" xmlns:locx="http://datex2.eu/schema/3/locationExtension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://datex2.eu/schema/3/d2Payload DATEXII_3_D2Payload.xsd http://datex2.eu/schema/3/common DATEXII_3_Common.xsd http://datex2.eu/schema/3/energyInfrastructure DATEXII_3_EnergyInfrastructure.xsd http://datex2.eu/schema/3/facilities DATEXII_3_Facilities.xsd http://datex2.eu/schema/3/locationExtension DATEXII_3_LocationExtension.xsd http://datex2.eu/schema/3/locationReferencing DATEXII_3_LocationReferencing.xsd http://datex2.eu/schema/3/parking DATEXII_3_Parking.xsd http://datex2.eu/schema/3/roadTrafficData DATEXII_3_RoadTrafficData.xsd http://datex2.eu/schema/3/situation DATEXII_3_Situation.xsd http://datex2.eu/schema/3/vms DATEXII_3_Vms.xsd http://datex2.eu/schema/3/commonExtension DATEXII_3_CommonExtension.xsd" xsi:type="egi:EnergyInfrastructureTablePublication" lang="en-US" modelBaseVersion="3">
+<com:feedDescription>
+		<com:values>
+			<com:value lang="lv-LV">Nosaukums: Elektrouzlādes infrastruktūra, Url:
+				https://transportdata.gov.lv/card/978835ee-f55b-481c-9791-ba0395d3619a</com:value>
+			<com:value lang="en-EN">Name: Energy infrastructure, Url:
+				https://transportdata.gov.lv/card/978835ee-f55b-481c-9791-ba0395d3619a</com:value>
+		</com:values>
+	</com:feedDescription>
+	<com:feedType>Filling and charging stations - Location and conditions of charging points</com:feedType>  
+<com:publicationTime>2024-05-03T14:20:11.092Z</com:publicationTime>
+  <com:publicationCreator>
+    <com:country>lv</com:country>
+    <com:nationalIdentifier>latvia</com:nationalIdentifier>
+  </com:publicationCreator>
+  <egi:energyInfrastructureTable id="1" version="1.0">
+<egi:energyInfrastructureSite id="6634cec710797ede5f942a11" version="1.0">
+  <egi:entrance xsi:type="loc:PointLocation">
+    <loc:openlrPointLocationReference xsi:type="loc:OpenlrGeoCoordinate">
+      <loc:openlrCoordinates>
+        <loc:latitude>59.95793260597777</loc:latitude>
+        <loc:longitude>18.492911255910602</loc:longitude>
+      </loc:openlrCoordinates>
+    </loc:openlrPointLocationReference>
+  </egi:entrance>
+  <egi:energyInfrastructureStation id="6634cec710797ede5f942a11" version="1.0">
+    <egi:energyProvider id="6634cec710797ede5f942a11" version="1.0" xsi:type="fac:OrganisationSpecification">
+      <fac:lastUpdated>2024-05-03T14:47:19+03:00</fac:lastUpdated>
+      <fac:name>
+        <com:values>
+          <com:value>Riga, Riga street 2, Electro Drive</com:value>
+        </com:values>
+      </fac:name>
+      <fac:organisationUnit>
+        <fac:contactInformation>
+          <fac:telephoneNumber>22222222</fac:telephoneNumber>
+          <fac:eMail>example@mail.com</fac:eMail>
+        </fac:contactInformation>
+      </fac:organisationUnit>
+    </egi:energyProvider>
+    <egi:refillPoint id="661901e358795112d3b4fadf" version="1.0" xsi:type="egi:ElectricChargingPoint">
+      <fac:operatingHours xsi:type="fac:OpenAllHours"/>
+      <fac:rates xsi:type="fac:GeneralRateInformation">
+        <fac:paymentMethod>
+          <fac:paymentMeans>mobileAccount</fac:paymentMeans>
+        </fac:paymentMethod>
+        <fac:energyPricingPolicy>
+          <egi:pricingPolicy>pricePerChargingTime</egi:pricingPolicy>
+        </fac:energyPricingPolicy>
+      </fac:rates>
+      <egi:connector>
+        <egi:connectorType>iec62196T2COMBO</egi:connectorType>
+        <egi:chargingMode>other</egi:chargingMode>
+        <egi:connectorFormat>cableMode2</egi:connectorFormat>
+        <egi:maxPowerAtSocket>11000</egi:maxPowerAtSocket>
+      </egi:connector>
+    </egi:refillPoint>
+  </egi:energyInfrastructureStation>
+</egi:energyInfrastructureSite><egi:energyInfrastructureSite id="6634cec710797ede5f942a12" version="1.0">
+  <egi:entrance xsi:type="loc:PointLocation">
+    <loc:openlrPointLocationReference xsi:type="loc:OpenlrGeoCoordinate">
+      <loc:openlrCoordinates>
+        <loc:latitude>59.95793260597712</loc:latitude>
+        <loc:longitude>18.492911255910602</loc:longitude>
+      </loc:openlrCoordinates>
+    </loc:openlrPointLocationReference>
+  </egi:entrance>
+  <egi:energyInfrastructureStation id="6634cec710797ede5f942a11" version="1.0">
+    <egi:energyProvider id="6634cec710797ede5f942a11" version="1.0" xsi:type="fac:OrganisationSpecification">
+      <fac:lastUpdated>2024-05-03T14:47:19+03:00</fac:lastUpdated>
+      <fac:name>
+        <com:values>
+          <com:value>Liepaja, Liepaja street 22, Electric Charge</com:value>
+        </com:values>
+      </fac:name>
+      <fac:organisationUnit>
+        <fac:contactInformation>
+          <fac:telephoneNumber>22222222</fac:telephoneNumber>
+          <fac:eMail>example@mail.com</fac:eMail>
+        </fac:contactInformation>
+      </fac:organisationUnit>
+    </egi:energyProvider>
+    <egi:refillPoint id="661901e358795112d3b4fadf" version="1.0" xsi:type="egi:ElectricChargingPoint">
+      <fac:operatingHours xsi:type="fac:OpenAllHours"/>
+      <fac:rates xsi:type="fac:GeneralRateInformation">
+        <fac:paymentMethod>
+          <fac:paymentMeans>mobileAccount</fac:paymentMeans>
+        </fac:paymentMethod>
+        <fac:energyPricingPolicy>
+          <egi:pricingPolicy>pricePerChargingTime</egi:pricingPolicy>
+        </fac:energyPricingPolicy>
+      </fac:rates>
+      <egi:connector>
+        <egi:connectorType>iec62196T2COMBO</egi:connectorType>
+        <egi:chargingMode>other</egi:chargingMode>
+        <egi:connectorFormat>cableMode2</egi:connectorFormat>
+        <egi:maxPowerAtSocket>11000</egi:maxPowerAtSocket>
+      </egi:connector>
+    </egi:refillPoint>
+  </egi:energyInfrastructureStation>
+</egi:energyInfrastructureSite><egi:energyInfrastructureSite id="6634cec710797ede5f942a13" version="1.0">
+  <egi:entrance xsi:type="loc:PointLocation">
+    <loc:openlrPointLocationReference xsi:type="loc:OpenlrGeoCoordinate">
+      <loc:openlrCoordinates>
+        <loc:latitude>59.95793260597715</loc:latitude>
+        <loc:longitude>18.492911255915212</loc:longitude>
+      </loc:openlrCoordinates>
+    </loc:openlrPointLocationReference>
+  </egi:entrance>
+  <egi:energyInfrastructureStation id="6634cec710797ede5f942a11" version="1.0">
+    <egi:energyProvider id="6634cec710797ede5f942a11" version="1.0" xsi:type="fac:OrganisationSpecification">
+      <fac:lastUpdated>2024-05-03T14:47:19+03:00</fac:lastUpdated>
+      <fac:name>
+        <com:values>
+          <com:value>Ventspils, Ventspils street 14, Electro Drive</com:value>
+        </com:values>
+      </fac:name>
+      <fac:organisationUnit>
+        <fac:contactInformation>
+          <fac:telephoneNumber>22222222</fac:telephoneNumber>
+          <fac:eMail>example@mail.com</fac:eMail>
+        </fac:contactInformation>
+      </fac:organisationUnit>
+    </egi:energyProvider>
+    <egi:refillPoint id="661901e358795112d3b4fadf" version="1.0" xsi:type="egi:ElectricChargingPoint">
+      <fac:operatingHours xsi:type="fac:OpenAllHours"/>
+      <fac:rates xsi:type="fac:GeneralRateInformation">
+        <fac:paymentMethod>
+          <fac:paymentMeans>mobileAccount</fac:paymentMeans>
+        </fac:paymentMethod>
+        <fac:energyPricingPolicy>
+          <egi:pricingPolicy>pricePerChargingTime</egi:pricingPolicy>
+        </fac:energyPricingPolicy>
+      </fac:rates>
+      <egi:connector>
+        <egi:connectorType>iec62196T2COMBO</egi:connectorType>
+        <egi:chargingMode>other</egi:chargingMode>
+        <egi:connectorFormat>cableMode2</egi:connectorFormat>
+        <egi:maxPowerAtSocket>11000</egi:maxPowerAtSocket>
+      </egi:connector>
+    </egi:refillPoint>
+  </egi:energyInfrastructureStation>
+</egi:energyInfrastructureSite>
+</egi:energyInfrastructureTable></d2:payload>

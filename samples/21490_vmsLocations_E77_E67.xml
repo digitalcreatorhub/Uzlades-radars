@@ -1,0 +1,94 @@
+<VmsTablePublication modelBaseVersion="3" xsi:type="vms:VmsTablePublication" xmlns="http://datex2.eu/schema/3/d2Payload" xmlns:vms="http://datex2.eu/schema/3/vms" xmlns:com="http://datex2.eu/schema/3/common" xmlns:loc="http://datex2.eu/schema/3/locationReferencing" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" lang="en">
+  <com:feedDescription>
+		<com:values>
+			<com:value lang="lv-LV">Nosaukums: Mainīgo zīmju atrašanās vietas (E77 un E67), Url:
+				https://transportdata.gov.lv/card/883010ab-23e3-417d-b8c5-f87e07e5f5be</com:value>
+			<com:value lang="en-EN">Name: VMS locations (E77 and E67), Url:
+				https://transportdata.gov.lv/card/883010ab-23e3-417d-b8c5-f87e07e5f5be</com:value>
+		</com:values>
+	</com:feedDescription>
+	<com:feedType>Dynamic traffic signs and regulations - Dynamic speed limits</com:feedType>
+  <com:publicationTime>2024-05-14T13:50:23+03:00</com:publicationTime>
+  <com:publicationCreator>
+    <com:country>lv</com:country>
+    <com:nationalIdentifier>lv</com:nationalIdentifier>
+  </com:publicationCreator>
+  <vms:headerInformation>
+    <com:confidentiality>internalUse</com:confidentiality>
+    <com:informationStatus>real</com:informationStatus>
+  </vms:headerInformation>
+  <vms:vmsControllerTable id="LVC-1" version="1">
+    <vms:vmsController id="LVC-02-19" version="1">
+      <vms:numberOfVms>1</vms:numberOfVms>
+      <vms:vms vmsIndex="1">
+        <vms:vms>
+          <vms:description>
+            <com:values>
+              <com:value>VSS 26.620km virziens Rīga #2</com:value>
+            </com:values>
+          </vms:description>
+          <vms:vmsLocation xsi:type="loc:PointLocation">
+            <loc:coordinatesForDisplay>
+              <loc:latitude>57.067594</loc:latitude>
+              <loc:longitude>24.480976</loc:longitude>
+            </loc:coordinatesForDisplay>
+          </vms:vmsLocation>
+        </vms:vms>
+      </vms:vms>
+    </vms:vmsController>
+    <vms:vmsController id="LVC-01-78" version="1">
+      <vms:numberOfVms>1</vms:numberOfVms>
+      <vms:vms vmsIndex="1">
+        <vms:vms>
+          <vms:description>
+            <com:values>
+              <com:value>VSWS A2 39.350 km virziens Sigulda #1</com:value>
+            </com:values>
+          </vms:description>
+          <vms:vmsLocation xsi:type="loc:PointLocation">
+            <loc:coordinatesForDisplay>
+              <loc:latitude>57.121471</loc:latitude>
+              <loc:longitude>24.665512</loc:longitude>
+            </loc:coordinatesForDisplay>
+          </vms:vmsLocation>
+        </vms:vms>
+      </vms:vms>
+    </vms:vmsController>
+    <vms:vmsController id="LVC-01-84" version="1">
+      <vms:numberOfVms>1</vms:numberOfVms>
+      <vms:vms vmsIndex="1">
+        <vms:vms>
+          <vms:description>
+            <com:values>
+              <com:value>VSS 42.17 km virziens Sigulda #1</com:value>
+            </com:values>
+          </vms:description>
+          <vms:vmsLocation xsi:type="loc:PointLocation">
+            <loc:coordinatesForDisplay>
+              <loc:latitude>57.1281</loc:latitude>
+              <loc:longitude>24.710503</loc:longitude>
+            </loc:coordinatesForDisplay>
+          </vms:vmsLocation>
+        </vms:vms>
+      </vms:vms>
+    </vms:vmsController>
+    <vms:vmsController id="LVC-01-81" version="1">
+      <vms:numberOfVms>1</vms:numberOfVms>
+      <vms:vms vmsIndex="1">
+        <vms:vms>
+          <vms:description>
+            <com:values>
+              <com:value>VSWS A2 44.6 km virziens Rīga #2</com:value>
+            </com:values>
+          </vms:description>
+          <vms:vmsLocation xsi:type="loc:PointLocation">
+            <loc:coordinatesForDisplay>
+              <loc:latitude>57.132289</loc:latitude>
+              <loc:longitude>24.749753</loc:longitude>
+            </loc:coordinatesForDisplay>
+          </vms:vmsLocation>
+        </vms:vms>
+      </vms:vms>
+    </vms:vmsController>
+  </vms:vmsControllerTable>
+</VmsTablePublication>

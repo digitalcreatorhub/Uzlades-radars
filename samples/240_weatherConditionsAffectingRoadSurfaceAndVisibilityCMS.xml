@@ -1,0 +1,166 @@
+<d2:payload xmlns:d2="http://datex2.eu/schema/3/d2Payload" xmlns:com="http://datex2.eu/schema/3/common" xmlns:loc="http://datex2.eu/schema/3/locationReferencing" xmlns:egi="http://datex2.eu/schema/3/energyInfrastructure" xmlns:fac="http://datex2.eu/schema/3/facilities" xmlns:roa="http://datex2.eu/schema/3/roadTrafficData" xmlns:sit="http://datex2.eu/schema/3/situation" xmlns:vms="http://datex2.eu/schema/3/vms" xmlns:prk="http://datex2.eu/schema/3/parking" xmlns:comx="http://datex2.eu/schema/3/commonExtension" xmlns:locx="http://datex2.eu/schema/3/locationExtension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://datex2.eu/schema/3/d2Payload DATEXII_3_D2Payload.xsd http://datex2.eu/schema/3/common DATEXII_3_Common.xsd http://datex2.eu/schema/3/energyInfrastructure DATEXII_3_EnergyInfrastructure.xsd http://datex2.eu/schema/3/facilities DATEXII_3_Facilities.xsd http://datex2.eu/schema/3/locationExtension DATEXII_3_LocationExtension.xsd http://datex2.eu/schema/3/locationReferencing DATEXII_3_LocationReferencing.xsd http://datex2.eu/schema/3/parking DATEXII_3_Parking.xsd http://datex2.eu/schema/3/roadTrafficData DATEXII_3_RoadTrafficData.xsd http://datex2.eu/schema/3/situation DATEXII_3_Situation.xsd http://datex2.eu/schema/3/vms DATEXII_3_Vms.xsd http://datex2.eu/schema/3/commonExtension DATEXII_3_CommonExtension.xsd" xsi:type="sit:SituationPublication" lang="en-US" modelBaseVersion="3">
+<com:feedDescription>
+		<com:values>
+			<com:value lang="lv-LV">Nosaukums: Laika apstākļi, kas ietekmē autoceļa segumu un redzamību (CMS), Url:
+				https://transportdata.gov.lv/card/61788fc9-7cc5-4528-b1e6-acfb7f47abdf</com:value>
+			<com:value lang="en-EN">Name: Weather conditions affecting road surface and visibility (CMS), Url:
+				https://transportdata.gov.lv/card/61788fc9-7cc5-4528-b1e6-acfb7f47abdf</com:value>
+		</com:values>
+	</com:feedDescription>
+	<com:feedType>Road weather conditions - Weather conditions affecting road surface and visibility</com:feedType>  
+<com:publicationTime>2024-05-07T08:19:47.304Z</com:publicationTime>
+  <com:publicationCreator>
+    <com:country>lv</com:country>
+    <com:nationalIdentifier>latvia</com:nationalIdentifier>
+  </com:publicationCreator>
+  <sit:situation id="65316a386c3e36ff7f443825">
+  <sit:headerInformation>
+    <com:confidentiality>noRestriction</com:confidentiality>
+    <com:allowedDeliveryChannel>anyGeneralDeliveryService</com:allowedDeliveryChannel>
+    <com:informationStatus>real</com:informationStatus>
+  </sit:headerInformation>
+  <sit:situationRecord version="1" id="65316a386c3e36ff7f443825" xsi:type="sit:PoorEnvironmentConditions">
+    <sit:situationRecordCreationTime>2023-10-19T20:41:12+03:00</sit:situationRecordCreationTime>
+    <sit:situationRecordVersionTime>2023-12-19T15:20:34+02:00</sit:situationRecordVersionTime>
+    <sit:probabilityOfOccurrence>certain</sit:probabilityOfOccurrence>
+    <sit:safetyRelatedMessage>false</sit:safetyRelatedMessage>
+    <sit:source>
+      <com:sourceCountry>lv</com:sourceCountry>
+      <com:sourceIdentification>latvia</com:sourceIdentification>
+      <com:sourceName>
+        <com:values>
+          <com:value>LVC satiksmes informācijas centrs</com:value>
+        </com:values>
+      </com:sourceName>
+    </sit:source>
+    <sit:validity>
+      <com:validityStatus>active</com:validityStatus>
+      <com:overrunning>true</com:overrunning>
+      <com:validityTimeSpecification>
+        <com:overallStartTime>2023-11-01T13:31:36+02:00</com:overallStartTime>
+      </com:validityTimeSpecification>
+    </sit:validity>
+    <sit:impact>
+      <sit:delays>
+        <sit:delayTimeValue>0</sit:delayTimeValue>
+      </sit:delays>
+    </sit:impact>
+    <sit:generalPublicComment>
+      <sit:comment>
+        <com:values>
+          <com:value>Some Comment</com:value>
+        </com:values>
+      </sit:comment>
+    </sit:generalPublicComment>
+    <sit:locationReference xsi:type="loc:PointLocation">
+      <loc:openlrPointLocationReference xsi:type="loc:OpenlrGeoCoordinate">
+        <loc:openlrCoordinates>
+          <loc:latitude>58.83439971195232</loc:latitude>
+          <loc:longitude>20.76750561694123</loc:longitude>
+        </loc:openlrCoordinates>
+      </loc:openlrPointLocationReference>
+    </sit:locationReference>
+    <sit:trafficConstrictionType>lanesBlocked</sit:trafficConstrictionType>
+    <sit:poorEnvironmentType>fog</sit:poorEnvironmentType>
+  </sit:situationRecord>
+</sit:situation><sit:situation id="6571d217dca88566476d3bc7">
+  <sit:headerInformation>
+    <com:confidentiality>noRestriction</com:confidentiality>
+    <com:allowedDeliveryChannel>anyGeneralDeliveryService</com:allowedDeliveryChannel>
+    <com:informationStatus>real</com:informationStatus>
+  </sit:headerInformation>
+  <sit:situationRecord version="1" id="6571d217dca88566476d3bc7" xsi:type="sit:PoorEnvironmentConditions">
+    <sit:situationRecordCreationTime>2023-12-07T16:09:27+02:00</sit:situationRecordCreationTime>
+    <sit:situationRecordVersionTime>2023-12-07T16:09:48+02:00</sit:situationRecordVersionTime>
+    <sit:probabilityOfOccurrence>certain</sit:probabilityOfOccurrence>
+    <sit:safetyRelatedMessage>false</sit:safetyRelatedMessage>
+    <sit:source>
+      <com:sourceCountry>lv</com:sourceCountry>
+      <com:sourceIdentification>latvia</com:sourceIdentification>
+      <com:sourceName>
+        <com:values>
+          <com:value>LVC nodaļa "nodaļa"</com:value>
+        </com:values>
+      </com:sourceName>
+    </sit:source>
+    <sit:validity>
+      <com:validityStatus>active</com:validityStatus>
+      <com:overrunning>true</com:overrunning>
+      <com:validityTimeSpecification>
+        <com:overallStartTime>2023-12-07T16:09:48+02:00</com:overallStartTime>
+      </com:validityTimeSpecification>
+    </sit:validity>
+    <sit:impact>
+      <sit:delays>
+        <sit:delayTimeValue>0</sit:delayTimeValue>
+      </sit:delays>
+    </sit:impact>
+    <sit:generalPublicComment>
+      <sit:comment>
+        <com:values>
+          <com:value>Some Comment</com:value>
+        </com:values>
+      </sit:comment>
+    </sit:generalPublicComment>
+    <sit:locationReference xsi:type="loc:PointLocation">
+      <loc:openlrPointLocationReference xsi:type="loc:OpenlrGeoCoordinate">
+        <loc:openlrCoordinates>
+          <loc:latitude>58.83439971195232</loc:latitude>
+          <loc:longitude>20.76750561694123</loc:longitude>
+        </loc:openlrCoordinates>
+      </loc:openlrPointLocationReference>
+    </sit:locationReference>
+    <sit:trafficConstrictionType>roadPartiallyObstructed</sit:trafficConstrictionType>
+    <sit:poorEnvironmentType>rain</sit:poorEnvironmentType>
+  </sit:situationRecord>
+</sit:situation><sit:situation id="65829e13c437271ef2666577">
+  <sit:headerInformation>
+    <com:confidentiality>noRestriction</com:confidentiality>
+    <com:allowedDeliveryChannel>anyGeneralDeliveryService</com:allowedDeliveryChannel>
+    <com:informationStatus>real</com:informationStatus>
+  </sit:headerInformation>
+  <sit:situationRecord version="1" id="65829e13c437271ef2666577" xsi:type="sit:PoorEnvironmentConditions">
+    <sit:situationRecordCreationTime>2023-12-20T09:56:03+02:00</sit:situationRecordCreationTime>
+    <sit:situationRecordVersionTime>2023-12-20T09:56:09+02:00</sit:situationRecordVersionTime>
+    <sit:probabilityOfOccurrence>certain</sit:probabilityOfOccurrence>
+    <sit:safetyRelatedMessage>false</sit:safetyRelatedMessage>
+    <sit:source>
+      <com:sourceCountry>lv</com:sourceCountry>
+      <com:sourceIdentification>latvia</com:sourceIdentification>
+      <com:sourceName>
+        <com:values>
+          <com:value>LVC nodaļa "nodaļa"</com:value>
+        </com:values>
+      </com:sourceName>
+    </sit:source>
+    <sit:validity>
+      <com:validityStatus>active</com:validityStatus>
+      <com:overrunning>true</com:overrunning>
+      <com:validityTimeSpecification>
+        <com:overallStartTime>2023-12-20T09:56:09+02:00</com:overallStartTime>
+      </com:validityTimeSpecification>
+    </sit:validity>
+    <sit:impact>
+      <sit:delays>
+        <sit:delayTimeValue>0</sit:delayTimeValue>
+      </sit:delays>
+    </sit:impact>
+    <sit:generalPublicComment>
+      <sit:comment>
+        <com:values>
+          <com:value>Some Comment</com:value>
+        </com:values>
+      </sit:comment>
+    </sit:generalPublicComment>
+    <sit:locationReference xsi:type="loc:PointLocation">
+      <loc:openlrPointLocationReference xsi:type="loc:OpenlrGeoCoordinate">
+        <loc:openlrCoordinates>
+          <loc:latitude>58.83439971195232</loc:latitude>
+          <loc:longitude>20.76750561694123</loc:longitude>
+        </loc:openlrCoordinates>
+      </loc:openlrPointLocationReference>
+    </sit:locationReference>
+    <sit:trafficConstrictionType>carriagewayPartiallyObstructed</sit:trafficConstrictionType>
+    <sit:poorEnvironmentType>snowChangingToRain</sit:poorEnvironmentType>
+  </sit:situationRecord>
+</sit:situation></d2:payload>

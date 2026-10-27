@@ -1,0 +1,174 @@
+<d2:payload xmlns:d2="http://datex2.eu/schema/3/d2Payload"
+  xmlns:com="http://datex2.eu/schema/3/common"
+  xmlns:loc="http://datex2.eu/schema/3/locationReferencing"
+  xmlns:egi="http://datex2.eu/schema/3/energyInfrastructure"
+  xmlns:fac="http://datex2.eu/schema/3/facilities"
+  xmlns:roa="http://datex2.eu/schema/3/roadTrafficData"
+  xmlns:sit="http://datex2.eu/schema/3/situation" xmlns:vms="http://datex2.eu/schema/3/vms"
+  xmlns:prk="http://datex2.eu/schema/3/parking"
+  xmlns:comx="http://datex2.eu/schema/3/commonExtension"
+  xmlns:locx="http://datex2.eu/schema/3/locationExtension"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://datex2.eu/schema/3/d2Payload DATEXII_3_D2Payload.xsd
+                      http://datex2.eu/schema/3/common DATEXII_3_Common.xsd
+                      http://datex2.eu/schema/3/energyInfrastructure DATEXII_3_EnergyInfrastructure.xsd
+                      http://datex2.eu/schema/3/facilities DATEXII_3_Facilities.xsd
+                      http://datex2.eu/schema/3/locationExtension DATEXII_3_LocationExtension.xsd
+                      http://datex2.eu/schema/3/locationReferencing DATEXII_3_LocationReferencing.xsd
+                      http://datex2.eu/schema/3/parking DATEXII_3_Parking.xsd
+                      http://datex2.eu/schema/3/roadTrafficData DATEXII_3_RoadTrafficData.xsd
+                      http://datex2.eu/schema/3/situation DATEXII_3_Situation.xsd
+                      http://datex2.eu/schema/3/vms DATEXII_3_Vms.xsd
+                      http://datex2.eu/schema/3/commonExtension DATEXII_3_CommonExtension.xsd"
+  xsi:type="sit:SituationPublication" lang="en-US" modelBaseVersion="3">
+  <com:feedDescription>
+		<com:values>
+			<com:value lang="lv-LV">Nosaukums: Dzīvnieki, cilvēki, šķēršļi, atkritumi uz ceļa, Url:
+				https://transportdata.gov.lv/card/288704ab-32e7-49e2-90a5-a3840efac062</com:value>
+			<com:value lang="en-EN">Name: Animal,people, obstacles,debris on the road, Url:
+				https://transportdata.gov.lv/card/288704ab-32e7-49e2-90a5-a3840efac062</com:value>
+		</com:values>
+	</com:feedDescription>
+	<com:feedType>Unexpected road events and conditions - Accidents and incidents</com:feedType>
+  <com:publicationTime>2024-05-07T08:19:49.351Z</com:publicationTime>
+  <com:publicationCreator>
+    <com:country>lv</com:country>
+    <com:nationalIdentifier>latvia</com:nationalIdentifier>
+  </com:publicationCreator>
+  <sit:situation id="6581ceafc437271ef2666557">
+    <sit:headerInformation>
+      <com:confidentiality>noRestriction</com:confidentiality>
+      <com:allowedDeliveryChannel>anyGeneralDeliveryService</com:allowedDeliveryChannel>
+      <com:informationStatus>real</com:informationStatus>
+    </sit:headerInformation>
+    <sit:situationRecord version="1" id="6581ceafc437271ef2666557"
+      xsi:type="sit:AnimalPresenceObstruction">
+      <sit:situationRecordCreationTime>2023-12-19T19:11:11+02:00</sit:situationRecordCreationTime>
+      <sit:situationRecordVersionTime>2023-12-19T19:11:14+02:00</sit:situationRecordVersionTime>
+      <sit:probabilityOfOccurrence>certain</sit:probabilityOfOccurrence>
+      <sit:safetyRelatedMessage>true</sit:safetyRelatedMessage>
+      <sit:source>
+        <com:sourceCountry>lv</com:sourceCountry>
+        <com:sourceIdentification>latvia</com:sourceIdentification>
+        <com:sourceName>
+          <com:values>
+            <com:value>Source name</com:value>
+          </com:values>
+        </com:sourceName>
+      </sit:source>
+      <sit:validity>
+        <com:validityStatus>active</com:validityStatus>
+        <com:overrunning>true</com:overrunning>
+        <com:validityTimeSpecification>
+          <com:overallStartTime>2023-12-19T19:11:14+02:00</com:overallStartTime>
+        </com:validityTimeSpecification>
+      </sit:validity>
+      <sit:impact>
+        <sit:delays>
+          <sit:delayTimeValue>0</sit:delayTimeValue>
+        </sit:delays>
+      </sit:impact>
+      <sit:locationReference xsi:type="loc:PointLocation">
+        <loc:openlrPointLocationReference xsi:type="loc:OpenlrGeoCoordinate">
+          <loc:openlrCoordinates>
+            <loc:latitude>58.83439971195232</loc:latitude>
+            <loc:longitude>20.76750561694123</loc:longitude>
+          </loc:openlrCoordinates>
+        </loc:openlrPointLocationReference>
+      </sit:locationReference>
+      <sit:trafficConstrictionType>lanesPartiallyObstructed</sit:trafficConstrictionType>
+      <sit:alive>false</sit:alive>
+      <sit:animalPresenceType>largeAnimalsOnTheRoad</sit:animalPresenceType>
+    </sit:situationRecord>
+  </sit:situation>
+  <sit:situation id="65f00c18bbf0f4175cc12a78">
+    <sit:headerInformation>
+      <com:confidentiality>noRestriction</com:confidentiality>
+      <com:allowedDeliveryChannel>anyGeneralDeliveryService</com:allowedDeliveryChannel>
+      <com:informationStatus>real</com:informationStatus>
+    </sit:headerInformation>
+    <sit:situationRecord version="1" id="65f00c18bbf0f4175cc12a78"
+      xsi:type="sit:AnimalPresenceObstruction">
+      <sit:situationRecordCreationTime>2024-03-12T10:02:32+02:00</sit:situationRecordCreationTime>
+      <sit:situationRecordVersionTime>2024-03-12T10:02:32+02:00</sit:situationRecordVersionTime>
+      <sit:probabilityOfOccurrence>certain</sit:probabilityOfOccurrence>
+      <sit:safetyRelatedMessage>true</sit:safetyRelatedMessage>
+      <sit:source>
+        <com:sourceCountry>lv</com:sourceCountry>
+        <com:sourceIdentification>latvia</com:sourceIdentification>
+        <com:sourceName>
+          <com:values>
+            <com:value>Source name</com:value>
+          </com:values>
+        </com:sourceName>
+      </sit:source>
+      <sit:validity>
+        <com:validityStatus>active</com:validityStatus>
+        <com:overrunning>true</com:overrunning>
+        <com:validityTimeSpecification>
+          <com:overallStartTime>2024-03-12T09:37:00+02:00</com:overallStartTime>
+        </com:validityTimeSpecification>
+      </sit:validity>
+      <sit:impact>
+        <sit:delays>
+          <sit:delayTimeValue>0</sit:delayTimeValue>
+        </sit:delays>
+      </sit:impact>
+      <sit:locationReference xsi:type="loc:PointLocation">
+        <loc:openlrPointLocationReference xsi:type="loc:OpenlrGeoCoordinate">
+          <loc:openlrCoordinates>
+            <loc:latitude>58.83439971195232</loc:latitude>
+            <loc:longitude>20.76750561694123</loc:longitude>
+          </loc:openlrCoordinates>
+        </loc:openlrPointLocationReference>
+      </sit:locationReference>
+      <sit:trafficConstrictionType>carriagewayBlocked</sit:trafficConstrictionType>
+      <sit:alive>true</sit:alive>
+      <sit:animalPresenceType>animalsOnTheRoad</sit:animalPresenceType>
+    </sit:situationRecord>
+  </sit:situation>
+  <sit:situation id="65e9ac60bbf0f4175cc12a72">
+    <sit:headerInformation>
+      <com:confidentiality>noRestriction</com:confidentiality>
+      <com:allowedDeliveryChannel>anyGeneralDeliveryService</com:allowedDeliveryChannel>
+      <com:informationStatus>real</com:informationStatus>
+    </sit:headerInformation>
+    <sit:situationRecord version="1" id="65e9ac60bbf0f4175cc12a72" xsi:type="sit:VehicleObstruction">
+      <sit:situationRecordCreationTime>2024-03-07T14:00:32+02:00</sit:situationRecordCreationTime>
+      <sit:situationRecordVersionTime>2024-03-07T14:05:42+02:00</sit:situationRecordVersionTime>
+      <sit:probabilityOfOccurrence>certain</sit:probabilityOfOccurrence>
+      <sit:safetyRelatedMessage>true</sit:safetyRelatedMessage>
+      <sit:source>
+        <com:sourceCountry>lv</com:sourceCountry>
+        <com:sourceIdentification>latvia</com:sourceIdentification>
+        <com:sourceName>
+          <com:values>
+            <com:value>LVC nodaļa "testa"</com:value>
+          </com:values>
+        </com:sourceName>
+      </sit:source>
+      <sit:validity>
+        <com:validityStatus>active</com:validityStatus>
+        <com:overrunning>true</com:overrunning>
+        <com:validityTimeSpecification>
+          <com:overallStartTime>2024-03-07T13:57:02+02:00</com:overallStartTime>
+        </com:validityTimeSpecification>
+      </sit:validity>
+      <sit:impact>
+        <sit:delays>
+          <sit:delayTimeValue>0</sit:delayTimeValue>
+        </sit:delays>
+      </sit:impact>
+      <sit:locationReference xsi:type="loc:PointLocation">
+        <loc:openlrPointLocationReference xsi:type="loc:OpenlrGeoCoordinate">
+          <loc:openlrCoordinates>
+            <loc:latitude>58.83439971195232</loc:latitude>
+            <loc:longitude>20.76750561694123</loc:longitude>
+          </loc:openlrCoordinates>
+        </loc:openlrPointLocationReference>
+      </sit:locationReference>
+      <sit:trafficConstrictionType>carriagewayBlocked</sit:trafficConstrictionType>
+      <sit:vehicleObstructionType>vehicleOnFire</sit:vehicleObstructionType>
+    </sit:situationRecord>
+  </sit:situation>
+</d2:payload>

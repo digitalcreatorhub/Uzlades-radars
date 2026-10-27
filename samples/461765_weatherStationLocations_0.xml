@@ -1,0 +1,160 @@
+<d2:payload xmlns:d2="http://datex2.eu/schema/3/d2Payload"
+  xmlns:com="http://datex2.eu/schema/3/common"
+  xmlns:loc="http://datex2.eu/schema/3/locationReferencing"
+  xmlns:egi="http://datex2.eu/schema/3/energyInfrastructure"
+  xmlns:fac="http://datex2.eu/schema/3/facilities"
+  xmlns:roa="http://datex2.eu/schema/3/roadTrafficData"
+  xmlns:sit="http://datex2.eu/schema/3/situation"
+  xmlns:vms="http://datex2.eu/schema/3/vms"
+  xmlns:prk="http://datex2.eu/schema/3/parking"
+  xmlns:comx="http://datex2.eu/schema/3/commonExtension"
+  xmlns:locx="http://datex2.eu/schema/3/locationExtension"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://datex2.eu/schema/3/d2Payload DATEXII_3_D2Payload.xsd http://datex2.eu/schema/3/common DATEXII_3_Common.xsd http://datex2.eu/schema/3/energyInfrastructure DATEXII_3_EnergyInfrastructure.xsd http://datex2.eu/schema/3/facilities DATEXII_3_Facilities.xsd http://datex2.eu/schema/3/locationExtension DATEXII_3_LocationExtension.xsd http://datex2.eu/schema/3/locationReferencing DATEXII_3_LocationReferencing.xsd http://datex2.eu/schema/3/parking DATEXII_3_Parking.xsd http://datex2.eu/schema/3/roadTrafficData DATEXII_3_RoadTrafficData.xsd http://datex2.eu/schema/3/situation DATEXII_3_Situation.xsd http://datex2.eu/schema/3/vms DATEXII_3_Vms.xsd http://datex2.eu/schema/3/commonExtension DATEXII_3_CommonExtension.xsd" xsi:type="roa:MeasurementSiteTablePublication" lang="en-US" modelBaseVersion="3">
+  <com:feedDescription>
+    <com:values>
+      <com:value lang="lv-LV">Nosaukums: Meteostaciju atrašanās vietas, Url: https://transportdata.gov.lv/card/79c07f65-8d79-452c-9e77-f688eb009b5e</com:value>
+      <com:value lang="en-EN">Name: Weather station locations, Url: https://transportdata.gov.lv/card/79c07f65-8d79-452c-9e77-f688eb009b5e</com:value>
+    </com:values>
+  </com:feedDescription>
+  <com:feedType>Other - Other</com:feedType>
+  <com:publicationTime>2025-11-08T14:42:53.423Z</com:publicationTime>
+  <com:publicationCreator>
+    <com:country>lv</com:country>
+    <com:nationalIdentifier>latvia</com:nationalIdentifier>
+  </com:publicationCreator>
+  <roa:headerInformation>
+    <com:confidentiality>internalUse</com:confidentiality>
+    <com:informationStatus>real</com:informationStatus>
+  </roa:headerInformation>
+  <roa:measurementSiteTable id="1" version="1.0">
+    <roa:measurementSite id="653a7c8e71c4afcac9384967" version="1.0">
+      <roa:measurementSiteRecordVersionTime>2025-11-08T12:42:52.492Z</roa:measurementSiteRecordVersionTime>
+      <roa:measurementEquipmentTypeUsed>
+        <com:values>
+          <com:value>Road Weather Stations (RWS)</com:value>
+        </com:values>
+      </roa:measurementEquipmentTypeUsed>
+      <roa:measurementSiteName>
+        <com:values>
+          <com:value>Site name 1</com:value>
+        </com:values>
+      </roa:measurementSiteName>
+      <roa:measurementSpecificCharacteristics index="1">
+        <roa:measurementSpecificCharacteristics>
+          <roa:period>60</roa:period>
+          <roa:specificMeasurementValueType>roadSurfaceConditionInformation</roa:specificMeasurementValueType>
+        </roa:measurementSpecificCharacteristics>
+      </roa:measurementSpecificCharacteristics>
+      <roa:measurementSpecificCharacteristics index="2">
+        <roa:measurementSpecificCharacteristics>
+          <roa:period>60</roa:period>
+          <roa:specificMeasurementValueType>humidityInformation</roa:specificMeasurementValueType>
+        </roa:measurementSpecificCharacteristics>
+      </roa:measurementSpecificCharacteristics>
+      <roa:measurementSpecificCharacteristics index="3">
+        <roa:measurementSpecificCharacteristics>
+          <roa:period>60</roa:period>
+          <roa:specificMeasurementValueType>precipitationInformation</roa:specificMeasurementValueType>
+        </roa:measurementSpecificCharacteristics>
+      </roa:measurementSpecificCharacteristics>
+      <roa:measurementSpecificCharacteristics index="4">
+        <roa:measurementSpecificCharacteristics>
+          <roa:period>60</roa:period>
+          <roa:specificMeasurementValueType>temperatureInformation</roa:specificMeasurementValueType>
+        </roa:measurementSpecificCharacteristics>
+      </roa:measurementSpecificCharacteristics>
+      <roa:measurementSpecificCharacteristics index="5">
+        <roa:measurementSpecificCharacteristics>
+          <roa:period>60</roa:period>
+          <roa:specificMeasurementValueType>windInformation</roa:specificMeasurementValueType>
+        </roa:measurementSpecificCharacteristics>
+      </roa:measurementSpecificCharacteristics>
+      <roa:measurementSiteLocation xsi:type="loc:PointLocation">
+        <loc:pointByCoordinates>
+          <loc:pointCoordinates>
+            <loc:latitude>57.428185485657714</loc:latitude>
+            <loc:longitude>22.91452490413539</loc:longitude>
+          </loc:pointCoordinates>
+        </loc:pointByCoordinates>
+      </roa:measurementSiteLocation>
+    </roa:measurementSite>
+    <roa:measurementSite id="654df80d8be580498d0e5235" version="1.0">
+      <roa:measurementSiteRecordVersionTime>2025-11-08T12:42:52.531Z</roa:measurementSiteRecordVersionTime>
+      <roa:measurementEquipmentTypeUsed>
+        <com:values>
+          <com:value>Road Weather Stations (RWS)</com:value>
+        </com:values>
+      </roa:measurementEquipmentTypeUsed>
+      <roa:measurementSiteName>
+        <com:values>
+          <com:value>Site name 2</com:value>
+        </com:values>
+      </roa:measurementSiteName>
+      <roa:measurementSpecificCharacteristics index="1">
+        <roa:measurementSpecificCharacteristics>
+          <roa:period>60</roa:period>
+          <roa:specificMeasurementValueType>roadSurfaceConditionInformation</roa:specificMeasurementValueType>
+        </roa:measurementSpecificCharacteristics>
+      </roa:measurementSpecificCharacteristics>
+      <roa:measurementSiteLocation xsi:type="loc:PointLocation">
+        <loc:pointByCoordinates>
+          <loc:pointCoordinates>
+            <loc:latitude>56.735446809204454</loc:latitude>
+            <loc:longitude>23.868000489016755</loc:longitude>
+          </loc:pointCoordinates>
+        </loc:pointByCoordinates>
+      </roa:measurementSiteLocation>
+    </roa:measurementSite>
+    <roa:measurementSite id="653a7c8e71c4afcac9384966" version="1.0">
+      <roa:measurementSiteRecordVersionTime>2025-11-08T12:42:52.491Z</roa:measurementSiteRecordVersionTime>
+      <roa:measurementEquipmentTypeUsed>
+        <com:values>
+          <com:value>Road Weather Stations (RWS)</com:value>
+        </com:values>
+      </roa:measurementEquipmentTypeUsed>
+      <roa:measurementSiteName>
+        <com:values>
+          <com:value>Site name 3</com:value>
+        </com:values>
+      </roa:measurementSiteName>
+      <roa:measurementSpecificCharacteristics index="1">
+        <roa:measurementSpecificCharacteristics>
+          <roa:period>60</roa:period>
+          <roa:specificMeasurementValueType>roadSurfaceConditionInformation</roa:specificMeasurementValueType>
+        </roa:measurementSpecificCharacteristics>
+      </roa:measurementSpecificCharacteristics>
+      <roa:measurementSpecificCharacteristics index="2">
+        <roa:measurementSpecificCharacteristics>
+          <roa:period>60</roa:period>
+          <roa:specificMeasurementValueType>humidityInformation</roa:specificMeasurementValueType>
+        </roa:measurementSpecificCharacteristics>
+      </roa:measurementSpecificCharacteristics>
+      <roa:measurementSpecificCharacteristics index="3">
+        <roa:measurementSpecificCharacteristics>
+          <roa:period>60</roa:period>
+          <roa:specificMeasurementValueType>precipitationInformation</roa:specificMeasurementValueType>
+        </roa:measurementSpecificCharacteristics>
+      </roa:measurementSpecificCharacteristics>
+      <roa:measurementSpecificCharacteristics index="4">
+        <roa:measurementSpecificCharacteristics>
+          <roa:period>60</roa:period>
+          <roa:specificMeasurementValueType>temperatureInformation</roa:specificMeasurementValueType>
+        </roa:measurementSpecificCharacteristics>
+      </roa:measurementSpecificCharacteristics>
+      <roa:measurementSpecificCharacteristics index="5">
+        <roa:measurementSpecificCharacteristics>
+          <roa:period>60</roa:period>
+          <roa:specificMeasurementValueType>windInformation</roa:specificMeasurementValueType>
+        </roa:measurementSpecificCharacteristics>
+      </roa:measurementSpecificCharacteristics>
+      <roa:measurementSiteLocation xsi:type="loc:PointLocation">
+        <loc:pointByCoordinates>
+          <loc:pointCoordinates>
+            <loc:latitude>56.58145609951948</loc:latitude>
+            <loc:longitude>23.44391645593256</loc:longitude>
+          </loc:pointCoordinates>
+        </loc:pointByCoordinates>
+      </roa:measurementSiteLocation>
+    </roa:measurementSite>
+  </roa:measurementSiteTable>
+</d2:payload>

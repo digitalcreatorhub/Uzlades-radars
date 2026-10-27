@@ -1,0 +1,132 @@
+<d2:payload xmlns:d2="http://datex2.eu/schema/3/d2Payload" xmlns:com="http://datex2.eu/schema/3/common" xmlns:loc="http://datex2.eu/schema/3/locationReferencing" xmlns:egi="http://datex2.eu/schema/3/energyInfrastructure" xmlns:fac="http://datex2.eu/schema/3/facilities" xmlns:roa="http://datex2.eu/schema/3/roadTrafficData" xmlns:sit="http://datex2.eu/schema/3/situation" xmlns:vms="http://datex2.eu/schema/3/vms" xmlns:prk="http://datex2.eu/schema/3/parking" xmlns:comx="http://datex2.eu/schema/3/commonExtension" xmlns:locx="http://datex2.eu/schema/3/locationExtension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://datex2.eu/schema/3/d2Payload DATEXII_3_D2Payload.xsd http://datex2.eu/schema/3/common DATEXII_3_Common.xsd http://datex2.eu/schema/3/energyInfrastructure DATEXII_3_EnergyInfrastructure.xsd http://datex2.eu/schema/3/facilities DATEXII_3_Facilities.xsd http://datex2.eu/schema/3/locationExtension DATEXII_3_LocationExtension.xsd http://datex2.eu/schema/3/locationReferencing DATEXII_3_LocationReferencing.xsd http://datex2.eu/schema/3/parking DATEXII_3_Parking.xsd http://datex2.eu/schema/3/roadTrafficData DATEXII_3_RoadTrafficData.xsd http://datex2.eu/schema/3/situation DATEXII_3_Situation.xsd http://datex2.eu/schema/3/vms DATEXII_3_Vms.xsd http://datex2.eu/schema/3/commonExtension DATEXII_3_CommonExtension.xsd" xsi:type="egi:EnergyInfrastructureTablePublication" lang="en-US" modelBaseVersion="3">
+<com:feedDescription>
+  <com:values>
+    <com:value lang="lv-LV">Nosaukums: Saspiestās dabasgāzes, sašķidrinātās dabasgāzes,
+      sašķidrinātās naftas gāzes uzpildes staciju atrašanās vietas, Url:
+      https://transportdata.gov.lv/card/076beef1-3768-4156-b29e-36cbdeb3cbb8</com:value>
+    <com:value lang="en-EN">Name: Alternative fuel RSP, Url:
+      https://transportdata.gov.lv/card/076beef1-3768-4156-b29e-36cbdeb3cbb8</com:value>
+  </com:values>
+</com:feedDescription>
+<com:feedType>Filling and charging stations - Location and conditions of filling stations</com:feedType>  
+<com:publicationTime>2024-04-30T09:53:42.187Z</com:publicationTime>
+  <com:publicationCreator>
+    <com:country>lv</com:country>
+    <com:nationalIdentifier>latvia</com:nationalIdentifier>
+  </com:publicationCreator>
+  <egi:energyInfrastructureTable id="1" version="1.0">
+    <egi:energyInfrastructureSite id="662a54f157b79509e7d24f70" version="1.0">
+      <egi:entrance xsi:type="loc:PointLocation">
+        <loc:pointByCoordinates>
+          <loc:pointCoordinates>
+            <loc:latitude>55.87762603030545</loc:latitude>
+            <loc:longitude>26.488632101379054</loc:longitude>
+          </loc:pointCoordinates>
+        </loc:pointByCoordinates>
+      </egi:entrance>
+      <egi:energyInfrastructureStation id="662a54f157b79509e7d24f70" version="1.0">
+        <egi:energyProvider id="662a54f157b79509e7d24f70" version="1.0" xsi:type="fac:OrganisationSpecification">
+          <fac:lastUpdated>2024-04-25T16:04:49+03:00</fac:lastUpdated>
+          <fac:name>
+            <com:values>
+              <com:value>DUS Daugavpils, Daugavpils, Kārklu iela 22, Daugavpils</com:value>
+            </com:values>
+          </fac:name>
+          <fac:organisationUnit>
+            <fac:contactInformation>
+              <fac:telephoneNumber>22220022</fac:telephoneNumber>
+              <fac:eMail>example@mail.com</fac:eMail>
+            </fac:contactInformation>
+          </fac:organisationUnit>
+        </egi:energyProvider>
+        <egi:refillPoint id="662a54f157b79509e7d24f70" version="1.0" xsi:type="egi:OrganicGasRefillPoint">
+          <fac:operatingHours xsi:type="fac:OpenAllHours"/>
+          <fac:rates xsi:type="fac:GeneralRateInformation">
+            <fac:paymentMethod>
+              <fac:paymentMeans>paymentCreditCard</fac:paymentMeans>
+              <fac:paymentMeans>mobileAccount</fac:paymentMeans>
+            </fac:paymentMethod>
+          </fac:rates>
+          <egi:organicGasType>lng</egi:organicGasType>
+        </egi:refillPoint>
+      </egi:energyInfrastructureStation>
+    </egi:energyInfrastructureSite><egi:energyInfrastructureSite id="662ba0123f470e05f16b1f57" version="1.0">
+      <egi:entrance xsi:type="loc:PointLocation">
+        <loc:pointByCoordinates>
+          <loc:pointCoordinates>
+            <loc:latitude>55.87762603030545</loc:latitude>
+            <loc:longitude>26.488632101379054</loc:longitude>
+          </loc:pointCoordinates>
+        </loc:pointByCoordinates>
+      </egi:entrance>
+      <egi:energyInfrastructureStation id="662ba0123f470e05f16b1f57" version="1.0">
+        <egi:energyProvider id="662ba0123f470e05f16b1f57" version="1.0" xsi:type="fac:OrganisationSpecification">
+          <fac:lastUpdated>2024-04-26T15:37:38+03:00</fac:lastUpdated>
+          <fac:name>
+            <com:values>
+              <com:value>DUS Auce, Auce, Raiņa iela 30, Auce, Dobeles nov., LV-3708</com:value>
+            </com:values>
+          </fac:name>
+          <fac:organisationUnit>
+            <fac:contactInformation>
+              <fac:telephoneNumber>22222222</fac:telephoneNumber>
+              <fac:eMail>example@mail.com</fac:eMail>
+            </fac:contactInformation>
+          </fac:organisationUnit>
+        </egi:energyProvider>
+        <egi:refillPoint id="662ba0123f470e05f16b1f57" version="1.0" xsi:type="egi:OrganicGasRefillPoint">
+          <fac:operatingHours xsi:type="fac:OperatingHoursSpecification" id="662a54e657b79509e7d24efd" version="1">
+            <fac:operatingAllYear>true</fac:operatingAllYear>
+            <fac:overallPeriod>
+              <com:overallStartTime>2024-04-25T16:04:38+03:00</com:overallStartTime>
+              <com:validPeriod>
+                <com:recurringTimePeriodOfDay>
+                  <com:startTimeOfPeriod>06:00:00</com:startTimeOfPeriod>
+                  <com:endTimeOfPeriod>23:00:00</com:endTimeOfPeriod>
+                </com:recurringTimePeriodOfDay>
+              </com:validPeriod>
+            </fac:overallPeriod>
+          </fac:operatingHours>
+          <fac:rates xsi:type="fac:GeneralRateInformation">
+            <fac:paymentMethod>
+              <fac:paymentMeans>mobileAccount</fac:paymentMeans>
+            </fac:paymentMethod>
+          </fac:rates>
+          <egi:organicGasType>lpg</egi:organicGasType>
+        </egi:refillPoint>
+      </egi:energyInfrastructureStation>
+    </egi:energyInfrastructureSite><egi:energyInfrastructureSite id="65b67675b8e30c9dc56b9272" version="1.0">
+      <egi:entrance xsi:type="loc:PointLocation">
+        <loc:pointByCoordinates>
+          <loc:pointCoordinates>
+            <loc:latitude>20.682843704005865</loc:latitude>
+            <loc:longitude>58.6321873861356</loc:longitude>
+          </loc:pointCoordinates>
+        </loc:pointByCoordinates>
+      </egi:entrance>
+      <egi:energyInfrastructureStation id="65b67675b8e30c9dc56b9272" version="1.0">
+        <egi:energyProvider id="65b67675b8e30c9dc56b9272" version="1.0" xsi:type="fac:OrganisationSpecification">
+          <fac:lastUpdated>2024-01-28T15:45:58.342Z</fac:lastUpdated>
+          <fac:name>
+            <com:values>
+              <com:value>RP SIA Rīgas satiksme, Rīga, Vienības gatve, 6</com:value>
+            </com:values>
+          </fac:name>
+          <fac:organisationUnit>
+            <fac:contactInformation>
+              <fac:telephoneNumber>22222222</fac:telephoneNumber>
+              <fac:eMail>example@mail.com</fac:eMail>
+            </fac:contactInformation>
+          </fac:organisationUnit>
+        </egi:energyProvider>
+        <egi:refillPoint id="65b67675b8e30c9dc56b9272" version="1.0" xsi:type="egi:HydrogenRefillPoint">
+          <fac:operatingHours xsi:type="fac:OpenAllHours"/>
+          <fac:rates xsi:type="fac:GeneralRateInformation">
+            <fac:paymentMethod>
+              <fac:paymentMeans>paymentCreditCard</fac:paymentMeans>
+            </fac:paymentMethod>
+          </fac:rates>
+          <egi:refillSolution>liquidHydrogen</egi:refillSolution>
+        </egi:refillPoint>
+      </egi:energyInfrastructureStation>
+    </egi:energyInfrastructureSite></egi:energyInfrastructureTable></d2:payload>

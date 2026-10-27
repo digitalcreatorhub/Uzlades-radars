@@ -1,0 +1,150 @@
+<VmsPublication modelBaseVersion="3" xsi:type="vms:VmsPublication" xmlns="http://datex2.eu/schema/3/d2Payload" xmlns:vms="http://datex2.eu/schema/3/vms" xmlns:com="http://datex2.eu/schema/3/common" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" lang="en">
+  <com:feedDescription>
+    <com:values>
+      <com:value lang="lv-LV">Nosaukums: Mainīgās ceļa zīmes (E77), Url: https://transportdata.gov.lv/card/af6cc32a-10a3-45dd-a102-717ddba52751</com:value>
+      <com:value lang="en-EN">Name: Variable message signs (E77), Url: https://transportdata.gov.lv/card/af6cc32a-10a3-45dd-a102-717ddba52751</com:value>
+    </com:values>
+  </com:feedDescription>
+  <com:feedType>Dynamic traffic signs and regulations - Other temporary traffic management measures or plans</com:feedType>
+  <com:publicationTime>2024-05-21T12:36:35+03:00</com:publicationTime>
+  <com:publicationCreator>
+    <com:country>LV</com:country>
+    <com:nationalIdentifier>LVCELI</com:nationalIdentifier>
+  </com:publicationCreator>
+  <vms:headerInformation>
+    <com:confidentiality>noRestriction</com:confidentiality>
+    <com:informationStatus>real</com:informationStatus>
+  </vms:headerInformation>
+  <vms:vmsControllerStatus>
+    <vms:vmsControllerTableReference id="LVC-01" targetClass="vms:VmsControllerTable" version="1"></vms:vmsControllerTableReference>
+    <vms:vmsControllerReference id="LVC-01-21" targetClass="vms:VmsController" version="1"></vms:vmsControllerReference>
+    <vms:vmsStatus vmsIndex="21">
+      <vms:vmsStatus>
+        <vms:workingStatus>working</vms:workingStatus>
+        <vms:vmsMessage messageIndex="1">
+          <vms:vmsMessage>
+            <vms:timeLastSet>2024-05-21T12:36:35+03:00</vms:timeLastSet>
+            <vms:sequencingInterval>1</vms:sequencingInterval>
+            <vms:displayAreaSettings displayAreaIndex="1">
+              <vms:displayAreaSettings xsi:type="vms:PictogramDisplay">
+                <vms:isBlank>false</vms:isBlank>
+                <vms:pictogram xmlns:vms="http://datex2.eu/schema/3/vms" xsi:type="vms:RegularPictogram">
+                  <vms:pictogramInformationType>obligation</vms:pictogramInformationType>
+                  <vms:presenceOfRedTriangle>false</vms:presenceOfRedTriangle>
+                  <gddStructure>
+                    <gddPictogramIdentification>
+                      <country>LV</country>
+                      <serviceCategory>regulatory</serviceCategory>
+                      <pictogramCategoryCode>616</pictogramCategoryCode>
+                    </gddPictogramIdentification>
+                  </gddStructure>
+                  <vms:displayedNumericalInformation>
+                    <vms:numericalInformationType>speed</vms:numericalInformationType>
+                    <vms:numericValue>110</vms:numericValue>
+                    <vms:unitOfMeasure>kilometresPerHour</vms:unitOfMeasure>
+                  </vms:displayedNumericalInformation>
+                </vms:pictogram>
+                <vms:legallyBinding>false</vms:legallyBinding>
+              </vms:displayAreaSettings>
+            </vms:displayAreaSettings>
+            <vms:image>
+              <vms:imageData>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</vms:imageData>
+              <vms:imageFormat>png</vms:imageFormat>
+              <_imageExtension>
+                <fileName>SWM_7_110_48x48.BMP</fileName>
+              </_imageExtension>
+            </vms:image>
+          </vms:vmsMessage>
+        </vms:vmsMessage>
+      </vms:vmsStatus>
+    </vms:vmsStatus>
+  </vms:vmsControllerStatus>
+  <vms:vmsControllerStatus>
+    <vms:vmsControllerTableReference id="LVC-01" targetClass="vms:VmsControllerTable" version="1"></vms:vmsControllerTableReference>
+    <vms:vmsControllerReference id="LVC-01-78" targetClass="vms:VmsController" version="1"></vms:vmsControllerReference>
+    <vms:vmsStatus vmsIndex="78">
+      <vms:vmsStatus>
+        <vms:workingStatus>working</vms:workingStatus>
+        <vms:vmsMessage messageIndex="1">
+          <vms:vmsMessage>
+            <vms:timeLastSet>2024-05-21T12:36:35+03:00</vms:timeLastSet>
+            <vms:sequencingInterval>1</vms:sequencingInterval>
+            <vms:displayAreaSettings displayAreaIndex="1">
+              <vms:displayAreaSettings xsi:type="vms:PictogramDisplay">
+                <vms:isBlank>false</vms:isBlank>
+                <vms:pictogram xmlns:vms="http://datex2.eu/schema/3/vms" xsi:type="vms:RegularPictogram">
+                  <vms:pictogramInformationType>obligation</vms:pictogramInformationType>
+                  <vms:presenceOfRedTriangle>false</vms:presenceOfRedTriangle>
+                  <gddStructure>
+                    <gddPictogramIdentification>
+                      <country>LV</country>
+                      <serviceCategory>regulatory</serviceCategory>
+                      <pictogramCategoryCode>616</pictogramCategoryCode>
+                    </gddPictogramIdentification>
+                  </gddStructure>
+                  <vms:displayedNumericalInformation>
+                    <vms:numericalInformationType>speed</vms:numericalInformationType>
+                    <vms:numericValue>110</vms:numericValue>
+                    <vms:unitOfMeasure>kilometresPerHour</vms:unitOfMeasure>
+                  </vms:displayedNumericalInformation>
+                </vms:pictogram>
+                <vms:legallyBinding>false</vms:legallyBinding>
+              </vms:displayAreaSettings>
+            </vms:displayAreaSettings>
+            <vms:image>
+              <vms:imageData>iVBORw0KGgoAAAANSUhEUgAAAFAAAADACAIAAAAcFXO5AAAIm0lEQVR4nOycf2wT1x3AHfLLzCUOGBFPJplj05UJxz/C2HrprpQcwnjKRuPQjYHSOKRaxR9RfzCNdRKVkmiT+sekZso/TKQFIYWsOIFoUtNWMpRGgaGNxU7SYGNip04MdlKM89thGUzZrcbzPfvufO8y5fE+6h/ue773vh/u3bv3K14necrAwqiDhVEHC6MOFkYdLIw6WBh1sDDqYGHUwcKog4VRBwujDhZGHSyMOlgYdbAw6mBh1MHCqIOFUQcLow4WRh0sjDpYGHWwMOpgYdTBwqiDhVEHC6MOFkYdLIw6WBh1sDDqYGHUwcKog4VRBwujDj9hqVQqWiRisRZjhkkmTTo7O1uESMQlHjNv4fz8fJlMJkJIIpIYcybCCwsLIkQlIpnHvKYbMw2/O5yfnw87HtERFDMCd/ipg1+Tzs3NFS0SsUiKmZ/wWmwegjotBMDCacnKyhItErFYizHDBDdp1MHCqIOFUQcLow4WRh0sjDpYGHWwMOpgYdTBwqiDhVEHC6MOFkYdLIw6WBh1sDDqYGHUwcKog4VRBwujDhZGHSyMOlgYdbAw6jx1wjlwi6uvtuyUZ2/558LmmemkrEWp1C/b6F3K/uLL0YHBYbj1cgfC3wOY9Loqw7bnY1P6HjfHS4Kk8mrxts9GJx1914UHwAtBwhRJ1JbKX+gbkgZjmZVw/RXDqcDiampnKGzS6xrK1earAxmrJrKa2pkI11db3pzwbHIlP6VCiKmk3bu/f+JMD8QygfD+07o2W9Wx7hvrw0tw48iZXS4bChCHiDtZslB4Em7hifC7wx8dqSQuuEQLRkL3Z8emssTrxnkIc7GNqaQDFc8NrSuYmFtyjo7H466vthRI80y5S6Zbt1mfBVGduQqz2nrN6p5ntraeZ38IrRbq0KbH6UsTz5mTcJut6kBHyi40SCpPFZR8eLGXV8UUSbytXJfm1e01qyv/cpNXmVxg77Tqqy3Hum+kyu05TFgv9jvdd/hW7A9MdIyMP/rZvvKZyZzZZeYXFKNRbS31sfM235LTwyJs0uv+GPgKGFBMJW1+sfz3nR8Lqf7GsGekTLdLk1sQmGPmbh+a+Gpfxa07fiFVJMEyeXjDuBU4tIippCe2b+fbjIE4+q4fm8oKkkpg7q8fhoRXkUi6O7zymH06BMw6/gNdd68DVhCh8OTNDUXV+cvMplQQmHvmsPmLQa6jdFbSzZZeL1kvAT28HYd/1P3NkOhgTU1hYeHKMznmdzguJ36NoipL1aUSiSQajdq7upIKea2hIfGqgcHhExaqNehkVnfQPdiSiRpPKJIYz1Mw/7v8k53x77S3n378De3tpxMvb25qmpubo7NcLleqLDrXaDTQWW22KmClb/ziACyvlM/wPu0WYPrvonkSicRoNLhcrqNHG5hfMBoNn/T2nnz3XeBvFDU3NSVl6fX6rq5u2rn9H2MRgxwQzPLXnI1YSCm8exzwprn+ioGe0zQ2Nur1euCFjY2N5v37UxX79vHjzESNRmOrs9EN274dUKy+x23S61Jb8AAsTJGEqg/QPXZG/megMj8/f62/H1jC/Py8z+dLSnytoSF+b30+X+v778ez9lRW0h9azl2KqQC/cVZl2MbmwgmwcIW6iJkYJJWJPbPP5ztw4KduD6D/9Pl8trq6zz+/kqbimhrrm2+9Zb9wgZk1UPEcM7Hs0Uya0rgDFtZmAd69blVx/HNHR4dWq03qluNZNTVWZrechNO50pPNzAI0+h9tYCaWhMLpC+QI+LVU8mCKmXh19kl7BqqyZnGk9XzPr/IUSYnARywDwHdYEXrATHSOjkOpkgvAgReUfgssDJyyruba6sK3AP2WUVssvGSuC/HAnnMtwlX4vqZQ5EhWCa7CsPqM/ztraW9pOvZQeCFgYa9ZzUy0Wijh9XGkeBjQoKBMSMHCi6AfsN2xGTAeEAOKJJirDrB6TbCwX7aRmQhrcMcKcKI2rgMvifAFLHxz+l/MRNM1D6wpC71yYDQaXnppDzNr1/0JZuKI4ttQ6gULf3ixl9mEpMGYwCmLf+zJctyZs2e7uro1Gg39v/fu3qU/UCTx7KdjzGsvhxeFVB0nZS8NnLIcdA8KqczhuDw4+N8SZDJZ3FYikdjtdvrD6yXrmRdGDHJYS2gphYFTlk2u6fdsglZb6upeZc6TW5qbT7e30y8C4I7EwPe+K6TSRFIu4rWe7zm6S8McVFuv/v0zkojv5QYngvRNC04Ek74Zz7rt8cQTnU5XTY3VVmejZ/z37t612+20bZpF2XN+mFuzKTlZ+zJwSe2v1A4xqjvz6n5gdR8dqYRYS7qRVsu5S8AlNVVfCG4Q9D8u1fk3YNapAJzuioZlaPnBtjJgOnHBBdH5ZO3Lv/xzHzCr5zAB9ygEy97SjWHPXmt5kQewSlo8Et5rLb+VIxe4Yd9mqzrSCV4JDJLKltFpuAcC2HcPb+XIzaps4BmHIs/XZlX20g+fz2D3kH7lthuKKi6B1xViKmlTkfpKf8qNy8xgFw6FJycN5XseRoF7iOvDS3u8wb3W8rBiqz8AGCEBoUjieKXxN5+4FKPRVN/54MfEqS4Im3VJcD0BYLVQrQ7Axk8iXrP6SmHxtbFwqqfOpNe9uEP7wrpZ1qMTf/o52XLuEsfYeMHjjEd9teW3zkEuB7MiBvl95cbE0W/p/ANFJMpxFUE8W96neKwW6j23G8phtFSIapvJwTSTXveH7+QDx/cCiRjkTZtLIW47A+F9MC0Unjx7+56ydt+zEfDZjMxwHNr1TnARep/MJPPDpSa97p2yLcLPqXnN6rblQrFvbByhx4cpkqjWKsgvR/gevaSPsHVGslZNlQba76fXV1t2b3hc8mAq/eMdJJUBZVH/ow1cjrCJgSg/GG+1UHJpnkQi2Slf6SO8S9kz/1lhhXLqB8OPtbQQDwUsjDpYGHX+HQAA//9tRQWDZ/5ocwAAAABJRU5ErkJggg==</vms:imageData>
+              <vms:imageFormat>png</vms:imageFormat>
+              <_imageExtension>
+                <fileName>SWM_85BD0015CCB7A4A440B3BE1987F8FD3E.bmp</fileName>
+              </_imageExtension>
+            </vms:image>
+          </vms:vmsMessage>
+        </vms:vmsMessage>
+      </vms:vmsStatus>
+    </vms:vmsStatus>
+  </vms:vmsControllerStatus>
+  <vms:vmsControllerStatus>
+    <vms:vmsControllerTableReference id="LVC-01" targetClass="vms:VmsControllerTable" version="1"></vms:vmsControllerTableReference>
+    <vms:vmsControllerReference id="LVC-01-27" targetClass="vms:VmsController" version="1"></vms:vmsControllerReference>
+    <vms:vmsStatus vmsIndex="27">
+      <vms:vmsStatus>
+        <vms:workingStatus>working</vms:workingStatus>
+        <vms:vmsMessage messageIndex="1">
+          <vms:vmsMessage>
+            <vms:timeLastSet>2024-05-21T12:36:35+03:00</vms:timeLastSet>
+            <vms:sequencingInterval>1</vms:sequencingInterval>
+            <vms:displayAreaSettings displayAreaIndex="1">
+              <vms:displayAreaSettings xsi:type="vms:PictogramDisplay">
+                <vms:isBlank>false</vms:isBlank>
+                <vms:pictogram xmlns:vms="http://datex2.eu/schema/3/vms" xsi:type="vms:RegularPictogram">
+                  <vms:pictogramInformationType>obligation</vms:pictogramInformationType>
+                  <vms:presenceOfRedTriangle>false</vms:presenceOfRedTriangle>
+                  <gddStructure>
+                    <gddPictogramIdentification>
+                      <country>LV</country>
+                      <serviceCategory>regulatory</serviceCategory>
+                      <pictogramCategoryCode>616</pictogramCategoryCode>
+                    </gddPictogramIdentification>
+                  </gddStructure>
+                  <vms:displayedNumericalInformation>
+                    <vms:numericalInformationType>speed</vms:numericalInformationType>
+                    <vms:numericValue>110</vms:numericValue>
+                    <vms:unitOfMeasure>kilometresPerHour</vms:unitOfMeasure>
+                  </vms:displayedNumericalInformation>
+                </vms:pictogram>
+                <vms:legallyBinding>false</vms:legallyBinding>
+              </vms:displayAreaSettings>
+            </vms:displayAreaSettings>
+            <vms:image>
+              <vms:imageData>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</vms:imageData>
+              <vms:imageFormat>png</vms:imageFormat>
+              <_imageExtension>
+                <fileName>SWM_7_110_48x48.BMP</fileName>
+              </_imageExtension>
+            </vms:image>
+          </vms:vmsMessage>
+        </vms:vmsMessage>
+      </vms:vmsStatus>
+    </vms:vmsStatus>
+  </vms:vmsControllerStatus>
+</VmsPublication>

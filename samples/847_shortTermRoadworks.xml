@@ -1,0 +1,153 @@
+<d2:payload xmlns:d2="http://datex2.eu/schema/3/d2Payload" xmlns:com="http://datex2.eu/schema/3/common" xmlns:loc="http://datex2.eu/schema/3/locationReferencing" xmlns:egi="http://datex2.eu/schema/3/energyInfrastructure" xmlns:fac="http://datex2.eu/schema/3/facilities" xmlns:roa="http://datex2.eu/schema/3/roadTrafficData" xmlns:sit="http://datex2.eu/schema/3/situation" xmlns:comx="http://datex2.eu/schema/3/commonExtension" xmlns:locx="http://datex2.eu/schema/3/locationExtension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://datex2.eu/schema/3/d2Payload DATEXII_3_D2Payload.xsd http://datex2.eu/schema/3/common DATEXII_3_Common.xsd http://datex2.eu/schema/3/energyInfrastructure DATEXII_3_EnergyInfrastructure.xsd http://datex2.eu/schema/3/facilities DATEXII_3_Facilities.xsd http://datex2.eu/schema/3/locationExtension DATEXII_3_LocationExtension.xsd http://datex2.eu/schema/3/locationReferencing DATEXII_3_LocationReferencing.xsd http://datex2.eu/schema/3/parking DATEXII_3_Parking.xsd http://datex2.eu/schema/3/roadTrafficData DATEXII_3_RoadTrafficData.xsd http://datex2.eu/schema/3/situation DATEXII_3_Situation.xsd http://datex2.eu/schema/3/vms DATEXII_3_Vms.xsd http://datex2.eu/schema/3/commonExtension DATEXII_3_CommonExtension.xsd" xsi:type="sit:SituationPublication" lang="en-US" modelBaseVersion="3">
+<com:feedDescription>
+		<com:values>
+			<com:value lang="lv-LV">Nosaukums: Īstermiņa ceļa darbi, Url:
+				https://transportdata.gov.lv/card/aacdd187-60b4-45c5-a137-884039110be9</com:value>
+			<com:value lang="en-EN">Name: Short term road works, Url:
+				https://transportdata.gov.lv/card/aacdd187-60b4-45c5-a137-884039110be9</com:value>
+		</com:values>
+	</com:feedDescription>
+	<com:feedType>Road work information - Short-term road works</com:feedType>  
+<com:publicationTime>2024-05-13T15:01:22.245Z</com:publicationTime>
+  <com:publicationCreator>
+    <com:country>lv</com:country>
+    <com:nationalIdentifier>latvia</com:nationalIdentifier>
+  </com:publicationCreator>
+<sit:situation id="66420efd3e11a9fa0ae2e948">
+  <sit:headerInformation>
+    <com:confidentiality>noRestriction</com:confidentiality>
+    <com:allowedDeliveryChannel>anyGeneralDeliveryService</com:allowedDeliveryChannel>
+    <com:informationStatus>real</com:informationStatus>
+  </sit:headerInformation>
+  <sit:situationRecord version="1" id="66420efd3e11a9fa0ae2e948" xsi:type="sit:MaintenanceWorks">
+    <sit:situationRecordCreationTime>2024-05-13T16:00:45+03:00</sit:situationRecordCreationTime>
+    <sit:situationRecordVersionTime>2024-05-13T16:00:45+03:00</sit:situationRecordVersionTime>
+    <sit:probabilityOfOccurrence>certain</sit:probabilityOfOccurrence>
+    <sit:safetyRelatedMessage>false</sit:safetyRelatedMessage>
+    <sit:source>
+      <com:sourceCountry>lv</com:sourceCountry>
+      <com:sourceIdentification>latvia</com:sourceIdentification>
+      <com:sourceName>
+        <com:values>
+          <com:value>Source name</com:value>
+        </com:values>
+      </com:sourceName>
+    </sit:source>
+    <sit:validity>
+      <com:validityStatus>active</com:validityStatus>
+      <com:overrunning>true</com:overrunning>
+      <com:validityTimeSpecification>
+        <com:overallStartTime>2024-05-13T16:00:23+03:00</com:overallStartTime>
+      </com:validityTimeSpecification>
+    </sit:validity>
+    <sit:impact>
+      <sit:delays>
+        <sit:delayTimeValue>0</sit:delayTimeValue>
+      </sit:delays>
+    </sit:impact>
+    <sit:generalPublicComment>
+      <sit:comment>
+        <com:values>
+          <com:value>Comment</com:value>
+        </com:values>
+      </sit:comment>
+    </sit:generalPublicComment>
+    <sit:locationReference xsi:type="loc:PointLocation">
+      <loc:openlrPointLocationReference xsi:type="loc:OpenlrGeoCoordinate">
+        <loc:openlrCoordinates>
+          <loc:latitude>58.83439971195232</loc:latitude>
+          <loc:longitude>20.76750561694123</loc:longitude>
+        </loc:openlrCoordinates>
+      </loc:openlrPointLocationReference>
+    </sit:locationReference>
+    <sit:roadMaintenanceType>roadworks</sit:roadMaintenanceType>
+  </sit:situationRecord>
+</sit:situation><sit:situation id="66420f223e11a9fa0ae2e949">
+  <sit:headerInformation>
+    <com:confidentiality>noRestriction</com:confidentiality>
+    <com:allowedDeliveryChannel>anyGeneralDeliveryService</com:allowedDeliveryChannel>
+    <com:informationStatus>real</com:informationStatus>
+  </sit:headerInformation>
+  <sit:situationRecord version="1" id="66420f223e11a9fa0ae2e949" xsi:type="sit:ConstructionWorks">
+    <sit:situationRecordCreationTime>2024-05-13T16:01:22+03:00</sit:situationRecordCreationTime>
+    <sit:situationRecordVersionTime>2024-05-13T16:01:22+03:00</sit:situationRecordVersionTime>
+    <sit:probabilityOfOccurrence>certain</sit:probabilityOfOccurrence>
+    <sit:safetyRelatedMessage>false</sit:safetyRelatedMessage>
+    <sit:source>
+      <com:sourceCountry>lv</com:sourceCountry>
+      <com:sourceIdentification>latvia</com:sourceIdentification>
+      <com:sourceName>
+        <com:values>
+          <com:value>Source name</com:value>
+        </com:values>
+      </com:sourceName>
+    </sit:source>
+    <sit:validity>
+      <com:validityStatus>active</com:validityStatus>
+      <com:overrunning>true</com:overrunning>
+      <com:validityTimeSpecification>
+        <com:overallStartTime>2024-05-13T16:01:01+03:00</com:overallStartTime>
+      </com:validityTimeSpecification>
+    </sit:validity>
+    <sit:generalPublicComment>
+      <sit:comment>
+        <com:values>
+          <com:value>Comment</com:value>
+        </com:values>
+      </sit:comment>
+    </sit:generalPublicComment>
+    <sit:locationReference xsi:type="loc:PointLocation">
+      <loc:openlrPointLocationReference xsi:type="loc:OpenlrGeoCoordinate">
+        <loc:openlrCoordinates>
+          <loc:latitude>58.83439971195232</loc:latitude>
+          <loc:longitude>20.76750561694123</loc:longitude>
+        </loc:openlrCoordinates>
+      </loc:openlrPointLocationReference>
+    </sit:locationReference>
+    <sit:constructionWorkType>constructionWork</sit:constructionWorkType>
+  </sit:situationRecord>
+</sit:situation><sit:situation id="66420f223e11a9fa0ae2e941">
+  <sit:headerInformation>
+    <com:confidentiality>noRestriction</com:confidentiality>
+    <com:allowedDeliveryChannel>anyGeneralDeliveryService</com:allowedDeliveryChannel>
+    <com:informationStatus>real</com:informationStatus>
+  </sit:headerInformation>
+  <sit:situationRecord version="1" id="66420f223e11a9fa0ae2e941" xsi:type="sit:MaintenanceWorks">
+    <sit:situationRecordCreationTime>2024-05-13T16:01:22+03:00</sit:situationRecordCreationTime>
+    <sit:situationRecordVersionTime>2024-05-13T16:01:22+03:00</sit:situationRecordVersionTime>
+    <sit:probabilityOfOccurrence>certain</sit:probabilityOfOccurrence>
+    <sit:safetyRelatedMessage>false</sit:safetyRelatedMessage>
+    <sit:source>
+      <com:sourceCountry>lv</com:sourceCountry>
+      <com:sourceIdentification>latvia</com:sourceIdentification>
+      <com:sourceName>
+        <com:values>
+          <com:value>Source name</com:value>
+        </com:values>
+      </com:sourceName>
+    </sit:source>
+    <sit:validity>
+      <com:validityStatus>active</com:validityStatus>
+      <com:overrunning>true</com:overrunning>
+      <com:validityTimeSpecification>
+        <com:overallStartTime>2024-05-13T16:01:01+03:00</com:overallStartTime>
+      </com:validityTimeSpecification>
+    </sit:validity>
+    <sit:generalPublicComment>
+      <sit:comment>
+        <com:values>
+          <com:value>Comment</com:value>
+        </com:values>
+      </sit:comment>
+    </sit:generalPublicComment>
+    <sit:locationReference xsi:type="loc:PointLocation">
+      <loc:openlrPointLocationReference xsi:type="loc:OpenlrGeoCoordinate">
+        <loc:openlrCoordinates>
+          <loc:latitude>58.83439971195232</loc:latitude>
+          <loc:longitude>20.76750561694123</loc:longitude>
+        </loc:openlrCoordinates>
+      </loc:openlrPointLocationReference>
+    </sit:locationReference>
+    <sit:roadMaintenanceType>maintenanceWork</sit:roadMaintenanceType>
+  </sit:situationRecord>
+</sit:situation></d2:payload>

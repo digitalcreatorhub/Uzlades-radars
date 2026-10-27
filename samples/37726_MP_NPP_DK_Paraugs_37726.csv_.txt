@@ -1,0 +1,6 @@
+Nr. (MP),Autoceļš,km,CSNg,CSNg ar cietušajiem,Bojā gājušie,Ievainotie,Autoceļa posms
+1,A9,39.,8,7,0,7,Krustojums ar a/c Jelgava (Tušķi)–Tukums (P98)
+2,A1,5.,11,5,1,6,"Baltezerā (gar Baltezera baznīcu, Baltezera kapiem), krustojums ar a/c Baltezers–Ataru ezers (V47)"
+3,A2,14.-15.,20,5,0,8,"Ceļa mezgls ar a/c Rīga (Baltezers)–Igaunijas robeža (Ainaži) (A1) un Rīgas apvedceļš (Baltezers–Saulkalne) (A4), un posmi pirms un pēc ceļa mezgla"
+4,A2,66.,7,5,0,8,Krustojums ar a/c Līgatne–Asaru ezers–Nītaure (V284)
+5,A7,16.,6,5,0,8,"Krustojums ar Ziemeļu ielu, gar Vimbukrogu un Loreķiem (Ķekavā)"

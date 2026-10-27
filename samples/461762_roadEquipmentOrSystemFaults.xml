@@ -1,0 +1,180 @@
+<d2:payload xmlns:d2="http://datex2.eu/schema/3/d2Payload"
+    xmlns:com="http://datex2.eu/schema/3/common"
+    xmlns:loc="http://datex2.eu/schema/3/locationReferencing"
+    xmlns:egi="http://datex2.eu/schema/3/energyInfrastructure"
+    xmlns:fac="http://datex2.eu/schema/3/facilities"
+    xmlns:roa="http://datex2.eu/schema/3/roadTrafficData"
+    xmlns:sit="http://datex2.eu/schema/3/situation"
+    xmlns:comx="http://datex2.eu/schema/3/commonExtension"
+    xmlns:locx="http://datex2.eu/schema/3/locationExtension"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://datex2.eu/schema/3/d2Payload DATEXII_3_D2Payload.xsd
+                        http://datex2.eu/schema/3/common DATEXII_3_Common.xsd
+                        http://datex2.eu/schema/3/energyInfrastructure DATEXII_3_EnergyInfrastructure.xsd
+                        http://datex2.eu/schema/3/facilities DATEXII_3_Facilities.xsd
+                        http://datex2.eu/schema/3/locationExtension DATEXII_3_LocationExtension.xsd
+                        http://datex2.eu/schema/3/locationReferencing DATEXII_3_LocationReferencing.xsd
+                        http://datex2.eu/schema/3/parking DATEXII_3_Parking.xsd
+                        http://datex2.eu/schema/3/roadTrafficData DATEXII_3_RoadTrafficData.xsd
+                        http://datex2.eu/schema/3/situation DATEXII_3_Situation.xsd
+                        http://datex2.eu/schema/3/vms DATEXII_3_Vms.xsd
+                        http://datex2.eu/schema/3/commonExtension DATEXII_3_CommonExtension.xsd"
+    xsi:type="sit:SituationPublication" lang="en-US" modelBaseVersion="3">
+    <com:feedDescription>
+        <com:values>
+            <com:value lang="lv-LV">Nosaukums: Ceļu aprīkojuma vai sistēmas bojājumi, Url:
+                https://transportdata.gov.lv/card/53105e7d-ae8a-4153-92dd-2929e6e7ba3f</com:value>
+            <com:value lang="en-EN">Name: Road equipment or system faults, Url:
+                https://transportdata.gov.lv/card/53105e7d-ae8a-4153-92dd-2929e6e7ba3f</com:value>
+        </com:values>
+    </com:feedDescription>
+    <com:feedType>Road events and conditions - Accidents and incidents</com:feedType>
+    <com:publicationTime>2025-11-08T16:42:00.804Z</com:publicationTime>
+    <com:publicationCreator>
+        <com:country>lv</com:country>
+        <com:nationalIdentifier>latvia</com:nationalIdentifier>
+    </com:publicationCreator>
+    <sit:situation id="690f45e853094393556eda5f">
+        <sit:headerInformation>
+            <com:confidentiality>noRestriction</com:confidentiality>
+            <com:allowedDeliveryChannel>anyGeneralDeliveryService</com:allowedDeliveryChannel>
+            <com:informationStatus>real</com:informationStatus>
+        </sit:headerInformation>
+        <sit:situationRecord version="1" id="690f45e853094393556eda5f"
+            xsi:type="sit:EquipmentOrSystemFault">
+            <sit:situationRecordCreationTime>2025-11-08T15:30:16+02:00</sit:situationRecordCreationTime>
+            <sit:situationRecordVersionTime>2025-11-08T15:30:16+02:00</sit:situationRecordVersionTime>
+            <sit:probabilityOfOccurrence>certain</sit:probabilityOfOccurrence>
+            <sit:safetyRelatedMessage>false</sit:safetyRelatedMessage>
+            <sit:source>
+                <com:sourceCountry>lv</com:sourceCountry>
+                <com:sourceIdentification>latvia</com:sourceIdentification>
+                <com:sourceName>
+                    <com:values>
+                        <com:value>Source name</com:value>
+                    </com:values>
+                </com:sourceName>
+            </sit:source>
+            <sit:validity>
+                <com:validityStatus>active</com:validityStatus>
+                <com:overrunning>true</com:overrunning>
+                <com:validityTimeSpecification>
+                    <com:overallStartTime>2025-11-08T15:30:02+02:00</com:overallStartTime>
+                </com:validityTimeSpecification>
+            </sit:validity>
+            <sit:impact>
+                <sit:delays>
+                    <sit:delayTimeValue>0</sit:delayTimeValue>
+                </sit:delays>
+            </sit:impact>
+            <sit:locationReference xsi:type="loc:PointLocation">
+                <loc:openlrPointLocationReference xsi:type="loc:OpenlrGeoCoordinate">
+                    <loc:openlrCoordinates>
+                        <loc:latitude>56.94623990156</loc:latitude>
+                        <loc:longitude>24.462972266478157</loc:longitude>
+                    </loc:openlrCoordinates>
+                </loc:openlrPointLocationReference>
+            </sit:locationReference>
+            <sit:equipmentOrSystemFaultType>workingIntermittently</sit:equipmentOrSystemFaultType>
+            <sit:faultyEquipmentOrSystemType>anprCameras</sit:faultyEquipmentOrSystemType>
+        </sit:situationRecord>
+    </sit:situation>
+    <sit:situation id="690f465a53094393556eda60">
+        <sit:headerInformation>
+            <com:confidentiality>noRestriction</com:confidentiality>
+            <com:allowedDeliveryChannel>anyGeneralDeliveryService</com:allowedDeliveryChannel>
+            <com:informationStatus>real</com:informationStatus>
+        </sit:headerInformation>
+        <sit:situationRecord version="1" id="690f465a53094393556eda60"
+            xsi:type="sit:EquipmentOrSystemFault">
+            <sit:situationRecordCreationTime>2025-11-08T15:32:10+02:00</sit:situationRecordCreationTime>
+            <sit:situationRecordVersionTime>2025-11-08T15:32:10+02:00</sit:situationRecordVersionTime>
+            <sit:probabilityOfOccurrence>certain</sit:probabilityOfOccurrence>
+            <sit:safetyRelatedMessage>false</sit:safetyRelatedMessage>
+            <sit:source>
+                <com:sourceCountry>lv</com:sourceCountry>
+                <com:sourceIdentification>latvia</com:sourceIdentification>
+                <com:sourceName>
+                    <com:values>
+                        <com:value>Source name</com:value>
+                    </com:values>
+                </com:sourceName>
+            </sit:source>
+            <sit:validity>
+                <com:validityStatus>active</com:validityStatus>
+                <com:overrunning>true</com:overrunning>
+                <com:validityTimeSpecification>
+                    <com:overallStartTime>2025-11-08T15:31:57+02:00</com:overallStartTime>
+                </com:validityTimeSpecification>
+            </sit:validity>
+            <sit:impact>
+                <sit:delays>
+                    <sit:delayTimeValue>0</sit:delayTimeValue>
+                </sit:delays>
+            </sit:impact>
+            <sit:locationReference xsi:type="loc:PointLocation">
+                <loc:openlrPointLocationReference xsi:type="loc:OpenlrGeoCoordinate">
+                    <loc:openlrCoordinates>
+                        <loc:latitude>56.877357123353974</loc:latitude>
+                        <loc:longitude>24.066622845016912</loc:longitude>
+                    </loc:openlrCoordinates>
+                </loc:openlrPointLocationReference>
+            </sit:locationReference>
+            <sit:equipmentOrSystemFaultType>notWorking</sit:equipmentOrSystemFaultType>
+            <sit:faultyEquipmentOrSystemType>cctvCameras</sit:faultyEquipmentOrSystemType>
+        </sit:situationRecord>
+    </sit:situation>
+    <sit:situation id="690b6589c1ca2f6cce018edc">
+        <sit:headerInformation>
+            <com:confidentiality>noRestriction</com:confidentiality>
+            <com:allowedDeliveryChannel>anyGeneralDeliveryService</com:allowedDeliveryChannel>
+            <com:informationStatus>real</com:informationStatus>
+        </sit:headerInformation>
+        <sit:situationRecord version="1" id="690b6589c1ca2f6cce018edc"
+            xsi:type="sit:EquipmentOrSystemFault">
+            <sit:situationRecordCreationTime>2025-11-05T16:56:09+02:00</sit:situationRecordCreationTime>
+            <sit:situationRecordVersionTime>2025-11-05T17:06:00+02:00</sit:situationRecordVersionTime>
+            <sit:probabilityOfOccurrence>certain</sit:probabilityOfOccurrence>
+            <sit:safetyRelatedMessage>false</sit:safetyRelatedMessage>
+            <sit:source>
+                <com:sourceCountry>lv</com:sourceCountry>
+                <com:sourceIdentification>latvia</com:sourceIdentification>
+                <com:sourceName>
+                    <com:values>
+                        <com:value>Source name</com:value>
+                    </com:values>
+                </com:sourceName>
+            </sit:source>
+            <sit:validity>
+                <com:validityStatus>active</com:validityStatus>
+                <com:overrunning>true</com:overrunning>
+                <com:validityTimeSpecification>
+                    <com:overallStartTime>2025-11-05T16:41:31+02:00</com:overallStartTime>
+                </com:validityTimeSpecification>
+            </sit:validity>
+            <sit:impact>
+                <sit:delays>
+                    <sit:delayTimeValue>0</sit:delayTimeValue>
+                </sit:delays>
+            </sit:impact>
+            <sit:generalPublicComment>
+                <sit:comment>
+                    <com:values>
+                        <com:value>Some comment here</com:value>
+                    </com:values>
+                </sit:comment>
+            </sit:generalPublicComment>
+            <sit:locationReference xsi:type="loc:PointLocation">
+                <loc:openlrPointLocationReference xsi:type="loc:OpenlrGeoCoordinate">
+                    <loc:openlrCoordinates>
+                        <loc:latitude>56.869238136331326</loc:latitude>
+                        <loc:longitude>24.30420437165575</loc:longitude>
+                    </loc:openlrCoordinates>
+                </loc:openlrPointLocationReference>
+            </sit:locationReference>
+            <sit:trafficConstrictionType>carriagewayBlocked</sit:trafficConstrictionType>
+            <sit:equipmentOrSystemFaultType>workingIntermittently</sit:equipmentOrSystemFaultType>
+            <sit:faultyEquipmentOrSystemType>automatedTollSystem</sit:faultyEquipmentOrSystemType>
+        </sit:situationRecord>
+    </sit:situation>
+</d2:payload>

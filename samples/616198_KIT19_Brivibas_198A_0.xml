@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<d2LogicalModel
+  xmlns="http://datex2.eu/schema/3/roadTrafficData"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  modelBaseVersion="3.4"
+  xsi:schemaLocation="http://datex2.eu/schema/3/roadTrafficData DATEXII_3_RoadTrafficData.xsd">
+
+  <exchange>
+    <supplierIdentification>
+      <country>lv</country>
+      <nationalIdentifier>RVPP</nationalIdentifier>
+    </supplierIdentification>
+  </exchange>
+
+  <payloadPublication xsi:type="SituationPublication" lang="lv" publicationTime="2026-01-01T03:15:23Z">
+
+    <situation id="RVPP-KIT-19">
+      <situationRecord xsi:type="GeneralPublicAnnouncement" id="RVPP-KIT-19-REC" version="1">
+
+        <situationRecordCreationTime>2026-01-01T03:15:23Z</situationRecordCreationTime>
+        <situationRecordVersionTime>2026-01-01T03:15:23Z</situationRecordVersionTime>
+        <probabilityOfOccurrence>certain</probabilityOfOccurrence>
+
+        <source>
+          <sourceName>
+            <value>Rīgas valstspilsētas pašvaldības policija</value>
+          </sourceName>
+        </source>
+
+        <groupOfLocations xsi:type="PointByCoordinates">
+          <pointByCoordinates>
+            <pointCoordinates>
+              <latitude>56.968362</latitude>
+              <longitude>24.151156</longitude>
+            </pointCoordinates>
+            <directionOnLinearSection>unknown</directionOnLinearSection>
+          </pointByCoordinates>
+        </groupOfLocations>
+
+        <generalPublicComment>
+          <comment>
+            <value>Kontroles iekārta: KIT_19. Atrašanās vieta: Brīvības ielas un Krišjāņa Barona ielas krustojumā, pie ēkas Brīvības ielā 198A, Rīgā. Kontrolē: luksofora sarkanās gaismas neievērošanu visās joslās. Virziens: no Pērnavas ielas uz Gustava Zemgala gatvi.</value>
+          </comment>
+        </generalPublicComment>
+
+      </situationRecord>
+    </situation>
+
+  </payloadPublication>
+
+</d2LogicalModel>

@@ -1,0 +1,69 @@
+<d2:payload xmlns:d2="http://datex2.eu/schema/3/d2Payload" xmlns:com="http://datex2.eu/schema/3/common" xmlns:loc="http://datex2.eu/schema/3/locationReferencing" xmlns:egi="http://datex2.eu/schema/3/energyInfrastructure" xmlns:fac="http://datex2.eu/schema/3/facilities" xmlns:roa="http://datex2.eu/schema/3/roadTrafficData" xmlns:sit="http://datex2.eu/schema/3/situation" xmlns:vms="http://datex2.eu/schema/3/vms" xmlns:comx="http://datex2.eu/schema/3/commonExtension" xmlns:locx="http://datex2.eu/schema/3/locationExtension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://datex2.eu/schema/3/d2Payload DATEXII_3_D2Payload.xsd http://datex2.eu/schema/3/common DATEXII_3_Common.xsd http://datex2.eu/schema/3/energyInfrastructure DATEXII_3_EnergyInfrastructure.xsd http://datex2.eu/schema/3/facilities DATEXII_3_Facilities.xsd http://datex2.eu/schema/3/locationExtension DATEXII_3_LocationExtension.xsd http://datex2.eu/schema/3/locationReferencing DATEXII_3_LocationReferencing.xsd http://datex2.eu/schema/3/parking DATEXII_3_Parking.xsd http://datex2.eu/schema/3/roadTrafficData DATEXII_3_RoadTrafficData.xsd http://datex2.eu/schema/3/situation DATEXII_3_Situation.xsd http://datex2.eu/schema/3/vms DATEXII_3_Vms.xsd http://datex2.eu/schema/3/commonExtension DATEXII_3_CommonExtension.xsd" xsi:type="vms:VmsTablePublication" lang="en-US" modelBaseVersion="3">
+  <com:feedDescription>
+    <com:values>
+      <com:value lang="lv-LV">Nosaukums: Mainīgās ceļa zīmes (E67), Url: https://transportdata.gov.lv/card/9950f29a-b76a-4e7d-9652-26ee677affc8</com:value>
+      <com:value lang="en-EN">Name: Variable message signs (E67), Url: https://transportdata.gov.lv/card/9950f29a-b76a-4e7d-9652-26ee677affc8</com:value>
+    </com:values>
+  </com:feedDescription>
+  <com:feedType>Dynamic traffic signs and regulations - Other temporary traffic management measures or plans</com:feedType>
+  <com:publicationTime>2024-05-14T13:50:23+03:00</com:publicationTime>
+  <com:publicationCreator>
+    <com:country>lv</com:country>
+    <com:nationalIdentifier>latvia</com:nationalIdentifier>
+  </com:publicationCreator>
+  <vms:headerInformation>
+    <com:confidentiality>internalUse</com:confidentiality>
+    <com:informationStatus>real</com:informationStatus>
+  </vms:headerInformation>
+<vms:vmsControllerTable id="656b0021b660ec288860a5b4" version="1.0">
+  <vms:vmsController id="LVC-01-63" version="1.0">
+    <vms:numberOfVms>1</vms:numberOfVms>
+    <vms:vms vmsIndex="1">
+      <vms:vms>
+        <vms:vmsConfiguration>
+          <vms:numberOfDisplayAreas>1</vms:numberOfDisplayAreas>
+        </vms:vmsConfiguration>
+        <vms:vmsLocation xsi:type="loc:PointLocation">
+          <loc:coordinatesForDisplay>
+            <loc:latitude>21.104518243531817</loc:latitude>
+            <loc:longitude>58.78998523918117</loc:longitude>
+          </loc:coordinatesForDisplay>
+        </vms:vmsLocation>
+      </vms:vms>
+    </vms:vms>
+  </vms:vmsController>
+</vms:vmsControllerTable><vms:vmsControllerTable id="656b0021b660ec288860a5af" version="1.0">
+  <vms:vmsController id="LVC-01-80" version="1.0">
+    <vms:numberOfVms>1</vms:numberOfVms>
+    <vms:vms vmsIndex="1">
+      <vms:vms>
+        <vms:vmsConfiguration>
+          <vms:numberOfDisplayAreas>1</vms:numberOfDisplayAreas>
+        </vms:vmsConfiguration>
+        <vms:vmsLocation xsi:type="loc:PointLocation">
+          <loc:coordinatesForDisplay>
+            <loc:latitude>21.079218741433248</loc:latitude>
+            <loc:longitude>59.01150933521771</loc:longitude>
+          </loc:coordinatesForDisplay>
+        </vms:vmsLocation>
+      </vms:vms>
+    </vms:vms>
+  </vms:vmsController>
+</vms:vmsControllerTable><vms:vmsControllerTable id="656b0021b660ec288860a5b0" version="1.0">
+  <vms:vmsController id="LVC-01-82" version="1.0">
+    <vms:numberOfVms>1</vms:numberOfVms>
+    <vms:vms vmsIndex="1">
+      <vms:vms>
+        <vms:vmsConfiguration>
+          <vms:numberOfDisplayAreas>1</vms:numberOfDisplayAreas>
+        </vms:vmsConfiguration>
+        <vms:vmsLocation xsi:type="loc:PointLocation">
+          <loc:coordinatesForDisplay>
+            <loc:latitude>21.104518243531817</loc:latitude>
+            <loc:longitude>58.78998523918117</loc:longitude>
+          </loc:coordinatesForDisplay>
+        </vms:vmsLocation>
+      </vms:vms>
+    </vms:vms>
+  </vms:vmsController>
+</vms:vmsControllerTable></d2:payload>

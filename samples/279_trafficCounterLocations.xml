@@ -1,0 +1,56 @@
+<d2:payload xmlns:d2="http://datex2.eu/schema/3/d2Payload" xmlns:com="http://datex2.eu/schema/3/common" xmlns:loc="http://datex2.eu/schema/3/locationReferencing" xmlns:egi="http://datex2.eu/schema/3/energyInfrastructure" xmlns:fac="http://datex2.eu/schema/3/facilities" xmlns:roa="http://datex2.eu/schema/3/roadTrafficData" xmlns:sit="http://datex2.eu/schema/3/situation" xmlns:vms="http://datex2.eu/schema/3/vms" xmlns:prk="http://datex2.eu/schema/3/parking" xmlns:comx="http://datex2.eu/schema/3/commonExtension" xmlns:locx="http://datex2.eu/schema/3/locationExtension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://datex2.eu/schema/3/d2Payload DATEXII_3_D2Payload.xsd http://datex2.eu/schema/3/common DATEXII_3_Common.xsd http://datex2.eu/schema/3/energyInfrastructure DATEXII_3_EnergyInfrastructure.xsd http://datex2.eu/schema/3/facilities DATEXII_3_Facilities.xsd http://datex2.eu/schema/3/locationExtension DATEXII_3_LocationExtension.xsd http://datex2.eu/schema/3/locationReferencing DATEXII_3_LocationReferencing.xsd http://datex2.eu/schema/3/parking DATEXII_3_Parking.xsd http://datex2.eu/schema/3/roadTrafficData DATEXII_3_RoadTrafficData.xsd http://datex2.eu/schema/3/situation DATEXII_3_Situation.xsd http://datex2.eu/schema/3/vms DATEXII_3_Vms.xsd http://datex2.eu/schema/3/commonExtension DATEXII_3_CommonExtension.xsd" xsi:type="roa:MeasurementSiteTablePublication" lang="en-US" modelBaseVersion="3">
+<com:feedDescription>
+		<com:values>
+			<com:value lang="lv-LV">Nosaukums: Satiksmes uzskaites iekārtu atrašanās vieta, Url:
+				https://transportdata.gov.lv/card/fef717ac-c832-49b2-8589-521084cdb595</com:value>
+			<com:value lang="en-EN">Name: Traffic counter locations, Url:
+				https://transportdata.gov.lv/card/fef717ac-c832-49b2-8589-521084cdb595</com:value>
+		</com:values>
+	</com:feedDescription>
+	<com:feedType>Real-time traffic data - traffic volume</com:feedType>  
+<com:publicationTime>2024-05-07T08:19:47.334Z</com:publicationTime>
+  <com:publicationCreator>
+    <com:country>lv</com:country>
+    <com:nationalIdentifier>latvia</com:nationalIdentifier>
+  </com:publicationCreator>
+  <roa:headerInformation>
+    <com:confidentiality>internalUse</com:confidentiality>
+    <com:informationStatus>real</com:informationStatus>
+  </roa:headerInformation>
+<roa:measurementSiteTable id="6587fd1d449fcad646bab341" version="1.0">
+  <roa:measurementSite id="2055" version="1.0">
+    <roa:measurementSiteLocation xsi:type="loc:PointLocation">
+      <loc:coordinatesForDisplay>
+        <loc:latitude>20.47865301353332</loc:latitude>
+        <loc:longitude>59.016225149951744</loc:longitude>
+      </loc:coordinatesForDisplay>
+    </roa:measurementSiteLocation>
+  </roa:measurementSite>
+</roa:measurementSiteTable><roa:measurementSiteTable id="6587fd1d449fcad646bab32c" version="1.0">
+  <roa:measurementSite id="2059" version="1.0">
+    <roa:measurementSiteLocation xsi:type="loc:PointLocation">
+      <loc:coordinatesForDisplay>
+        <loc:latitude>57.27516714032699</loc:latitude>
+        <loc:longitude>24.89748724958182</loc:longitude>
+      </loc:coordinatesForDisplay>
+    </roa:measurementSiteLocation>
+  </roa:measurementSite>
+</roa:measurementSiteTable><roa:measurementSiteTable id="6587fd1d449fcad646bab332" version="1.0">
+  <roa:measurementSite id="36" version="1.0">
+    <roa:measurementSiteLocation xsi:type="loc:PointLocation">
+      <loc:coordinatesForDisplay>
+        <loc:latitude>56.92831993754192</loc:latitude>
+        <loc:longitude>23.624904174942742</loc:longitude>
+      </loc:coordinatesForDisplay>
+    </roa:measurementSiteLocation>
+  </roa:measurementSite>
+</roa:measurementSiteTable><roa:measurementSiteTable id="6587fd1d449fcad646bab31f" version="1.0">
+  <roa:measurementSite id="20" version="1.0">
+    <roa:measurementSiteLocation xsi:type="loc:PointLocation">
+      <loc:coordinatesForDisplay>
+        <loc:latitude>57.383037242238544</loc:latitude>
+        <loc:longitude>24.430365476184896</loc:longitude>
+      </loc:coordinatesForDisplay>
+    </roa:measurementSiteLocation>
+  </roa:measurementSite>
+</roa:measurementSiteTable></d2:payload>

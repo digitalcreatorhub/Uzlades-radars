@@ -1,0 +1,391 @@
+<d2:payload xmlns:d2="http://datex2.eu/schema/3/d2Payload" xmlns:com="http://datex2.eu/schema/3/common" xmlns:loc="http://datex2.eu/schema/3/locationReferencing" xmlns:egi="http://datex2.eu/schema/3/energyInfrastructure" xmlns:fac="http://datex2.eu/schema/3/facilities" xmlns:roa="http://datex2.eu/schema/3/roadTrafficData" xmlns:sit="http://datex2.eu/schema/3/situation" xmlns:vms="http://datex2.eu/schema/3/vms" xmlns:prk="http://datex2.eu/schema/3/parking" xmlns:comx="http://datex2.eu/schema/3/commonExtension" xmlns:locx="http://datex2.eu/schema/3/locationExtension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://datex2.eu/schema/3/d2Payload DATEXII_3_D2Payload.xsd http://datex2.eu/schema/3/common DATEXII_3_Common.xsd http://datex2.eu/schema/3/energyInfrastructure DATEXII_3_EnergyInfrastructure.xsd http://datex2.eu/schema/3/facilities DATEXII_3_Facilities.xsd http://datex2.eu/schema/3/locationExtension DATEXII_3_LocationExtension.xsd http://datex2.eu/schema/3/locationReferencing DATEXII_3_LocationReferencing.xsd http://datex2.eu/schema/3/parking DATEXII_3_Parking.xsd http://datex2.eu/schema/3/roadTrafficData DATEXII_3_RoadTrafficData.xsd http://datex2.eu/schema/3/situation DATEXII_3_Situation.xsd http://datex2.eu/schema/3/vms DATEXII_3_Vms.xsd http://datex2.eu/schema/3/commonExtension DATEXII_3_CommonExtension.xsd" xsi:type="roa:MeasuredDataPublication" lang="en-US" modelBaseVersion="3">
+    <com:feedDescription>
+        <com:values>
+            <com:value lang="lv-LV">Nosaukums: Satiksmes uzskaites punktu sensoru jēldati, Url: https://transportdata.gov.lv/card/7acb1a34-859b-4f33-8dd6-7ab8a4d8a00d</com:value>
+            <com:value lang="en-EN">Name: Traffic counter raw data, Url: https://transportdata.gov.lv/card/7acb1a34-859b-4f33-8dd6-7ab8a4d8a00d</com:value>
+        </com:values>
+    </com:feedDescription>
+    <com:feedType>Real-time traffic data - Traffic volume, Speed</com:feedType>
+    <com:publicationTime>2025-11-10T10:53:37.360Z</com:publicationTime>
+    <com:publicationCreator>
+        <com:country>lv</com:country>
+        <com:nationalIdentifier>latvia</com:nationalIdentifier>
+    </com:publicationCreator>
+    <roa:measurementSiteTableReference id="1" targetClass="roa:MeasurementSiteTable"/>
+    <roa:headerInformation>
+        <com:confidentiality>internalUse</com:confidentiality>
+        <com:allowedDeliveryChannel>anyGeneralDeliveryService</com:allowedDeliveryChannel>
+        <com:informationStatus>real</com:informationStatus>
+    </roa:headerInformation>
+<roa:siteMeasurements>
+        <roa:measurementSiteReference id="652da366e9febb8165332787" targetClass="roa:MeasurementSite"/>
+        <roa:measurementTimeDefault>
+            <roa:timeValue>2024-07-26T05:08:00.000Z</roa:timeValue>
+        </roa:measurementTimeDefault>
+    </roa:siteMeasurements><roa:siteMeasurements>
+        <roa:measurementSiteReference id="652da366e9febb8165332787" targetClass="roa:MeasurementSite"/>
+        <roa:physicalQuantity index="1">
+            <roa:physicalQuantity xsi:type="roa:SinglePhysicalQuantity">
+                <roa:forecast>true</roa:forecast>
+                <roa:basicData xsi:type="roa:TrafficFlow">
+                    <roa:measurementOrCalculationTime>
+                        <roa:period>
+                            <com:startOfPeriod>2025-09-29T14:00:00.000Z</com:startOfPeriod>
+                            <com:endOfPeriod>2025-09-29T14:01:00.000Z</com:endOfPeriod>
+                        </roa:period>
+                    </roa:measurementOrCalculationTime>
+                    <roa:forVehiclesWithCharacteristicsOf>
+                        <com:vehicleType>car</com:vehicleType>
+                    </roa:forVehiclesWithCharacteristicsOf>
+                    <roa:vehicleFlow>
+                        <com:vehicleFlowRate>6</com:vehicleFlowRate>
+                    </roa:vehicleFlow>
+                </roa:basicData>
+            </roa:physicalQuantity>
+        </roa:physicalQuantity>
+        <roa:physicalQuantity index="2">
+            <roa:physicalQuantity xsi:type="roa:SinglePhysicalQuantity">
+                <roa:forecast>true</roa:forecast>
+                <roa:basicData xsi:type="roa:TrafficSpeed">
+                    <roa:measurementOrCalculationTime>
+                        <roa:timeValue>2025-09-29T14:01:00.000Z</roa:timeValue>
+                    </roa:measurementOrCalculationTime>
+                    <roa:forVehiclesWithCharacteristicsOf>
+                        <com:vehicleType>car</com:vehicleType>
+                    </roa:forVehiclesWithCharacteristicsOf>
+                    <roa:averageVehicleSpeed>
+                        <com:speed>93.5</com:speed>
+                    </roa:averageVehicleSpeed>
+                </roa:basicData>
+            </roa:physicalQuantity>
+        </roa:physicalQuantity>
+        <roa:physicalQuantity index="3">
+            <roa:physicalQuantity xsi:type="roa:SinglePhysicalQuantity">
+                <roa:forecast>true</roa:forecast>
+                <roa:basicData xsi:type="roa:TrafficFlow">
+                    <roa:measurementOrCalculationTime>
+                        <roa:period>
+                            <com:startOfPeriod>2025-09-29T14:00:00.000Z</com:startOfPeriod>
+                            <com:endOfPeriod>2025-09-29T14:01:00.000Z</com:endOfPeriod>
+                        </roa:period>
+                    </roa:measurementOrCalculationTime>
+                    <roa:forVehiclesWithCharacteristicsOf>
+                        <com:vehicleType>lightCommercialVehicle</com:vehicleType>
+                    </roa:forVehiclesWithCharacteristicsOf>
+                    <roa:vehicleFlow>
+                        <com:vehicleFlowRate>1</com:vehicleFlowRate>
+                    </roa:vehicleFlow>
+                </roa:basicData>
+            </roa:physicalQuantity>
+        </roa:physicalQuantity>
+        <roa:physicalQuantity index="4">
+            <roa:physicalQuantity xsi:type="roa:SinglePhysicalQuantity">
+                <roa:forecast>true</roa:forecast>
+                <roa:basicData xsi:type="roa:TrafficSpeed">
+                    <roa:measurementOrCalculationTime>
+                        <roa:timeValue>2025-09-29T14:01:00.000Z</roa:timeValue>
+                    </roa:measurementOrCalculationTime>
+                    <roa:forVehiclesWithCharacteristicsOf>
+                        <com:vehicleType>lightCommercialVehicle</com:vehicleType>
+                    </roa:forVehiclesWithCharacteristicsOf>
+                    <roa:averageVehicleSpeed>
+                        <com:speed>95</com:speed>
+                    </roa:averageVehicleSpeed>
+                </roa:basicData>
+            </roa:physicalQuantity>
+        </roa:physicalQuantity>
+        <roa:measurementTimeDefault>
+            <roa:timeValue>2025-09-29T14:01:00.000Z</roa:timeValue>
+        </roa:measurementTimeDefault>
+    </roa:siteMeasurements><roa:siteMeasurements>
+        <roa:measurementSiteReference id="652da366e9febb8165332787" targetClass="roa:MeasurementSite"/>
+        <roa:physicalQuantity index="1">
+            <roa:physicalQuantity xsi:type="roa:SinglePhysicalQuantity">
+                <roa:forecast>true</roa:forecast>
+                <roa:basicData xsi:type="roa:TrafficFlow">
+                    <roa:measurementOrCalculationTime>
+                        <roa:period>
+                            <com:startOfPeriod>2025-09-29T14:01:00.000Z</com:startOfPeriod>
+                            <com:endOfPeriod>2025-09-29T14:02:00.000Z</com:endOfPeriod>
+                        </roa:period>
+                    </roa:measurementOrCalculationTime>
+                    <roa:forVehiclesWithCharacteristicsOf>
+                        <com:vehicleType>car</com:vehicleType>
+                    </roa:forVehiclesWithCharacteristicsOf>
+                    <roa:vehicleFlow>
+                        <com:vehicleFlowRate>4</com:vehicleFlowRate>
+                    </roa:vehicleFlow>
+                </roa:basicData>
+            </roa:physicalQuantity>
+        </roa:physicalQuantity>
+        <roa:physicalQuantity index="2">
+            <roa:physicalQuantity xsi:type="roa:SinglePhysicalQuantity">
+                <roa:forecast>true</roa:forecast>
+                <roa:basicData xsi:type="roa:TrafficSpeed">
+                    <roa:measurementOrCalculationTime>
+                        <roa:timeValue>2025-09-29T14:02:00.000Z</roa:timeValue>
+                    </roa:measurementOrCalculationTime>
+                    <roa:forVehiclesWithCharacteristicsOf>
+                        <com:vehicleType>car</com:vehicleType>
+                    </roa:forVehiclesWithCharacteristicsOf>
+                    <roa:averageVehicleSpeed>
+                        <com:speed>96.75</com:speed>
+                    </roa:averageVehicleSpeed>
+                </roa:basicData>
+            </roa:physicalQuantity>
+        </roa:physicalQuantity>
+        <roa:physicalQuantity index="3">
+            <roa:physicalQuantity xsi:type="roa:SinglePhysicalQuantity">
+                <roa:forecast>true</roa:forecast>
+                <roa:basicData xsi:type="roa:TrafficFlow">
+                    <roa:measurementOrCalculationTime>
+                        <roa:period>
+                            <com:startOfPeriod>2025-09-29T14:01:00.000Z</com:startOfPeriod>
+                            <com:endOfPeriod>2025-09-29T14:02:00.000Z</com:endOfPeriod>
+                        </roa:period>
+                    </roa:measurementOrCalculationTime>
+                    <roa:forVehiclesWithCharacteristicsOf>
+                        <com:vehicleType>carWithTrailer</com:vehicleType>
+                    </roa:forVehiclesWithCharacteristicsOf>
+                    <roa:vehicleFlow>
+                        <com:vehicleFlowRate>1</com:vehicleFlowRate>
+                    </roa:vehicleFlow>
+                </roa:basicData>
+            </roa:physicalQuantity>
+        </roa:physicalQuantity>
+        <roa:physicalQuantity index="4">
+            <roa:physicalQuantity xsi:type="roa:SinglePhysicalQuantity">
+                <roa:forecast>true</roa:forecast>
+                <roa:basicData xsi:type="roa:TrafficSpeed">
+                    <roa:measurementOrCalculationTime>
+                        <roa:timeValue>2025-09-29T14:02:00.000Z</roa:timeValue>
+                    </roa:measurementOrCalculationTime>
+                    <roa:forVehiclesWithCharacteristicsOf>
+                        <com:vehicleType>carWithTrailer</com:vehicleType>
+                    </roa:forVehiclesWithCharacteristicsOf>
+                    <roa:averageVehicleSpeed>
+                        <com:speed>83</com:speed>
+                    </roa:averageVehicleSpeed>
+                </roa:basicData>
+            </roa:physicalQuantity>
+        </roa:physicalQuantity>
+        <roa:physicalQuantity index="5">
+            <roa:physicalQuantity xsi:type="roa:SinglePhysicalQuantity">
+                <roa:forecast>true</roa:forecast>
+                <roa:basicData xsi:type="roa:TrafficFlow">
+                    <roa:measurementOrCalculationTime>
+                        <roa:period>
+                            <com:startOfPeriod>2025-09-29T14:01:00.000Z</com:startOfPeriod>
+                            <com:endOfPeriod>2025-09-29T14:02:00.000Z</com:endOfPeriod>
+                        </roa:period>
+                    </roa:measurementOrCalculationTime>
+                    <roa:forVehiclesWithCharacteristicsOf>
+                        <com:vehicleType>lightCommercialVehicle</com:vehicleType>
+                    </roa:forVehiclesWithCharacteristicsOf>
+                    <roa:vehicleFlow>
+                        <com:vehicleFlowRate>3</com:vehicleFlowRate>
+                    </roa:vehicleFlow>
+                </roa:basicData>
+            </roa:physicalQuantity>
+        </roa:physicalQuantity>
+        <roa:physicalQuantity index="6">
+            <roa:physicalQuantity xsi:type="roa:SinglePhysicalQuantity">
+                <roa:forecast>true</roa:forecast>
+                <roa:basicData xsi:type="roa:TrafficSpeed">
+                    <roa:measurementOrCalculationTime>
+                        <roa:timeValue>2025-09-29T14:02:00.000Z</roa:timeValue>
+                    </roa:measurementOrCalculationTime>
+                    <roa:forVehiclesWithCharacteristicsOf>
+                        <com:vehicleType>lightCommercialVehicle</com:vehicleType>
+                    </roa:forVehiclesWithCharacteristicsOf>
+                    <roa:averageVehicleSpeed>
+                        <com:speed>96.66666666666667</com:speed>
+                    </roa:averageVehicleSpeed>
+                </roa:basicData>
+            </roa:physicalQuantity>
+        </roa:physicalQuantity>
+        <roa:physicalQuantity index="7">
+            <roa:physicalQuantity xsi:type="roa:SinglePhysicalQuantity">
+                <roa:forecast>true</roa:forecast>
+                <roa:basicData xsi:type="roa:TrafficFlow">
+                    <roa:measurementOrCalculationTime>
+                        <roa:period>
+                            <com:startOfPeriod>2025-09-29T14:01:00.000Z</com:startOfPeriod>
+                            <com:endOfPeriod>2025-09-29T14:02:00.000Z</com:endOfPeriod>
+                        </roa:period>
+                    </roa:measurementOrCalculationTime>
+                    <roa:forVehiclesWithCharacteristicsOf>
+                        <com:vehicleType>bus</com:vehicleType>
+                    </roa:forVehiclesWithCharacteristicsOf>
+                    <roa:vehicleFlow>
+                        <com:vehicleFlowRate>1</com:vehicleFlowRate>
+                    </roa:vehicleFlow>
+                </roa:basicData>
+            </roa:physicalQuantity>
+        </roa:physicalQuantity>
+        <roa:physicalQuantity index="8">
+            <roa:physicalQuantity xsi:type="roa:SinglePhysicalQuantity">
+                <roa:forecast>true</roa:forecast>
+                <roa:basicData xsi:type="roa:TrafficSpeed">
+                    <roa:measurementOrCalculationTime>
+                        <roa:timeValue>2025-09-29T14:02:00.000Z</roa:timeValue>
+                    </roa:measurementOrCalculationTime>
+                    <roa:forVehiclesWithCharacteristicsOf>
+                        <com:vehicleType>bus</com:vehicleType>
+                    </roa:forVehiclesWithCharacteristicsOf>
+                    <roa:averageVehicleSpeed>
+                        <com:speed>84</com:speed>
+                    </roa:averageVehicleSpeed>
+                </roa:basicData>
+            </roa:physicalQuantity>
+        </roa:physicalQuantity>
+        <roa:measurementTimeDefault>
+            <roa:timeValue>2025-09-29T14:02:00.000Z</roa:timeValue>
+        </roa:measurementTimeDefault>
+    </roa:siteMeasurements><roa:siteMeasurements>
+        <roa:measurementSiteReference id="652da366e9febb8165332787" targetClass="roa:MeasurementSite"/>
+        <roa:physicalQuantity index="1">
+            <roa:physicalQuantity xsi:type="roa:SinglePhysicalQuantity">
+                <roa:forecast>true</roa:forecast>
+                <roa:basicData xsi:type="roa:TrafficFlow">
+                    <roa:measurementOrCalculationTime>
+                        <roa:period>
+                            <com:startOfPeriod>2025-09-29T14:02:00.000Z</com:startOfPeriod>
+                            <com:endOfPeriod>2025-09-29T14:03:00.000Z</com:endOfPeriod>
+                        </roa:period>
+                    </roa:measurementOrCalculationTime>
+                    <roa:forVehiclesWithCharacteristicsOf>
+                        <com:vehicleType>car</com:vehicleType>
+                    </roa:forVehiclesWithCharacteristicsOf>
+                    <roa:vehicleFlow>
+                        <com:vehicleFlowRate>8</com:vehicleFlowRate>
+                    </roa:vehicleFlow>
+                </roa:basicData>
+            </roa:physicalQuantity>
+        </roa:physicalQuantity>
+        <roa:physicalQuantity index="2">
+            <roa:physicalQuantity xsi:type="roa:SinglePhysicalQuantity">
+                <roa:forecast>true</roa:forecast>
+                <roa:basicData xsi:type="roa:TrafficSpeed">
+                    <roa:measurementOrCalculationTime>
+                        <roa:timeValue>2025-09-29T14:03:00.000Z</roa:timeValue>
+                    </roa:measurementOrCalculationTime>
+                    <roa:forVehiclesWithCharacteristicsOf>
+                        <com:vehicleType>car</com:vehicleType>
+                    </roa:forVehiclesWithCharacteristicsOf>
+                    <roa:averageVehicleSpeed>
+                        <com:speed>88.25</com:speed>
+                    </roa:averageVehicleSpeed>
+                </roa:basicData>
+            </roa:physicalQuantity>
+        </roa:physicalQuantity>
+        <roa:physicalQuantity index="3">
+            <roa:physicalQuantity xsi:type="roa:SinglePhysicalQuantity">
+                <roa:forecast>true</roa:forecast>
+                <roa:basicData xsi:type="roa:TrafficFlow">
+                    <roa:measurementOrCalculationTime>
+                        <roa:period>
+                            <com:startOfPeriod>2025-09-29T14:02:00.000Z</com:startOfPeriod>
+                            <com:endOfPeriod>2025-09-29T14:03:00.000Z</com:endOfPeriod>
+                        </roa:period>
+                    </roa:measurementOrCalculationTime>
+                    <roa:forVehiclesWithCharacteristicsOf>
+                        <com:vehicleType>carWithTrailer</com:vehicleType>
+                    </roa:forVehiclesWithCharacteristicsOf>
+                    <roa:vehicleFlow>
+                        <com:vehicleFlowRate>1</com:vehicleFlowRate>
+                    </roa:vehicleFlow>
+                </roa:basicData>
+            </roa:physicalQuantity>
+        </roa:physicalQuantity>
+        <roa:physicalQuantity index="4">
+            <roa:physicalQuantity xsi:type="roa:SinglePhysicalQuantity">
+                <roa:forecast>true</roa:forecast>
+                <roa:basicData xsi:type="roa:TrafficSpeed">
+                    <roa:measurementOrCalculationTime>
+                        <roa:timeValue>2025-09-29T14:03:00.000Z</roa:timeValue>
+                    </roa:measurementOrCalculationTime>
+                    <roa:forVehiclesWithCharacteristicsOf>
+                        <com:vehicleType>carWithTrailer</com:vehicleType>
+                    </roa:forVehiclesWithCharacteristicsOf>
+                    <roa:averageVehicleSpeed>
+                        <com:speed>85</com:speed>
+                    </roa:averageVehicleSpeed>
+                </roa:basicData>
+            </roa:physicalQuantity>
+        </roa:physicalQuantity>
+        <roa:physicalQuantity index="5">
+            <roa:physicalQuantity xsi:type="roa:SinglePhysicalQuantity">
+                <roa:forecast>true</roa:forecast>
+                <roa:basicData xsi:type="roa:TrafficFlow">
+                    <roa:measurementOrCalculationTime>
+                        <roa:period>
+                            <com:startOfPeriod>2025-09-29T14:02:00.000Z</com:startOfPeriod>
+                            <com:endOfPeriod>2025-09-29T14:03:00.000Z</com:endOfPeriod>
+                        </roa:period>
+                    </roa:measurementOrCalculationTime>
+                    <roa:forVehiclesWithCharacteristicsOf>
+                        <com:vehicleType>lightCommercialVehicle</com:vehicleType>
+                    </roa:forVehiclesWithCharacteristicsOf>
+                    <roa:vehicleFlow>
+                        <com:vehicleFlowRate>2</com:vehicleFlowRate>
+                    </roa:vehicleFlow>
+                </roa:basicData>
+            </roa:physicalQuantity>
+        </roa:physicalQuantity>
+        <roa:physicalQuantity index="6">
+            <roa:physicalQuantity xsi:type="roa:SinglePhysicalQuantity">
+                <roa:forecast>true</roa:forecast>
+                <roa:basicData xsi:type="roa:TrafficSpeed">
+                    <roa:measurementOrCalculationTime>
+                        <roa:timeValue>2025-09-29T14:03:00.000Z</roa:timeValue>
+                    </roa:measurementOrCalculationTime>
+                    <roa:forVehiclesWithCharacteristicsOf>
+                        <com:vehicleType>lightCommercialVehicle</com:vehicleType>
+                    </roa:forVehiclesWithCharacteristicsOf>
+                    <roa:averageVehicleSpeed>
+                        <com:speed>93.5</com:speed>
+                    </roa:averageVehicleSpeed>
+                </roa:basicData>
+            </roa:physicalQuantity>
+        </roa:physicalQuantity>
+        <roa:physicalQuantity index="7">
+            <roa:physicalQuantity xsi:type="roa:SinglePhysicalQuantity">
+                <roa:forecast>true</roa:forecast>
+                <roa:basicData xsi:type="roa:TrafficFlow">
+                    <roa:measurementOrCalculationTime>
+                        <roa:period>
+                            <com:startOfPeriod>2025-09-29T14:02:00.000Z</com:startOfPeriod>
+                            <com:endOfPeriod>2025-09-29T14:03:00.000Z</com:endOfPeriod>
+                        </roa:period>
+                    </roa:measurementOrCalculationTime>
+                    <roa:forVehiclesWithCharacteristicsOf>
+                        <com:vehicleType>lorry</com:vehicleType>
+                    </roa:forVehiclesWithCharacteristicsOf>
+                    <roa:vehicleFlow>
+                        <com:vehicleFlowRate>1</com:vehicleFlowRate>
+                    </roa:vehicleFlow>
+                </roa:basicData>
+            </roa:physicalQuantity>
+        </roa:physicalQuantity>
+        <roa:physicalQuantity index="8">
+            <roa:physicalQuantity xsi:type="roa:SinglePhysicalQuantity">
+                <roa:forecast>true</roa:forecast>
+                <roa:basicData xsi:type="roa:TrafficSpeed">
+                    <roa:measurementOrCalculationTime>
+                        <roa:timeValue>2025-09-29T14:03:00.000Z</roa:timeValue>
+                    </roa:measurementOrCalculationTime>
+                    <roa:forVehiclesWithCharacteristicsOf>
+                        <com:vehicleType>lorry</com:vehicleType>
+                    </roa:forVehiclesWithCharacteristicsOf>
+                    <roa:averageVehicleSpeed>
+                        <com:speed>83</com:speed>
+                    </roa:averageVehicleSpeed>
+                </roa:basicData>
+            </roa:physicalQuantity>
+        </roa:physicalQuantity>
+        <roa:measurementTimeDefault>
+            <roa:timeValue>2025-09-29T14:03:00.000Z</roa:timeValue>
+        </roa:measurementTimeDefault>
+    </roa:siteMeasurements>
+</d2:payload>

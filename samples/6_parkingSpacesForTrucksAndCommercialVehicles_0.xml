@@ -1,0 +1,426 @@
+<d2:payload xmlns:d2="http://datex2.eu/schema/3/d2Payload"
+  xmlns:com="http://datex2.eu/schema/3/common"
+  xmlns:loc="http://datex2.eu/schema/3/locationReferencing"
+  xmlns:egi="http://datex2.eu/schema/3/energyInfrastructure"
+  xmlns:fac="http://datex2.eu/schema/3/facilities"
+  xmlns:roa="http://datex2.eu/schema/3/roadTrafficData"
+  xmlns:sit="http://datex2.eu/schema/3/situation"
+  xmlns:vms="http://datex2.eu/schema/3/vms"
+  xmlns:prk="http://datex2.eu/schema/3/parking"
+  xmlns:comx="http://datex2.eu/schema/3/commonExtension"
+  xmlns:locx="http://datex2.eu/schema/3/locationExtension"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://datex2.eu/schema/3/d2Payload DATEXII_3_D2Payload.xsd http://datex2.eu/schema/3/common DATEXII_3_Common.xsd http://datex2.eu/schema/3/energyInfrastructure DATEXII_3_EnergyInfrastructure.xsd http://datex2.eu/schema/3/facilities DATEXII_3_Facilities.xsd http://datex2.eu/schema/3/locationExtension DATEXII_3_LocationExtension.xsd http://datex2.eu/schema/3/locationReferencing DATEXII_3_LocationReferencing.xsd http://datex2.eu/schema/3/parking DATEXII_3_Parking.xsd http://datex2.eu/schema/3/roadTrafficData DATEXII_3_RoadTrafficData.xsd http://datex2.eu/schema/3/situation DATEXII_3_Situation.xsd http://datex2.eu/schema/3/vms DATEXII_3_Vms.xsd http://datex2.eu/schema/3/commonExtension DATEXII_3_CommonExtension.xsd" xsi:type="prk:ParkingTablePublication" lang="en-US" modelBaseVersion="3">
+  <com:publicationTime>2025-11-10T10:15:33.470Z</com:publicationTime>
+  <com:publicationCreator>
+    <com:country>lv</com:country>
+    <com:nationalIdentifier>latvia</com:nationalIdentifier>
+  </com:publicationCreator>
+  <prk:headerInformation>
+    <com:confidentiality>internalUse</com:confidentiality>
+    <com:allowedDeliveryChannel>anyGeneralDeliveryService</com:allowedDeliveryChannel>
+    <com:informationStatus>real</com:informationStatus>
+  </prk:headerInformation>
+  <prk:parkingTable id="690a0551c1ca2f6cce018ed7" version="1.0">
+    <prk:name>
+      <com:values>
+        <com:value>SSTP "ABC"</com:value>
+      </com:values>
+    </prk:name>
+    <prk:versionTime>2025-11-10T09:05:52+02:00</prk:versionTime>
+    <prk:hierarchyElementGeneral id="690a0551c1ca2f6cce018ed7" version="1.0" xsi:type="prk:Place">
+      <fac:name>
+        <com:values>
+          <com:value>SSTP "ABC"</com:value>
+        </com:values>
+      </fac:name>
+      <fac:locationReference xsi:type="loc:PointLocation">
+        <loc:pointByCoordinates>
+          <loc:pointCoordinates>
+            <loc:latitude>56.91301326499868</loc:latitude>
+            <loc:longitude>24.23682255561847</loc:longitude>
+          </loc:pointCoordinates>
+        </loc:pointByCoordinates>
+        <loc:_pointLocationExtension>
+          <fac:facilityLocation>
+            <locx:address>
+              <locx:addressLine>
+                <locx:type>generalTextLine</locx:type>
+                <locx:text>
+                  <com:values>
+                    <com:value>Stāvvietas iela 123a</com:value>
+                  </com:values>
+                </locx:text>
+              </locx:addressLine>
+            </locx:address>
+          </fac:facilityLocation>
+        </loc:_pointLocationExtension>
+      </fac:locationReference>
+      <fac:operator id="1" version="1.0" xsi:type="fac:OrganisationSpecification">
+        <fac:name>
+          <com:values>
+            <com:value>OPERATOR NAME</com:value>
+          </com:values>
+        </fac:name>
+        <fac:publishingAgreement>true</fac:publishingAgreement>
+        <fac:organisationUnit>
+          <fac:contactInformation xsi:type="fac:ContactPerson">
+            <fac:telephoneNumber>67475523</fac:telephoneNumber>
+            <fac:eMail>info@operator.lv</fac:eMail>
+            <fac:name>Berzins</fac:name>
+            <fac:firstName>Janis</fac:firstName>
+          </fac:contactInformation>
+        </fac:organisationUnit>
+      </fac:operator>
+      <fac:rates id="1" version="1" xsi:type="fac:RateTable">
+        <fac:_rateTableExtension>
+          <fac:generalInformation>1 stunda 2 eiro, 24h 10 eiro</fac:generalInformation>
+        </fac:_rateTableExtension>
+      </fac:rates>
+      <fac:supplementalFacility id="1" version="1" xsi:type="fac:SupplementalServiceFacility">
+        <fac:serviceFacilityType>pharmacy</fac:serviceFacilityType>
+      </fac:supplementalFacility>
+      <fac:supplementalFacility id="2" version="1" xsi:type="fac:SupplementalEquipment">
+        <fac:equipmentType>iceFreeScaffold</fac:equipmentType>
+      </fac:supplementalFacility>
+      <prk:layer>0</prk:layer>
+      <prk:type>place</prk:type>
+      <prk:commonComponents>
+        <prk:characteristics>
+          <prk:structureType>offStreetSurface</prk:structureType>
+          <prk:spacesTotal>50</prk:spacesTotal>
+        </prk:characteristics>
+        <prk:safetyStandardClassification>
+          <prk:securityFeature>socialControl</prk:securityFeature>
+          <prk:securityLevel>bronze</prk:securityLevel>
+          <prk:additionalSecurity>
+            <com:values>
+              <com:value>Extra kameras</com:value>
+            </com:values>
+          </prk:additionalSecurity>
+          <prk:safety>pedestrianSafety</prk:safety>
+          <prk:additionalSafety>
+            <com:values>
+              <com:value>Extra sētiņas</com:value>
+            </com:values>
+          </prk:additionalSafety>
+          <prk:supervision>remote</prk:supervision>
+          <prk:securityNationalClassification>
+            <com:values>
+              <com:value>Latvia</com:value>
+            </com:values>
+          </prk:securityNationalClassification>
+        </prk:safetyStandardClassification>
+        <prk:additionalCharacteristics>
+          <prk:assignment>
+            <prk:applicableFor>
+              <fac:qualification>
+                <fac:vehicleCharacteristics>
+                  <com:vehicleType>lorry</com:vehicleType>
+                </fac:vehicleCharacteristics>
+              </fac:qualification>
+            </prk:applicableFor>
+          </prk:assignment>
+        </prk:additionalCharacteristics>
+        <prk:operatingPattern operatingPatternIndex="1" xsi:type="prk:UsageScenario">
+          <prk:type>truckParking</prk:type>
+        </prk:operatingPattern>
+      </prk:commonComponents>
+    </prk:hierarchyElementGeneral>
+    <prk:hierarchyElementGeneral id="690a0551c1ca2f6cce018ed7_1" version="1" xsi:type="prk:VehicularAccess">
+      <prk:layer>1</prk:layer>
+      <prk:type>identifiedArea</prk:type>
+      <prk:parentId id="690a0551c1ca2f6cce018ed7" targetClass="fac:FacilityObject"/>
+      <prk:accessType>entryAndExit</prk:accessType>
+      <prk:primaryRoad>
+        <prk:distance>23</prk:distance>
+        <prk:roadInformation>
+          <loc:roadDestination>Rīga</loc:roadDestination>
+          <loc:roadName>Sigulda - Rīga</loc:roadName>
+          <loc:roadNumber>A10_L</loc:roadNumber>
+        </prk:roadInformation>
+      </prk:primaryRoad>
+    </prk:hierarchyElementGeneral>
+    <prk:hierarchyElementGeneral id="690a0551c1ca2f6cce018ed7_2" version="1.0" xsi:type="prk:SpecificArea">
+      <prk:layer>1</prk:layer>
+      <prk:type>identifiedArea</prk:type>
+      <prk:parentId id="690a0551c1ca2f6cce018ed7" targetClass="fac:FacilityObject"/>
+      <prk:additionalCharacteristics>
+        <prk:assignment>
+          <prk:exclusivelyAssignedFor>
+            <fac:qualification>
+              <fac:vehicleCharacteristics>
+                <com:loadType>refrigeratedGoods</com:loadType>
+                <com:vehicleType>lorry</com:vehicleType>
+              </fac:vehicleCharacteristics>
+            </fac:qualification>
+          </prk:exclusivelyAssignedFor>
+        </prk:assignment>
+        <prk:totalDimension>
+          <fac:usableArea>200</fac:usableArea>
+        </prk:totalDimension>
+      </prk:additionalCharacteristics>
+      <prk:characteristics>
+        <prk:structureType>offStreetSurface</prk:structureType>
+        <prk:spacesTotal>0</prk:spacesTotal>
+      </prk:characteristics>
+    </prk:hierarchyElementGeneral>
+  </prk:parkingTable>
+  <prk:parkingTable id="68f76a10d60f3fbed38e94f2" version="1.0">
+    <prk:name>
+      <com:values>
+        <com:value>TEST5_2</com:value>
+      </com:values>
+    </prk:name>
+    <prk:versionTime>2025-11-10T10:15:29+02:00</prk:versionTime>
+    <prk:hierarchyElementGeneral id="68f76a10d60f3fbed38e94f2" version="1.0" xsi:type="prk:Place">
+      <fac:name>
+        <com:values>
+          <com:value>TEST5_2</com:value>
+        </com:values>
+      </fac:name>
+      <fac:locationReference xsi:type="loc:PointLocation">
+        <loc:pointByCoordinates>
+          <loc:pointCoordinates>
+            <loc:latitude>56.81678850392824</loc:latitude>
+            <loc:longitude>24.836560239762772</loc:longitude>
+          </loc:pointCoordinates>
+        </loc:pointByCoordinates>
+      </fac:locationReference>
+      <fac:operator id="1" version="1.0" xsi:type="fac:OrganisationSpecification">
+        <fac:name>
+          <com:values>
+            <com:value>TEST5</com:value>
+          </com:values>
+        </fac:name>
+        <fac:publishingAgreement>true</fac:publishingAgreement>
+        <fac:organisationUnit>
+          <fac:contactInformation xsi:type="fac:ContactPerson">
+            <fac:telephoneNumber>2432423</fac:telephoneNumber>
+            <fac:eMail>test@example.com</fac:eMail>
+            <fac:name>Bērziņš</fac:name>
+            <fac:firstName>Kārlis</fac:firstName>
+          </fac:contactInformation>
+        </fac:organisationUnit>
+      </fac:operator>
+      <fac:rates id="1" version="1" xsi:type="fac:RateTable">
+        <fac:_rateTableExtension>
+          <fac:generalInformation>1e / 1h vai 10e / 24h</fac:generalInformation>
+        </fac:_rateTableExtension>
+      </fac:rates>
+      <fac:supplementalFacility id="1" version="1" xsi:type="fac:SupplementalServiceFacility">
+        <fac:serviceFacilityType>pharmacy</fac:serviceFacilityType>
+      </fac:supplementalFacility>
+      <fac:supplementalFacility id="2" version="1" xsi:type="fac:SupplementalEquipment">
+        <fac:equipmentType>iceFreeScaffold</fac:equipmentType>
+      </fac:supplementalFacility>
+      <prk:layer>0</prk:layer>
+      <prk:type>place</prk:type>
+      <prk:commonComponents>
+        <prk:characteristics>
+          <prk:structureType>offStreetStructure</prk:structureType>
+          <prk:spacesTotal>3</prk:spacesTotal>
+        </prk:characteristics>
+        <prk:safetyStandardClassification>
+          <prk:securityFeature>socialControl</prk:securityFeature>
+          <prk:securityLevel>bronze</prk:securityLevel>
+          <prk:additionalSecurity>
+            <com:values>
+              <com:value>fsdfsdf</com:value>
+            </com:values>
+          </prk:additionalSecurity>
+          <prk:safety>pedestrianSafety</prk:safety>
+          <prk:additionalSafety>
+            <com:values>
+              <com:value>dsfsd</com:value>
+            </com:values>
+          </prk:additionalSafety>
+          <prk:supervision>remote</prk:supervision>
+          <prk:securityNationalClassification>
+            <com:values>
+              <com:value>Latvia</com:value>
+            </com:values>
+          </prk:securityNationalClassification>
+        </prk:safetyStandardClassification>
+        <prk:additionalCharacteristics>
+          <prk:assignment>
+            <prk:applicableFor>
+              <fac:qualification>
+                <fac:vehicleCharacteristics>
+                  <com:vehicleType>lorry</com:vehicleType>
+                </fac:vehicleCharacteristics>
+              </fac:qualification>
+            </prk:applicableFor>
+          </prk:assignment>
+        </prk:additionalCharacteristics>
+        <prk:operatingPattern operatingPatternIndex="1" xsi:type="prk:UsageScenario">
+          <prk:type>truckParking</prk:type>
+        </prk:operatingPattern>
+      </prk:commonComponents>
+    </prk:hierarchyElementGeneral>
+    <prk:hierarchyElementGeneral id="68f76a10d60f3fbed38e94f2_1" version="1" xsi:type="prk:VehicularAccess">
+      <prk:layer>1</prk:layer>
+      <prk:type>identifiedArea</prk:type>
+      <prk:parentId id="68f76a10d60f3fbed38e94f2" targetClass="fac:FacilityObject"/>
+      <prk:accessType>entryOnly</prk:accessType>
+      <prk:primaryRoad>
+        <prk:distance>33</prk:distance>
+        <prk:roadInformation>
+          <loc:roadDestination>dsfsdf</loc:roadDestination>
+          <loc:roadName>sdfsdfsd</loc:roadName>
+          <loc:roadNumber>134</loc:roadNumber>
+        </prk:roadInformation>
+      </prk:primaryRoad>
+    </prk:hierarchyElementGeneral>
+    <prk:hierarchyElementGeneral id="68f76a10d60f3fbed38e94f2_2" version="1.0" xsi:type="prk:SpecificArea">
+      <prk:layer>1</prk:layer>
+      <prk:type>identifiedArea</prk:type>
+      <prk:parentId id="68f76a10d60f3fbed38e94f2" targetClass="fac:FacilityObject"/>
+      <prk:additionalCharacteristics>
+        <prk:assignment>
+          <prk:exclusivelyAssignedFor>
+            <fac:qualification>
+              <fac:vehicleCharacteristics>
+                <com:loadType>refrigeratedGoods</com:loadType>
+                <com:vehicleType>lorry</com:vehicleType>
+              </fac:vehicleCharacteristics>
+            </fac:qualification>
+          </prk:exclusivelyAssignedFor>
+        </prk:assignment>
+        <prk:totalDimension>
+          <fac:usableArea>42</fac:usableArea>
+        </prk:totalDimension>
+      </prk:additionalCharacteristics>
+      <prk:characteristics>
+        <prk:structureType>offStreetStructure</prk:structureType>
+        <prk:spacesTotal>4</prk:spacesTotal>
+      </prk:characteristics>
+    </prk:hierarchyElementGeneral>
+  </prk:parkingTable>
+  <prk:parkingTable id="690b2fbdc1ca2f6cce018ed9" version="1.0">
+    <prk:name>
+      <com:values>
+        <com:value>Stāvlaukums "Kravas"</com:value>
+      </com:values>
+    </prk:name>
+    <prk:versionTime>2025-11-10T10:15:33+02:00</prk:versionTime>
+    <prk:hierarchyElementGeneral id="690b2fbdc1ca2f6cce018ed9" version="1.0" xsi:type="prk:Place">
+      <fac:name>
+        <com:values>
+          <com:value>Stāvlaukums "Kravas"</com:value>
+        </com:values>
+      </fac:name>
+      <fac:locationReference xsi:type="loc:PointLocation">
+        <loc:pointByCoordinates>
+          <loc:pointCoordinates>
+            <loc:latitude>56.943695637399756</loc:latitude>
+            <loc:longitude>24.244446398904973</loc:longitude>
+          </loc:pointCoordinates>
+        </loc:pointByCoordinates>
+      </fac:locationReference>
+      <fac:operator id="1" version="1.0" xsi:type="fac:OrganisationSpecification">
+        <fac:name>
+          <com:values>
+            <com:value>OPERATOR NAME</com:value>
+          </com:values>
+        </fac:name>
+        <fac:publishingAgreement>true</fac:publishingAgreement>
+        <fac:organisationUnit>
+          <fac:contactInformation xsi:type="fac:ContactPerson">
+            <fac:telephoneNumber>1859</fac:telephoneNumber>
+            <fac:eMail>info@operator.lv</fac:eMail>
+            <fac:name>Krūmiņš</fac:name>
+            <fac:firstName>Jānis</fac:firstName>
+          </fac:contactInformation>
+        </fac:organisationUnit>
+      </fac:operator>
+      <fac:rates id="1" version="1" xsi:type="fac:RateTable">
+        <fac:_rateTableExtension>
+          <fac:generalInformation>2e / 1h</fac:generalInformation>
+        </fac:_rateTableExtension>
+      </fac:rates>
+      <prk:layer>0</prk:layer>
+      <prk:type>place</prk:type>
+      <prk:commonComponents>
+        <prk:characteristics>
+          <prk:structureType>offStreetSurface</prk:structureType>
+        </prk:characteristics>
+        <prk:safetyStandardClassification>
+          <prk:securityFeature>socialControl</prk:securityFeature>
+          <prk:securityLevel>bronze</prk:securityLevel>
+          <prk:safety>pedestrianSafety</prk:safety>
+          <prk:supervision>remote</prk:supervision>
+          <prk:securityNationalClassification>
+            <com:values>
+              <com:value>Latvia</com:value>
+            </com:values>
+          </prk:securityNationalClassification>
+        </prk:safetyStandardClassification>
+        <prk:additionalCharacteristics>
+          <prk:assignment>
+            <prk:applicableFor>
+              <fac:qualification>
+                <fac:vehicleCharacteristics>
+                  <com:vehicleType>lorry</com:vehicleType>
+                </fac:vehicleCharacteristics>
+              </fac:qualification>
+            </prk:applicableFor>
+          </prk:assignment>
+        </prk:additionalCharacteristics>
+        <prk:operatingPattern operatingPatternIndex="1" xsi:type="prk:UsageScenario">
+          <prk:type>truckParking</prk:type>
+        </prk:operatingPattern>
+      </prk:commonComponents>
+    </prk:hierarchyElementGeneral>
+    <prk:hierarchyElementGeneral id="690b2fbdc1ca2f6cce018ed9_1" version="1" xsi:type="prk:VehicularAccess">
+      <prk:layer>1</prk:layer>
+      <prk:type>identifiedArea</prk:type>
+      <prk:parentId id="690b2fbdc1ca2f6cce018ed9" targetClass="fac:FacilityObject"/>
+      <prk:accessType>entryOnly</prk:accessType>
+      <prk:primaryRoad>
+        <prk:distance>2</prk:distance>
+        <prk:roadInformation>
+          <loc:roadDestination>Rīga</loc:roadDestination>
+          <loc:roadName>Sigulda - Rīga</loc:roadName>
+          <loc:roadNumber>A10XC1118_I</loc:roadNumber>
+        </prk:roadInformation>
+      </prk:primaryRoad>
+    </prk:hierarchyElementGeneral>
+    <prk:hierarchyElementGeneral id="690b2fbdc1ca2f6cce018ed9_2" version="1" xsi:type="prk:VehicularAccess">
+      <prk:layer>1</prk:layer>
+      <prk:type>identifiedArea</prk:type>
+      <prk:parentId id="690b2fbdc1ca2f6cce018ed9" targetClass="fac:FacilityObject"/>
+      <prk:accessType>exitOnly</prk:accessType>
+      <prk:primaryRoad>
+        <prk:distance>4</prk:distance>
+        <prk:roadInformation>
+          <loc:roadDestination>asd</loc:roadDestination>
+          <loc:roadName>asd</loc:roadName>
+          <loc:roadNumber>A11_I</loc:roadNumber>
+        </prk:roadInformation>
+      </prk:primaryRoad>
+    </prk:hierarchyElementGeneral>
+    <prk:hierarchyElementGeneral id="690b2fbdc1ca2f6cce018ed9_3" version="1.0" xsi:type="prk:SpecificArea">
+      <prk:layer>1</prk:layer>
+      <prk:type>identifiedArea</prk:type>
+      <prk:parentId id="690b2fbdc1ca2f6cce018ed9" targetClass="fac:FacilityObject"/>
+      <prk:additionalCharacteristics>
+        <prk:assignment>
+          <prk:exclusivelyAssignedFor>
+            <fac:qualification>
+              <fac:vehicleCharacteristics>
+                <com:loadType>refrigeratedGoods</com:loadType>
+                <com:vehicleType>lorry</com:vehicleType>
+              </fac:vehicleCharacteristics>
+            </fac:qualification>
+          </prk:exclusivelyAssignedFor>
+        </prk:assignment>
+        <prk:totalDimension>
+          <fac:usableArea>23</fac:usableArea>
+        </prk:totalDimension>
+      </prk:additionalCharacteristics>
+      <prk:characteristics>
+        <prk:structureType>offStreetSurface</prk:structureType>
+      </prk:characteristics>
+    </prk:hierarchyElementGeneral>
+  </prk:parkingTable>
+</d2:payload>

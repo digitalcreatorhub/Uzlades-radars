@@ -1,0 +1,171 @@
+<d2:payload xmlns:d2="http://datex2.eu/schema/3/d2Payload"
+  xmlns:com="http://datex2.eu/schema/3/common"
+  xmlns:loc="http://datex2.eu/schema/3/locationReferencing"
+  xmlns:egi="http://datex2.eu/schema/3/energyInfrastructure"
+  xmlns:fac="http://datex2.eu/schema/3/facilities"
+  xmlns:roa="http://datex2.eu/schema/3/roadTrafficData"
+  xmlns:sit="http://datex2.eu/schema/3/situation"
+  xmlns:vms="http://datex2.eu/schema/3/vms"
+  xmlns:prk="http://datex2.eu/schema/3/parking"
+  xmlns:comx="http://datex2.eu/schema/3/commonExtension"
+  xmlns:locx="http://datex2.eu/schema/3/locationExtension"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://datex2.eu/schema/3/d2Payload DATEXII_3_D2Payload.xsd http://datex2.eu/schema/3/common DATEXII_3_Common.xsd http://datex2.eu/schema/3/energyInfrastructure DATEXII_3_EnergyInfrastructure.xsd http://datex2.eu/schema/3/facilities DATEXII_3_Facilities.xsd http://datex2.eu/schema/3/locationExtension DATEXII_3_LocationExtension.xsd http://datex2.eu/schema/3/locationReferencing DATEXII_3_LocationReferencing.xsd http://datex2.eu/schema/3/parking DATEXII_3_Parking.xsd http://datex2.eu/schema/3/roadTrafficData DATEXII_3_RoadTrafficData.xsd http://datex2.eu/schema/3/situation DATEXII_3_Situation.xsd http://datex2.eu/schema/3/vms DATEXII_3_Vms.xsd http://datex2.eu/schema/3/commonExtension DATEXII_3_CommonExtension.xsd" xsi:type="prk:ParkingTablePublication" lang="en-US" modelBaseVersion="3">
+  <com:publicationTime>2025-11-10T10:15:33.470Z</com:publicationTime>
+  <com:publicationCreator>
+    <com:country>lv</com:country>
+    <com:nationalIdentifier>latvia</com:nationalIdentifier>
+  </com:publicationCreator>
+  <prk:headerInformation>
+    <com:confidentiality>internalUse</com:confidentiality>
+    <com:allowedDeliveryChannel>anyGeneralDeliveryService</com:allowedDeliveryChannel>
+    <com:informationStatus>real</com:informationStatus>
+  </prk:headerInformation>
+  <prk:parkingTable id="690a0551c1ca2f6cce018ed7" version="1.0">
+    <prk:name>
+      <com:values>
+        <com:value>Stāvlaukums "ABC"</com:value>
+      </com:values>
+    </prk:name>
+    <prk:versionTime>2025-11-10T09:05:52+02:00</prk:versionTime>
+    <prk:hierarchyElementGeneral id="690a0551c1ca2f6cce018ed7" version="1.0" xsi:type="prk:Place">
+      <fac:name>
+        <com:values>
+          <com:value>Stāvlaukums "ABC"</com:value>
+        </com:values>
+      </fac:name>
+      <fac:locationReference xsi:type="loc:PointLocation">
+        <loc:pointByCoordinates>
+          <loc:pointCoordinates>
+            <loc:latitude>56.91301326499868</loc:latitude>
+            <loc:longitude>24.23682255561847</loc:longitude>
+          </loc:pointCoordinates>
+        </loc:pointByCoordinates>
+        <loc:_pointLocationExtension>
+          <fac:facilityLocation>
+            <locx:address>
+              <locx:addressLine>
+                <locx:type>generalTextLine</locx:type>
+                <locx:text>
+                  <com:values>
+                    <com:value>Stāvvietas iela 123a</com:value>
+                  </com:values>
+                </locx:text>
+              </locx:addressLine>
+            </locx:address>
+          </fac:facilityLocation>
+        </loc:_pointLocationExtension>
+      </fac:locationReference>
+      <fac:rates id="1" version="1" xsi:type="fac:RateTable">
+        <fac:_rateTableExtension>
+          <fac:generalInformation>1 stunda 2 eiro, 24h 10 eiro</fac:generalInformation>
+        </fac:_rateTableExtension>
+      </fac:rates>
+      <fac:supplementalFacility id="1" version="1" xsi:type="fac:SupplementalServiceFacility">
+        <fac:serviceFacilityType>pharmacy</fac:serviceFacilityType>
+      </fac:supplementalFacility>
+      <fac:supplementalFacility id="2" version="1" xsi:type="fac:SupplementalEquipment">
+        <fac:equipmentType>iceFreeScaffold</fac:equipmentType>
+      </fac:supplementalFacility>
+      <prk:layer>0</prk:layer>
+      <prk:type>place</prk:type>
+      <prk:commonComponents>
+        <prk:characteristics>
+          <prk:structureType>offStreetSurface</prk:structureType>
+          <prk:spacesTotal>50</prk:spacesTotal>
+        </prk:characteristics>
+        <prk:additionalCharacteristics>
+            <prk:totalDimension>
+                <fac:usableArea>600</fac:usableArea>
+            </prk:totalDimension>
+        </prk:additionalCharacteristics>
+      </prk:commonComponents>
+    </prk:hierarchyElementGeneral>
+  </prk:parkingTable>
+  <prk:parkingTable id="68f76a10d60f3fbed38e94f2" version="1.0">
+    <prk:name>
+      <com:values>
+        <com:value>TEST5_2</com:value>
+      </com:values>
+    </prk:name>
+    <prk:versionTime>2025-11-10T10:15:29+02:00</prk:versionTime>
+    <prk:hierarchyElementGeneral id="68f76a10d60f3fbed38e94f2" version="1.0" xsi:type="prk:Place">
+      <fac:name>
+        <com:values>
+          <com:value>TEST5_2</com:value>
+        </com:values>
+      </fac:name>
+      <fac:locationReference xsi:type="loc:PointLocation">
+        <loc:pointByCoordinates>
+          <loc:pointCoordinates>
+            <loc:latitude>56.81678850392824</loc:latitude>
+            <loc:longitude>24.836560239762772</loc:longitude>
+          </loc:pointCoordinates>
+        </loc:pointByCoordinates>
+      </fac:locationReference>
+      <fac:rates id="1" version="1" xsi:type="fac:RateTable">
+        <fac:_rateTableExtension>
+          <fac:generalInformation>1e / 1h vai 10e / 24h</fac:generalInformation>
+        </fac:_rateTableExtension>
+      </fac:rates>
+      <fac:supplementalFacility id="1" version="1" xsi:type="fac:SupplementalServiceFacility">
+        <fac:serviceFacilityType>pharmacy</fac:serviceFacilityType>
+      </fac:supplementalFacility>
+      <fac:supplementalFacility id="2" version="1" xsi:type="fac:SupplementalEquipment">
+        <fac:equipmentType>iceFreeScaffold</fac:equipmentType>
+      </fac:supplementalFacility>
+      <prk:layer>0</prk:layer>
+      <prk:type>place</prk:type>
+      <prk:commonComponents>
+        <prk:characteristics>
+          <prk:structureType>offStreetStructure</prk:structureType>
+          <prk:spacesTotal>3</prk:spacesTotal>
+        </prk:characteristics>
+         <prk:additionalCharacteristics>
+            <prk:totalDimension>
+                <fac:usableArea>600</fac:usableArea>
+            </prk:totalDimension>
+        </prk:additionalCharacteristics>
+      </prk:commonComponents>
+    </prk:hierarchyElementGeneral>
+  </prk:parkingTable>
+  <prk:parkingTable id="690b2fbdc1ca2f6cce018ed9" version="1.0">
+    <prk:name>
+      <com:values>
+        <com:value>Stāvlaukums "Vieglie auto"</com:value>
+      </com:values>
+    </prk:name>
+    <prk:versionTime>2025-11-10T10:15:33+02:00</prk:versionTime>
+    <prk:hierarchyElementGeneral id="690b2fbdc1ca2f6cce018ed9" version="1.0" xsi:type="prk:Place">
+      <fac:name>
+        <com:values>
+          <com:value>Stāvlaukums "Vieglie auto"</com:value>
+        </com:values>
+      </fac:name>
+      <fac:locationReference xsi:type="loc:PointLocation">
+        <loc:pointByCoordinates>
+          <loc:pointCoordinates>
+            <loc:latitude>56.943695637399756</loc:latitude>
+            <loc:longitude>24.244446398904973</loc:longitude>
+          </loc:pointCoordinates>
+        </loc:pointByCoordinates>
+      </fac:locationReference>
+      <fac:rates id="1" version="1" xsi:type="fac:RateTable">
+        <fac:_rateTableExtension>
+          <fac:generalInformation>2e / 1h</fac:generalInformation>
+        </fac:_rateTableExtension>
+      </fac:rates>
+      <prk:layer>0</prk:layer>
+      <prk:type>place</prk:type>
+      <prk:commonComponents>
+        <prk:characteristics>
+          <prk:structureType>offStreetSurface</prk:structureType>
+        </prk:characteristics>
+        <prk:additionalCharacteristics>
+            <prk:totalDimension>
+                <fac:usableArea>600</fac:usableArea>
+            </prk:totalDimension>
+        </prk:additionalCharacteristics>
+      </prk:commonComponents>
+    </prk:hierarchyElementGeneral>
+  </prk:parkingTable>
+</d2:payload>
