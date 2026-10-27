@@ -30,8 +30,8 @@ self.addEventListener('fetch', (event) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
 
-  // Тайлы карты (OSM, CARTO), Overpass и живые данные (live.json) не кэшируем здесь: свежесть важнее.
-  if (url.hostname.endsWith('openstreetmap.org') || url.hostname.endsWith('cartocdn.com') || url.hostname.includes('overpass') || url.hostname === 'raw.githubusercontent.com') return;
+  // Тайлы карты (OSM), Overpass и живые данные (live.json) не кэшируем здесь: свежесть важнее.
+  if (url.hostname.endsWith('openstreetmap.org') || url.hostname.includes('overpass') || url.hostname === 'raw.githubusercontent.com') return;
 
   if (url.origin === self.location.origin) {
     // Свои файлы: сначала сеть (чтобы обновления доходили), при её отсутствии кэш.

@@ -372,30 +372,9 @@
     setTiles();
   }
 
-  // Карта: готовые тёмные/светлые плитки CARTO на данных OpenStreetMap (ключ не нужен).
-  // Если плитки CARTO не загрузились ни разу, переходим на стандартные плитки OSM с затемнением фильтром.
-  let tilesOsmFallback = false;
-  function setTiles(forceOsm) {
+  // Стандартные тайлы OpenStreetMap (ключ не нужен). Тёмная тема: CSS-фильтр на слое тайлов.
+  function setTiles() {
     if (tiles) tiles.remove();
-    if (forceOsm) tilesOsmFallback = true;
-    if (!tilesOsmFallback) {
-      const style = state.theme === 'dark' ? 'dark_all' : 'light_all';
-      let loaded = 0;
-      let failed = 0;
-      tiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/' + style + '/{z}/{x}/{y}{r}.png', {
-        subdomains: 'abcd',
-        maxZoom: 20,
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>',
-      });
-      tiles.on('tileload', () => { loaded++; });
-      tiles.on('tileerror', () => {
-        failed++;
-        if (!loaded && failed >= 4 && !tilesOsmFallback) setTiles(true);
-      });
-      tiles.addTo(map);
-      $('map').classList.remove('dark-tiles');
-      return;
-    }
     tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',

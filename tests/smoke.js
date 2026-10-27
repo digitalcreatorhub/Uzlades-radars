@@ -129,7 +129,6 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
   await page.click('#btn-lang');
   await page.click('#btn-theme');
   check('светлая тема', (await page.evaluate(() => document.documentElement.dataset.theme)) === 'light');
-  check('светлая тема: светлые плитки CARTO', (await page.evaluate(() => window.__tileUrl)).includes('basemaps.cartocdn.com/light_all/'));
   await page.click('[data-tab="go"]');
   await page.screenshot({ path: path.join(shots, '5-light.png') });
   await page.click('#btn-theme');
@@ -148,7 +147,7 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
   await page.waitForSelector('.best', { timeout: 8000 });
   check('повторный запуск показывает станции из кэша', (await page.evaluate(() => window.__markers)) === 6);
 
-  check('тёмная тема: тёмные плитки CARTO без CSS-фильтра', (await page.evaluate(() => window.__tileUrl)).includes('basemaps.cartocdn.com/dark_all/') && !(await page.evaluate(() => document.getElementById('map').classList.contains('dark-tiles'))));
+  check('тёмные тайлы: класс на карте в тёмной теме', await page.evaluate(() => document.getElementById('map').classList.contains('dark-tiles')));
 
   // все зеркала Overpass недоступны и кэша нет: ошибка с кнопкой «Повторить»
   const ctx2 = await browser.newContext({ viewport: { width: 390, height: 780 }, serviceWorkers: 'block' });
