@@ -243,6 +243,19 @@ def build(static_xml, status_xml, source='api'):
 RIGA = ZoneInfo('Europe/Riga')
 HIST_BUCKETS = 48  # 24 часа × (будни, выходные), по времени Риги
 MIN_SAMPLES = 12   # меньше замеров в корзине (это ~3 дня) картину не показываем
+REL_MIN = 192      # столько снимков (~2 суток) нужно, чтобы говорить о надёжности площадки
+PX_KEEP = 12       # сколько последних смен цены хранить по площадке
+PX_RECENT_DAYS = 14  # «подорожала/подешевела» показываем, если смена была не раньше
+
+
+def site_price(site):
+    """Цена площадки (€/кВт·ч с НДС): у самых быстрых точек, как и в приложении."""
+    pts = [p for p in site['pts'] if p.get('p') is not None and p.get('kw')]
+    if not pts:
+        return None
+    top = max(p['kw'] for p in pts)
+    fast = [p['p'] for p in pts if p['kw'] >= top * 0.8]
+    return round(min(fast), 2) if fast else None
 
 
 def bucket_of(dt_utc):
@@ -251,7 +264,7 @@ def bucket_of(dt_utc):
 
 
 def empty_history(now):
-    return {'v': 1, 'since': now.astimezone(RIGA).strftime('%Y-%m-%d'), 'lastStatusTime': None, 'sites': {}}
+    return {'v': 1, 'since': now.astimezone(RIGA).strftime('%Y-%m-%d'), 'lastStatusTime': None, 'sites': {}, 'rel': {}, 'px': {}}
 
 
 def update_history(state, live, now=None):
@@ -267,7 +280,24 @@ def update_history(state, live, now=None):
     if age > timedelta(minutes=90):
         return False  # устаревший поток в статистику не берём
     b = bucket_of(now)
+    today = now.astimezone(RIGA).strftime('%Y-%m-%d')
+    rel = state.setdefault('rel', {})
+    px = state.setdefault('px', {})
     for site in live['sites']:
+        # надёжность: доля точек «не работает» среди точек с известным статусом, по снимкам
+        known = sum(1 for p in site['pts'] if p.get('s') in ('free', 'busy', 'out'))
+        if known:
+            out = sum(1 for p in site['pts'] if p.get('s') == 'out')
+            r = rel.setdefault(site['id'], [0.0, 0])
+            r[0] = round(r[0] + out / known, 3)
+            r[1] += 1
+        # цена: пишем только смены, чтобы файл не рос
+        price = site_price(site)
+        if price is not None:
+            hist = px.setdefault(site['id'], [])
+            if not hist or abs(hist[-1][1] - price) >= 0.005:
+                hist.append([today, price])
+                del hist[:-PX_KEEP]
         free = sum(1 for p in site['pts'] if p.get('s') == 'free')
         busy = sum(1 for p in site['pts'] if p.get('s') == 'busy')
         if free + busy == 0:
@@ -287,12 +317,29 @@ def render_patterns(state, now=None):
         row = [round(100 * rec['s'][i] / rec['n'][i]) if rec['n'][i] >= MIN_SAMPLES else -1 for i in range(HIST_BUCKETS)]
         if any(v >= 0 for v in row):
             sites[sid] = row
+    # надёжность: [процент снимков с неработающими точками, число снимков]; пока снимков мало, молчим
+    rel = {sid: [round(100 * r[0] / r[1]), r[1]] for sid, r in state.get('rel', {}).items() if r[1] >= REL_MIN}
+    # цена: [сейчас, было, дата смены], только если смена недавняя
+    today = now.astimezone(RIGA).date()
+    px = {}
+    for sid, hist in state.get('px', {}).items():
+        if len(hist) < 2:
+            continue
+        try:
+            changed = datetime.strptime(hist[-1][0], '%Y-%m-%d').date()
+        except ValueError:
+            continue
+        if (today - changed).days <= PX_RECENT_DAYS:
+            px[sid] = [hist[-1][1], hist[-2][1], hist[-1][0]]
     return {
         'v': 1,
         'since': state.get('since'),
         'updated': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
         'minSamples': MIN_SAMPLES,
+        'relMin': REL_MIN,
         'sites': sites,
+        'rel': rel,
+        'px': px,
     }
 
 

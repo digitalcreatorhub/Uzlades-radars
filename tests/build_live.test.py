@@ -3,7 +3,7 @@ import json
 import os
 import sys
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..', 'scripts'))
@@ -167,6 +167,40 @@ class History(unittest.TestCase):
         self.assertEqual(wd, [12])
         self.assertEqual(we, [36])
         self.assertEqual(st['sites']['S1']['n'][12] + st['sites']['S1']['n'][36], build_live.MIN_SAMPLES)
+
+    def test_reliability_counts_out_share_and_needs_enough_snapshots(self):
+        st = build_live.empty_history(self.utc('2026-11-03T10:00:00'))
+        for i in range(build_live.REL_MIN):
+            t = '2026-11-03T%02d:%02d:00+00:00' % (i // 60 % 24, i % 60)
+            now = self.utc(t[:19]) + timedelta(minutes=5)
+            # одна точка из четырёх не работает, остальные работают
+            build_live.update_history(st, fake_live(t, ['out', 'free', 'busy', 'free']), now)
+        self.assertEqual(st['rel']['S1'][1], build_live.REL_MIN)
+        pat = build_live.render_patterns(st, now)
+        self.assertEqual(pat['rel']['S1'], [25, build_live.REL_MIN])
+        # меньше порога: ничего не показываем
+        st['rel']['S1'][1] = build_live.REL_MIN - 1
+        self.assertNotIn('S1', build_live.render_patterns(st, now)['rel'])
+
+    def test_all_out_site_is_counted_even_without_busy_or_free(self):
+        now = self.utc('2026-10-27T10:05:00')
+        st = build_live.empty_history(now)
+        build_live.update_history(st, fake_live('2026-10-27T10:00:00+00:00', ['out', 'out']), now)
+        self.assertEqual(st['rel']['S1'], [1.0, 1])
+        self.assertNotIn('S1', st['sites'])
+
+    def test_price_change_is_recorded_and_reported_when_recent(self):
+        def live_with_price(t, price):
+            return {'statusTime': t, 'sites': [{'id': 'S1', 'pts': [{'s': 'free', 'kw': 150, 'p': price}, {'s': 'free', 'kw': 22, 'p': 0.2}]}]}
+        st = build_live.empty_history(self.utc('2026-10-20T10:00:00'))
+        build_live.update_history(st, live_with_price('2026-10-20T10:00:00+00:00', 0.41), self.utc('2026-10-20T10:05:00'))
+        build_live.update_history(st, live_with_price('2026-10-21T10:00:00+00:00', 0.41), self.utc('2026-10-21T10:05:00'))
+        self.assertEqual(st['px']['S1'], [['2026-10-20', 0.41]], 'без смены запись не растёт, цена берётся у самых быстрых точек')
+        self.assertNotIn('S1', build_live.render_patterns(st, self.utc('2026-10-21T12:00:00'))['px'])
+        build_live.update_history(st, live_with_price('2026-10-27T10:00:00+00:00', 0.44), self.utc('2026-10-27T10:05:00'))
+        self.assertEqual(build_live.render_patterns(st, self.utc('2026-10-27T12:00:00'))['px']['S1'], [0.44, 0.41, '2026-10-27'])
+        # смена старше двух недель уже не новость
+        self.assertNotIn('S1', build_live.render_patterns(st, self.utc('2026-11-20T12:00:00'))['px'])
 
 
 if __name__ == '__main__':
