@@ -210,7 +210,8 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
   const errors3 = [];
   p3.on('pageerror', (e) => errors3.push('pageerror: ' + e.message));
   p3.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) errors3.push('console: ' + m.text()); });
-  const hoursRow = Array.from({ length: 24 }, (_, h) => (h < 6 ? -1 : 10 + h * 3)); // ночью данных нет
+  const nowH = Number(new Intl.DateTimeFormat('en-GB', { hour: '2-digit', hour12: false, timeZone: 'Europe/Riga' }).format(new Date())) % 24;
+  const hoursRow = Array.from({ length: 24 }, (_, h) => (((h - nowH + 24) % 24) >= 12 && ((h - nowH + 24) % 24) < 18 ? -1 : 10 + h * 3)); // данных нет в 6 часах, не включая текущий
   const patternsDoc = { v: 1, since: '2026-10-27', minSamples: 12, sites: { a1: hoursRow.concat(hoursRow) } };
   await routeFor(p3, liveDoc(minsAgo(5)), patternsDoc);
   await p3.goto(base + '/');
@@ -236,7 +237,7 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
   await p3.locator('.row', { hasText: 'Dzirnavu' }).first().click();
   const detailTxt = await p3.locator('.detail').innerText();
   check('оплата: в «Подробнее» строка «Как оплатить» с плашками', detailTxt.includes('Как оплатить') && (await p3.locator('.detail dd .chip-pay').count()) === 3);
-  check('«занята с»: у занятой точки время смены статуса', /занята с \d\d:\d\d/.test(await p3.locator('.pts').innerText()));
+  check('«занята с»: у занятой точки время смены статуса', /занята с (\d\d\.\d\d )?\d\d:\d\d/.test(await p3.locator('.pts').innerText()));
   check('график: 24 столбика, текущий час выделен', (await p3.locator('.bars i').count()) === 24 && (await p3.locator('.bars i.cur').count()) === 1);
   check('график: часы без данных отмечены отдельно', (await p3.locator('.bars i.na').count()) === 6);
   check('график: подпись про источник и дату начала', (await p3.locator('.usual .note').innerText()).includes('по данным с 27.10.2026'));
@@ -413,12 +414,14 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
     pf.on('pageerror', (e) => errF.push('pageerror: ' + e.message));
     pf.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) errF.push('console: ' + m.text()); });
     pf.on('dialog', (d) => { errF.push('dialog: ' + d.message()); d.dismiss(); });
+    const window_geoUrls = [];
     const line = [[56.95, 24.11], [57.1, 24.5], [57.54, 25.42]].map((q) => [q[1], q[0]]);
     await pf.route('**/*', async (route) => {
       const url = route.request().url();
       if (url.startsWith(base)) return route.continue();
       if (url.includes('leaflet.min.js')) return route.fulfill({ contentType: 'text/javascript', body: LEAFLET_STUB });
       if (url.includes('overpass')) return route.fulfill({ contentType: 'application/json', body: JSON.stringify(MOCK) });
+      if (url.includes('nominatim')) { window_geoUrls.push(url); } 
       if (url.includes('nominatim')) return route.fulfill({ contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify([{ lat: '57.54', lon: '25.42', display_name: 'Valmiera, Latvija' }]) });
       if (url.includes('router.project-osrm.org')) return route.fulfill({ contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify({ routes: [{ distance: 105000, duration: 4200, geometry: { coordinates: line } }] }) });
       if (url.includes('open-meteo')) return route.fulfill({ contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify({ current: { temperature_2m: -8 } }) });
@@ -470,6 +473,9 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
     await pf.click('#route-go');
     await pf.waitForSelector('.route-sum', { timeout: 8000 });
     check('маршрут: показана длина', /105 км/.test(await pf.locator('.route-sum').innerText()), await pf.locator('.route-sum').innerText());
+    check('маршрут: поиск адреса только по Балтии и рядом с вами', window_geoUrls.length >= 1 && window_geoUrls.every((u) => /countrycodes=lv,lt,ee/.test(u) && /viewbox=/.test(u)), window_geoUrls[0]);
+    check('маршрут: видно, что найдено (A и B)', /B: Valmiera/.test(await pf.locator('.note').first().innerText().catch(() => '')) || /B: Valmiera/.test(await pf.locator('#panel').innerText()));
+    check('маршрут: статус места виден на вкладке', (await pf.locator('.origin-line').count()) === 1);
     check('маршрут: линия нарисована', (await pf.evaluate(() => window.__polylines || 0)) >= 1);
     await pf.screenshot({ path: path.join(shots, '18-route.png') });
     await pf.click('[data-act="routeClear"]');

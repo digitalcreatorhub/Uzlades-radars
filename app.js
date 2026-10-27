@@ -691,6 +691,7 @@
     routeLayer = L.layerGroup().addTo(map);
     markerLayer = L.layerGroup().addTo(map);
     if (map.on) map.on('moveend', onMapMoved);
+    if (map.on) map.on('zoomend', () => { if (lastMarkerList.length) renderMarkers(lastMarkerList); });
     setTiles();
   }
 
@@ -704,7 +705,9 @@
     $('map').classList.toggle('dark-tiles', state.theme === 'dark');
   }
 
+  let lastMarkerList = [];
   function renderMarkers(list) {
+    lastMarkerList = list;
     markerLayer.clearLayers();
     markers.clear();
     const stroke = cssVar('--bg');
@@ -716,7 +719,8 @@
       const level = sum ? sum.level : 'unknown';
       // свободно: зелёная рамка и мягкое свечение; все заняты: тусклая метка; не работает: ещё бледнее
       const ring = level === 'free' ? okColor : stroke;
-      if (selected || level === 'free') {
+      const zoomed = !map || !map.getZoom || map.getZoom() >= 12;
+      if (zoomed && (selected || level === 'free')) {
         // ореол под меткой: свечение у свободных и выбранной станции
         L.circleMarker([st.lat, st.lon], {
           radius: selected ? 20 : 15,
@@ -728,7 +732,7 @@
         }).addTo(markerLayer);
       }
       const m = L.circleMarker([st.lat, st.lon], {
-        radius: selected ? 11 : 8,
+        radius: selected ? 11 : zoomed ? 8 : 5,
         weight: selected ? 3 : level === 'free' ? 3 : 2,
         color: selected ? textColor : ring,
         fillColor: classColor(st.cls),
@@ -1161,10 +1165,13 @@
   state.routeForm = { from: '', to: '', soc: 90 };
 
   async function geocode(q) {
+    // только Балтия, ближайшее к вам выше: иначе «Airport» находит Хельсинки
+    const o = state.origin || { lat: 56.95, lon: 24.11 };
+    const vb = [o.lon - 2.5, o.lat + 1.5, o.lon + 2.5, o.lat - 1.5].map((x) => x.toFixed(3)).join(',');
     const ctl = new AbortController();
     const timer = setTimeout(() => ctl.abort(), 12000);
     try {
-      const res = await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&accept-language=' + lang + '&q=' + encodeURIComponent(q), { signal: ctl.signal });
+      const res = await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=lv,lt,ee&viewbox=' + vb + '&bounded=0&accept-language=' + lang + '&q=' + encodeURIComponent(q), { signal: ctl.signal });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const j = await res.json();
       if (!Array.isArray(j) || !j.length) return null;
@@ -1261,6 +1268,7 @@
     const f = state.routeForm;
     const r = state.route;
     let html =
+      '<div class="origin-line"><span>' + esc(originText()) + '</span><button class="link-btn" id="btn-locate">' + esc(state.locating ? t('locating') : t('locate')) + '</button></div>' +
       '<form class="route-form" id="route-form" autocomplete="off">' +
       '<label><span>' + esc(t('routeFrom')) + '</span><input id="route-from" type="text" enterkeyhint="next" placeholder="' + esc(t('routeFromMine')) + '" value="' + esc(f.from) + '"></label>' +
       '<label><span>' + esc(t('routeTo')) + '</span><input id="route-to" type="text" enterkeyhint="search" placeholder="' + esc(t('routeToPh')) + '" value="' + esc(f.to) + '"></label>' +
@@ -1278,6 +1286,7 @@
     } else if (r.status === 'ok') {
       const calc = routeCalc();
       html += '<div class="route-sum"><span>' + esc(t('routeLen', { km: Math.round(r.km), h: fmtDur(r.min) })) + '</span><button class="link-btn" data-act="routeClear">' + esc(t('routeClear')) + '</button></div>';
+      html += '<p class="note">A: ' + esc(r.from.label) + '<br>B: ' + esc(r.to.label) + '</p>';
       if (!state.car) html += '<p class="note">' + esc(t('routeNoCar')) + '</p>';
       if (calc.plan) {
         const plan = calc.plan;
