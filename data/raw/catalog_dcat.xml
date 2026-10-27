@@ -725,7 +725,7 @@
       <dcat:CatalogRecord rdf:about="https://transportdata.gov.lv/card/a377a160-baa1-4b67-b4e8-6612cd289e22#metadata">
         <foaf:primaryTopic rdf:resource="https://transportdata.gov.lv/card/a377a160-baa1-4b67-b4e8-6612cd289e22"/>
         <dct:created rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2025-10-31T19:40:57Z</dct:created>
-        <dct:modified rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2026-10-27T11:39:19Z</dct:modified>
+        <dct:modified rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2026-10-27T11:44:13Z</dct:modified>
         <dct:language rdf:resource="http://publications.europa.eu/resource/authority/language/ENG"/>
         <dct:publisher>
           <foaf:Agent>
@@ -3660,7 +3660,7 @@ Summer season (Apr.16–Oct.15): Wind exceeds 20m/s, ice forms on the road or sn
     </dct:temporal>
 
     <owl:versionInfo>1</owl:versionInfo>
-    <adms:versionNotes>27.10.2026 09.43, Delta message, update, schema validation successful.</adms:versionNotes>
+    <adms:versionNotes>27.10.2026 09.44, Delta message, update, schema validation successful.</adms:versionNotes>
     <mobilitydcatap:mobilityTheme rdf:resource="https://w3id.org/mobilitydcat-ap/mobility-theme/unexpected-road-events-and-conditions"/>
     <mobilitydcatap:mobilityTheme rdf:resource="https://w3id.org/mobilitydcat-ap/mobility-theme/road-weather-conditions"/>
     <dcatap:applicableLegislation rdf:resource="http://data.europa.eu/eli/reg_del/2022/670/oj"/>
@@ -4022,7 +4022,7 @@ Summer season (Apr.16–Oct.15): Wind exceeds 20m/s, ice forms on the road or sn
     </dct:temporal>
 
     <owl:versionInfo>1</owl:versionInfo>
-    <adms:versionNotes>27.10.2026 09.43, Delta message, update, schema validation successful.</adms:versionNotes>
+    <adms:versionNotes>27.10.2026 09.45, Delta message, update, schema validation successful.</adms:versionNotes>
     <mobilitydcatap:mobilityTheme rdf:resource="https://w3id.org/mobilitydcat-ap/mobility-theme/real-time-traffic-data"/>
     <mobilitydcatap:mobilityTheme rdf:resource="https://w3id.org/mobilitydcat-ap/mobility-theme/traffic-volume"/>
     <mobilitydcatap:mobilityTheme rdf:resource="https://w3id.org/mobilitydcat-ap/mobility-theme/speed"/>
@@ -4164,7 +4164,7 @@ Summer season (Apr.16–Oct.15): Wind exceeds 20m/s, ice forms on the road or sn
     </dct:temporal>
 
     <owl:versionInfo>1</owl:versionInfo>
-    <adms:versionNotes>27.10.2026 09.39, Snapshot, update, schema validation successful.</adms:versionNotes>
+    <adms:versionNotes>27.10.2026 09.44, Snapshot, update, schema validation successful.</adms:versionNotes>
     <mobilitydcatap:mobilityTheme rdf:resource="https://w3id.org/mobilitydcat-ap/mobility-theme/filling-and-charging-stations"/>
     <mobilitydcatap:mobilityTheme rdf:resource="https://w3id.org/mobilitydcat-ap/mobility-theme/availability-of-charging-points-for-electric-vehicles"/>
     <dcatap:applicableLegislation rdf:resource="http://data.europa.eu/eli/reg_del/2022/670/oj"/>
