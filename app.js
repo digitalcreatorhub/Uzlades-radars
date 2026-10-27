@@ -16,6 +16,16 @@
   const I18N = {
     ru: {
       install: 'Установить',
+      installTitle: 'Установить на телефон',
+      installLead: 'Приложение откроется с экрана «Домой», как обычное, и будет работать быстрее.',
+      installIos1: 'Нажмите «Поделиться» (квадрат со стрелкой вверх) внизу экрана Safari.',
+      installIos2: 'Прокрутите список и выберите «На экран “Домой”».',
+      installIos3: 'Нажмите «Добавить» в правом верхнем углу.',
+      installAndroid1: 'Откройте меню браузера (три точки в углу).',
+      installAndroid2: 'Выберите «Установить приложение» или «Добавить на главный экран».',
+      installAndroid3: 'Подтвердите установку.',
+      installOther1: 'В адресной строке браузера нажмите значок установки или откройте меню и выберите «Установить Uzlādes Radars».',
+      installClose: 'Понятно',
       tabGo: 'Куда ехать', tabList: 'Рядом', tabPrices: 'Цены',
       connAny: 'Все', pwrFast: '50+ кВт', pwrUltra: '150+ кВт', unitKm: 'км',
       loading: 'Загружаю станции Риги…',
@@ -74,6 +84,16 @@
     },
     en: {
       install: 'Install',
+      installTitle: 'Install on your phone',
+      installLead: 'It opens from your home screen like a regular app and starts faster.',
+      installIos1: 'Tap “Share” (the square with an up arrow) at the bottom of Safari.',
+      installIos2: 'Scroll the list and choose “Add to Home Screen”.',
+      installIos3: 'Tap “Add” in the top right corner.',
+      installAndroid1: 'Open the browser menu (three dots in the corner).',
+      installAndroid2: 'Choose “Install app” or “Add to Home screen”.',
+      installAndroid3: 'Confirm the installation.',
+      installOther1: 'Click the install icon in the address bar, or open the menu and choose “Install Uzlādes Radars”.',
+      installClose: 'Got it',
       tabGo: 'Where to go', tabList: 'Nearby', tabPrices: 'Prices',
       connAny: 'All', pwrFast: '50+ kW', pwrUltra: '150+ kW', unitKm: 'km',
       loading: 'Loading Riga stations…',
@@ -608,6 +628,7 @@
     $('btn-lang').textContent = lang === 'ru' ? 'RU' : 'EN';
     $('btn-theme').textContent = state.theme === 'dark' ? '☾' : '☀';
     $('btn-install').textContent = t('install');
+    $('btn-install').hidden = isStandalone();
     $('btn-gps').setAttribute('aria-label', t('myPlace'));
     $('btn-gps').title = t('myPlace');
     document.documentElement.lang = lang;
@@ -772,20 +793,46 @@
   });
 
   /* установка как приложения */
+  // Chrome на Android даёт системное окно установки (beforeinstallprompt). В Safari на iPhone такого нет,
+  // поэтому там и везде, где системного окна нет, показываем короткую инструкцию.
   let installEvent = null;
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    installEvent = e;
-    $('btn-install').hidden = false;
-  });
-  window.addEventListener('appinstalled', () => { installEvent = null; $('btn-install').hidden = true; });
+  const UA = navigator.userAgent || '';
+  const isIos = /iPad|iPhone|iPod/.test(UA) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isAndroid = /Android/i.test(UA);
+  function isStandalone() {
+    try {
+      return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    } catch (e) { return false; }
+  }
+
+  function openInstallDialog() {
+    const keys = isIos ? ['installIos1', 'installIos2', 'installIos3'] : isAndroid ? ['installAndroid1', 'installAndroid2', 'installAndroid3'] : ['installOther1'];
+    $('install-title').textContent = t('installTitle');
+    $('install-lead').textContent = t('installLead');
+    $('install-steps').innerHTML = keys.map((k) => '<li>' + esc(t(k)) + '</li>').join('');
+    $('install-close').textContent = t('installClose');
+    $('install-dialog').hidden = false;
+    $('install-close').focus();
+  }
+  function closeInstallDialog() {
+    $('install-dialog').hidden = true;
+    $('btn-install').focus();
+  }
+
+  window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installEvent = e; });
+  window.addEventListener('appinstalled', () => { installEvent = null; $('btn-install').hidden = true; closeInstallDialog(); });
   $('btn-install').addEventListener('click', async () => {
-    if (!installEvent) return;
-    installEvent.prompt();
-    try { await installEvent.userChoice; } catch (e) { /* пользователь закрыл окно */ }
-    installEvent = null;
-    $('btn-install').hidden = true;
+    if (!installEvent) { openInstallDialog(); return; }
+    const ev = installEvent;
+    installEvent = null; // событие одноразовое
+    try {
+      ev.prompt();
+      await ev.userChoice;
+    } catch (e) { /* человек закрыл окно */ }
   });
+  $('install-close').addEventListener('click', closeInstallDialog);
+  $('install-dialog').addEventListener('click', (e) => { if (e.target === $('install-dialog')) closeInstallDialog(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('install-dialog').hidden) closeInstallDialog(); });
 
   /* ---------- запуск ---------- */
   document.documentElement.dataset.theme = state.theme;

@@ -6,6 +6,10 @@
   <title>Uzlādes Radars</title>
   <meta name="description" content="Где зарядить электромобиль в Риге: станции, разъёмы, мощность и цены по сетям.">
   <meta name="theme-color" content="#0a1820">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Uzlādes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -19,7 +23,7 @@
   <header class="top">
     <h1>Uzlādes Radars</h1>
     <div class="top-actions">
-      <button id="btn-install" class="pill" hidden></button>
+      <button id="btn-install" class="pill"></button>
       <button id="btn-lang" class="pill" aria-label="Language"></button>
       <button id="btn-theme" class="pill" aria-label="Theme"></button>
     </div>
@@ -41,6 +45,15 @@
     <nav class="tabs" id="tabs" role="tablist"></nav>
     <div class="panel" id="panel"></div>
   </section>
+
+  <div id="install-dialog" class="modal" role="dialog" aria-modal="true" aria-labelledby="install-title" hidden>
+    <div class="modal-card">
+      <h2 id="install-title"></h2>
+      <p id="install-lead"></p>
+      <ol id="install-steps"></ol>
+      <button id="install-close" class="btn btn-primary"></button>
+    </div>
+  </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
   <script src="logic.js"></script>

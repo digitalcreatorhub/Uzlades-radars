@@ -312,6 +312,69 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
   check('GPS: нет JS-ошибок', errors6.length === 0, errors6.join(' || '));
   await ctx6.close();
 
+  /* ---------- установка на телефон ---------- */
+  const IOS_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1';
+  const AND_UA = 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Mobile Safari/537.36';
+  const openFresh = async (opts, init) => {
+    const c = await browser.newContext(Object.assign({ viewport: { width: 390, height: 780 }, serviceWorkers: 'block' }, opts || {}));
+    if (init) await c.addInitScript(init);
+    const pg = await c.newPage();
+    await routeFor(pg, null);
+    await pg.goto(base + '/');
+    await pg.waitForSelector('#btn-install', { state: 'attached' });
+    return { c, pg };
+  };
+
+  // 1) обычный браузер без системного окна: кнопка видна, открывается инструкция
+  let r = await openFresh();
+  check('установка: кнопка видна', await r.pg.locator('#btn-install').isVisible());
+  await r.pg.click('#btn-install');
+  check('установка: открылась инструкция', await r.pg.locator('#install-dialog').isVisible() && (await r.pg.locator('#install-title').innerText()) === 'Установить на телефон');
+  check('установка: на компьютере один шаг', (await r.pg.locator('#install-steps li').count()) === 1);
+  await r.pg.keyboard.press('Escape');
+  check('установка: Esc закрывает окно', await r.pg.locator('#install-dialog').isHidden());
+  await r.c.close();
+
+  // 2) iPhone: три шага через «Поделиться»
+  r = await openFresh({ userAgent: IOS_UA, hasTouch: true, isMobile: true });
+  await r.pg.click('#btn-install');
+  const iosSteps = await r.pg.locator('#install-steps').innerText();
+  check('установка iPhone: три шага про «Поделиться» и «На экран “Домой”»', (await r.pg.locator('#install-steps li').count()) === 3 && iosSteps.includes('Поделиться') && iosSteps.includes('Домой'));
+  await r.pg.screenshot({ path: path.join(shots, '12-install-ios.png') });
+  await r.pg.click('#install-close');
+  check('установка: кнопка «Понятно» закрывает окно', await r.pg.locator('#install-dialog').isHidden());
+  await r.c.close();
+
+  // 3) Android без системного события: инструкция про меню
+  r = await openFresh({ userAgent: AND_UA, hasTouch: true, isMobile: true });
+  await r.pg.click('#btn-install');
+  check('установка Android: шаги про меню браузера', (await r.pg.locator('#install-steps').innerText()).includes('меню'));
+  await r.c.close();
+
+  // 4) Android с системным окном установки: вызывается оно, инструкции нет
+  r = await openFresh({ userAgent: AND_UA, hasTouch: true, isMobile: true });
+  await r.pg.evaluate(() => {
+    const e = new Event('beforeinstallprompt', { cancelable: true });
+    e.prompt = () => { window.__prompted = (window.__prompted || 0) + 1; return Promise.resolve(); };
+    e.userChoice = Promise.resolve({ outcome: 'dismissed' });
+    window.dispatchEvent(e);
+  });
+  await r.pg.click('#btn-install');
+  check('установка Android: вызвано системное окно, инструкция не показана', (await r.pg.evaluate(() => window.__prompted)) === 1 && await r.pg.locator('#install-dialog').isHidden());
+  await r.pg.click('#btn-install');
+  check('установка: после отказа повторное нажатие открывает инструкцию', await r.pg.locator('#install-dialog').isVisible());
+  await r.c.close();
+
+  // 5) уже установлено (открыто как приложение): кнопки нет
+  r = await openFresh({}, () => {
+    const mm = window.matchMedia.bind(window);
+    window.matchMedia = (q) => /display-mode:\s*standalone/.test(q)
+      ? { matches: true, media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} }
+      : mm(q);
+  });
+  check('установка: в установленном приложении кнопки нет', await r.pg.locator('#btn-install').isHidden());
+  await r.c.close();
+
   check('нет ошибок в консоли', errors.length === 0, errors.join(' || '));
 
   await browser.close();

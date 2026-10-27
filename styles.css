@@ -395,3 +395,24 @@ select {
 }
 .map-fab[aria-busy="true"] { color: var(--ok); opacity: 0.8; }
 .map-fab:active { background: var(--surface-2); }
+
+/* окно с инструкцией по установке */
+.modal {
+  position: fixed; inset: 0; z-index: 2000;
+  display: flex; align-items: flex-end; justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 16px; padding-bottom: calc(16px + env(safe-area-inset-bottom));
+}
+.modal[hidden] { display: none; }
+.modal-card {
+  width: 100%; max-width: 420px;
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--line); border-radius: 18px;
+  padding: 20px 20px 18px; box-shadow: var(--shadow);
+}
+.modal-card h2 { margin: 0 0 6px; font-size: 20px; }
+.modal-card p { margin: 0 0 12px; color: var(--muted); font-size: 14px; }
+.modal-card ol { margin: 0 0 16px; padding-left: 22px; }
+.modal-card li { margin: 8px 0; font-size: 15px; }
+.modal-card .btn { width: 100%; }
+@media (min-width: 760px) { .modal { align-items: center; } }
