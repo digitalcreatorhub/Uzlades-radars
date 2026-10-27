@@ -514,3 +514,10 @@ test('planStops: без остановок, с остановками и ког�
 });
 
 console.log('\n' + passed + ' tests passed');
+
+test('thinAlong: одна лучшая станция на каждые 10 км, по порядку', () => {
+  const mk = (id, along, off, sc) => ({ st: { id }, along, off, sc });
+  const list = [mk('a', 0.2, 1, 5), mk('b', 3, 0.5, 9), mk('c', 4, 2, 9), mk('d', 12, 1, 1), mk('e', 95, 1, 3)];
+  const got = UR.thinAlong(list, 10, (c) => c.sc);
+  assert.deepEqual(got.map((c) => c.st.id), ['b', 'd', 'e']); // b лучше a; b и c равны по баллам, b ближе к трассе
+});

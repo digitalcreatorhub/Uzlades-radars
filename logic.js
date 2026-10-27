@@ -697,6 +697,18 @@
     return out;
   }
 
+  // Не больше одной станции на каждые bucketKm вдоль маршрута: берём лучшую по scoreOf (больше лучше), при равенстве ближе к трассе
+  function thinAlong(list, bucketKm, scoreOf) {
+    const best = new Map();
+    for (const c of list) {
+      const k = Math.floor(c.along / bucketKm);
+      const cur = best.get(k);
+      const sc = scoreOf(c);
+      if (!cur || sc > cur.sc || (sc === cur.sc && c.off < cur.c.off)) best.set(k, { c, sc });
+    }
+    return Array.from(best.values()).map((x) => x.c).sort((a, b) => a.along - b.along);
+  }
+
   // Остановки на зарядку. Едем с start% до резерва 10%, заряжаемся до 80% на быстрых станциях.
   // Возвращает { total, stops: [{st, along, off, arriveSoc}], ok, reason } .
   function planStops(car, cands, totalKm, startSoc, tempC, opts) {
@@ -780,6 +792,7 @@
     routeLengths,
     locateOnRoute,
     stationsAlong,
+    thinAlong,
     planStops,
     matchesConnector,
     matchesSpeed,

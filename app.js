@@ -135,7 +135,7 @@
       routeNoStart: 'В пределах запаса хода нет подходящих быстрых станций у маршрута. Выберите другую машину, заряд или объезд.',
       routeNoNext: 'После последней остановки на пути нет подходящей быстрой станции в пределах запаса хода.',
       routeTooMany: 'Слишком много остановок для расчёта. Разбейте маршрут на части.',
-      routeAlong: 'Все станции у маршрута', routeFail: 'Маршрут не найден. Проверьте адрес и интернет.',
+      routeAlong: 'Быстрые станции у маршрута (лучшая на каждые 10 км)', routeFail: 'Маршрут не найден. Проверьте адрес и интернет.',
       routeNotFound: 'Не нашёл такое место. Уточните название.',
       routeClear: 'Сбросить маршрут', routeKm: 'на {n} км', routeOff: 'в {n} м от трассы', routeOffKm: 'в {n} км от трассы',
       routeArrive: 'приедете с {n}%', routeNoStations: 'Вдоль маршрута нет станций с вашими фильтрами.',
@@ -262,7 +262,7 @@
       routeNoStart: 'No suitable fast stations along the route within your range. Try another car, charge level or detour.',
       routeNoNext: 'After the last stop there is no suitable fast station within range.',
       routeTooMany: 'Too many stops to plan. Split the route.',
-      routeAlong: 'All stations along the route', routeFail: 'Route not found. Check the address and your connection.',
+      routeAlong: 'Fast stations along the route (best one per 10 km)', routeFail: 'Route not found. Check the address and your connection.',
       routeNotFound: 'Could not find that place. Be more specific.',
       routeClear: 'Clear route', routeKm: 'at km {n}', routeOff: '{n} m off the road', routeOffKm: '{n} km off the road',
       routeArrive: 'arrive with {n}%', routeNoStations: 'No stations along the route match your filters.',
@@ -1252,6 +1252,18 @@
   };
   const fmtOff = (km) => (km < 1 ? t('routeOff', { n: Math.max(50, Math.round(km * 10) * 100 / 10 | 0) }) : t('routeOffKm', { n: fmtKm(km) }));
 
+  // Вдоль всего маршрута: быстрые станции (подходящие машине, если она задана), одна лучшая на каждые 10 км
+  function alongList(along) {
+    const kwOf = (c) => (state.car ? UR.carPowerKw(state.car, c.st) : c.st.kw) || 0;
+    let pool = along.filter((c) => kwOf(c) >= 50);
+    if (!pool.length) pool = along;
+    const rank = (c) => {
+      const sum = UR.liveSummary(c.st, state.filters);
+      return (sum && sum.level === 'free' ? 2000 : sum && sum.level === 'busy' ? 1000 : 0) + Math.min(kwOf(c), 400);
+    };
+    return UR.thinAlong(pool, 10, rank);
+  }
+
   function routeRow(c, title, extra) {
     const st = c.st;
     return (
@@ -1260,7 +1272,7 @@
       '<span class="meta" style="display:block">' + esc((title ? stationTitle(st) + ' · ' : '') + stationSub(st)) + '</span>' +
       (extra ? '<span class="meta" style="display:block">' + esc(extra) + '</span>' : '') +
       (UR.liveSummary(st, state.filters) ? '<span class="live-line" style="display:block">' + livePill(UR.liveSummary(st, state.filters)) + '</span>' : '') + '</span>' +
-      '<span class="side">' + esc(t('routeKm', { n: Math.round(c.along) })) + '<small>' + esc(fmtOff(c.off)) + '</small></span></button>'
+      '<span class="side">' + esc(t('routeKm', { n: c.along < 10 ? fmtKm(c.along) : Math.round(c.along) })) + '<small>' + esc(fmtOff(c.off)) + '</small></span></button>'
     );
   }
 
@@ -1307,7 +1319,7 @@
       if (!calc.along.length) {
         html += '<p class="empty">' + esc(t('routeNoStations')) + '</p>';
       } else {
-        html += '<h3 class="sect">' + esc(t('routeAlong')) + '</h3><div class="rows">' + calc.along.slice(0, 60).map((c) => routeRow(c)).join('') + '</div>';
+        html += '<h3 class="sect">' + esc(t('routeAlong')) + '</h3><div class="rows">' + alongList(calc.along).map((c) => routeRow(c)).join('') + '</div>';
       }
     }
     $('panel').innerHTML = html;
