@@ -20,6 +20,18 @@ for id in "$@"; do
   say "metadata $id -> HTTP $code ($(wc -c < "$OUT/meta_$id.json" 2>/dev/null || echo 0) bytes)"
 done
 
+# 1b) описание набора по номеру (nid) и каталог всех наборов в формате DCAT
+for nid in ${NPP_EXTRA_NIDS:-429625}; do
+  code=$(curl -sS -m 60 -o "$OUT/meta_nid_$nid.json" -w '%{http_code}' \
+    "$BASE/lv/public/metadata/data?dataset_id=$nid" 2>>"$LOG" || echo 000)
+  say "metadata nid $nid -> HTTP $code ($(wc -c < "$OUT/meta_nid_$nid.json" 2>/dev/null || echo 0) bytes)"
+done
+if [ -n "${NPP_API_KEY:-}" ]; then
+  code=$(curl -sS -m 90 -o "$OUT/catalog_dcat.xml" -w '%{http_code}' \
+    -H "x-api-key: $NPP_API_KEY" "$BASE/api/v1/subscriber/metadata_dcat" 2>>"$LOG" || echo 000)
+  say "catalog dcat -> HTTP $code ($(wc -c < "$OUT/catalog_dcat.xml" 2>/dev/null || echo 0) bytes)"
+fi
+
 # 2) список файлов и снимок данных: нужен ключ набора в заголовке x-api-key
 fetch_with_key() {
   local name="$1" key="$2"
@@ -39,7 +51,7 @@ fetch_with_key() {
 
   local fid fmt f
   for fid in $ids; do
-    for fmt in geojson xml; do
+    for fmt in xml; do
       f="$OUT/${name}_${fid}.${fmt}"
       code=$(curl -sS -m 120 -o "$f" -w '%{http_code}' -X POST \
         -H "x-api-key: $key" -H 'Content-Type: application/json' \
