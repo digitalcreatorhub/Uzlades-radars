@@ -45,9 +45,9 @@
       prioBalanced: 'Баланс', prioCheap: 'Дешевле', prioNear: 'Ближе',
       noResults: 'Под эти фильтры станций нет. Попробуйте другой разъём или мощность.',
       alsoGood: 'Ещё варианты',
-      distCenter: '{n} км от центра', distYou: '{n} км от вас',
+      distCenter: '{n} км от центра', distYou: '{n} км от вас', fromCenterShort: 'от центра', fromYouShort: 'от вас',
       per100: 'за 100 км хода',
-      minFor100: '≈ {n} мин на 100 км',
+      minFor100: '≈ {n} мин на 100 км', per100Short: '≈ {eur} € / 100 км', per100Time: '≈ {eur} € · {n} мин / 100 км',
       priceUnknown: 'цена не известна',
       perKwh: '€/кВт·ч',
       go: 'Поехали',
@@ -120,9 +120,9 @@
       prioBalanced: 'Balanced', prioCheap: 'Cheaper', prioNear: 'Closer',
       noResults: 'No stations match these filters. Try another connector or power.',
       alsoGood: 'More options',
-      distCenter: '{n} km from centre', distYou: '{n} km from you',
+      distCenter: '{n} km from centre', distYou: '{n} km from you', fromCenterShort: 'from centre', fromYouShort: 'from you',
       per100: 'per 100 km of range',
-      minFor100: '≈ {n} min per 100 km',
+      minFor100: '≈ {n} min per 100 km', per100Short: '≈ {eur} € / 100 km', per100Time: '≈ {eur} € · {n} min / 100 km',
       priceUnknown: 'price unknown',
       perKwh: '€/kWh',
       go: 'Go',
@@ -364,15 +364,38 @@
   const classColor = (cls) => cssVar('--c-' + cls) || cssVar('--c-unknown');
 
   function initMap() {
-    map = L.map('map', { zoomControl: false, preferCanvas: true }).setView([RIGA.lat, RIGA.lon], 12);
+    map = L.map('map', { zoomControl: false, attributionControl: false, preferCanvas: true }).setView([RIGA.lat, RIGA.lon], 12);
     L.control.zoom({ position: 'topright' }).addTo(map);
+    // подпись источника карты нельзя прятать; снизу её закрывает панель, поэтому она сверху слева
+    if (L.control.attribution) L.control.attribution({ position: 'topleft', prefix: false }).addTo(map);
     markerLayer = L.layerGroup().addTo(map);
     setTiles();
   }
 
-  // Стандартные тайлы OpenStreetMap (ключ не нужен). Тёмная тема: CSS-фильтр на слое тайлов.
-  function setTiles() {
+  // Карта: готовые тёмные/светлые плитки CARTO на данных OpenStreetMap (ключ не нужен).
+  // Если плитки CARTO не загрузились ни разу, переходим на стандартные плитки OSM с затемнением фильтром.
+  let tilesOsmFallback = false;
+  function setTiles(forceOsm) {
     if (tiles) tiles.remove();
+    if (forceOsm) tilesOsmFallback = true;
+    if (!tilesOsmFallback) {
+      const style = state.theme === 'dark' ? 'dark_all' : 'light_all';
+      let loaded = 0;
+      let failed = 0;
+      tiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/' + style + '/{z}/{x}/{y}{r}.png', {
+        subdomains: 'abcd',
+        maxZoom: 20,
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>',
+      });
+      tiles.on('tileload', () => { loaded++; });
+      tiles.on('tileerror', () => {
+        failed++;
+        if (!loaded && failed >= 4 && !tilesOsmFallback) setTiles(true);
+      });
+      tiles.addTo(map);
+      $('map').classList.remove('dark-tiles');
+      return;
+    }
     tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
@@ -384,16 +407,29 @@
     markerLayer.clearLayers();
     markers.clear();
     const stroke = cssVar('--bg');
+    const okColor = cssVar('--ok');
+    const textColor = cssVar('--text');
     for (const st of list) {
       const selected = st.id === state.detailId;
       const sum = UR.liveSummary(st, state.filters);
       const level = sum ? sum.level : 'unknown';
-      // свободно: зелёная рамка; все заняты: тусклая метка; не работает: ещё бледнее
-      const ring = level === 'free' ? cssVar('--ok') : stroke;
+      // свободно: зелёная рамка и мягкое свечение; все заняты: тусклая метка; не работает: ещё бледнее
+      const ring = level === 'free' ? okColor : stroke;
+      if (selected || level === 'free') {
+        // ореол под меткой: свечение у свободных и выбранной станции
+        L.circleMarker([st.lat, st.lon], {
+          radius: selected ? 20 : 15,
+          weight: 0,
+          fillColor: selected ? textColor : okColor,
+          fillOpacity: selected ? 0.2 : 0.2,
+          interactive: false,
+          halo: true,
+        }).addTo(markerLayer);
+      }
       const m = L.circleMarker([st.lat, st.lon], {
         radius: selected ? 11 : 8,
         weight: selected ? 3 : level === 'free' ? 3 : 2,
-        color: selected ? cssVar('--text') : ring,
+        color: selected ? textColor : ring,
         fillColor: classColor(st.cls),
         fillOpacity: level === 'out' ? 0.3 : level === 'busy' ? 0.55 : 1,
       });
@@ -566,17 +602,16 @@
       (best.live ? '<div class="live-line">' + livePill(best.live) + (state.live && UR.isLiveFresh(state.live) ? ' <span class="live-time">' + esc(t('liveUpd', { time: fmtTime(UR.liveTime(state.live)) })) + '</span>' : '') + '</div>' : '') + '</div>' +
       gauge(st, true) + '</div>' +
       '<div class="facts">' +
-      '<div><b>' + esc(t(state.origin.real ? 'distYou' : 'distCenter', { n: fmtKm(best.distKm) })) + '</b>' +
-      (best.minutes ? ' <span>· ' + esc(t('minFor100', { n: best.minutes })) + '</span>' : '') + '</div>' +
+      '<div><b>' + esc(fmtKm(best.distKm)) + ' ' + esc(t('unitKm')) + '</b><span>' + esc(t(state.origin.real ? 'fromYouShort' : 'fromCenterShort')) + '</span></div>' +
       '<div>' + (best.price
-        ? '<b>' + fmtRange(best.price) + ' ' + esc(t('perKwh')) + '</b> <span>≈ ' + fmtEur(best.costPer100) + ' € ' + esc(t('per100')) + '</span>'
-        : '<span>' + esc(t('priceUnknown')) + '</span>') + '</div>' +
+        ? '<b>' + fmtRange(best.price) + ' ' + esc(t('perKwh')) + '</b><span>' + esc(best.minutes ? t('per100Time', { eur: fmtEur(best.costPer100), n: best.minutes }) : t('per100Short', { eur: fmtEur(best.costPer100) })) + '</span>'
+        : '<b>' + esc(t('priceUnknown')) + '</b>') + '</div>' +
       '</div>' + payChips(st, true) + usualLine(st) + navLinks(st, true) +
       '</article>';
 
     const more = ranked.slice(1, 4);
     if (more.length) {
-      html += '<h3 style="margin:0 0 4px;font-size:15px">' + esc(t('alsoGood')) + '</h3><div class="rows">' + more.map(rowHtml).join('') + '</div>';
+      html += '<h3 class="sect">' + esc(t('alsoGood')) + '</h3><div class="rows">' + more.map(rowHtml).join('') + '</div>';
     }
     $('panel').innerHTML = html;
     focusStation(st);
@@ -715,6 +750,7 @@
     $('btn-lang').textContent = lang === 'ru' ? 'RU' : 'EN';
     $('btn-theme').textContent = state.theme === 'dark' ? '☾' : '☀';
     $('btn-install').textContent = t('install');
+    $('btn-install').title = t('install');
     $('btn-install').hidden = isStandalone();
     $('btn-gps').setAttribute('aria-label', t('myPlace'));
     $('btn-gps').title = t('myPlace');
@@ -756,9 +792,27 @@
 
   /* ---------- действия ---------- */
   let quietRender = false; // фоновое обновление не должно уводить карту от того, что смотрит человек
+  // Видимая часть карты: на телефоне её нижнюю часть закрывает панель, на компьютере левый край.
+  // Чтобы станция и «вы» оказывались на виду, центр карты сдвигаем в середину видимой части.
+  function viewCenter(latlng, zoom) {
+    if (!map || !map.project || !map.unproject || !map.getSize) return latlng;
+    const size = map.getSize();
+    const sh = $('sheet').getBoundingClientRect();
+    const top = $('filters').getBoundingClientRect().bottom + 8;
+    let left = 0;
+    let bottom = size.y;
+    if (sh.width < size.x * 0.9) left = sh.right + 8;
+    else bottom = Math.max(sh.top - 8, top + 140);
+    const dx = (left + size.x) / 2 - size.x / 2;
+    const dy = (top + bottom) / 2 - size.y / 2;
+    const ll = L.latLng(latlng);
+    return map.unproject(map.project(ll, zoom).subtract([dx, dy]), zoom);
+  }
+
   function focusStation(st) {
     if (!map || quietRender) return;
-    map.flyTo([st.lat, st.lon], Math.max(map.getZoom(), 14), { duration: 0.6 });
+    const z = Math.max(map.getZoom(), 14);
+    map.flyTo(viewCenter([st.lat, st.lon], z), z, { duration: 0.6 });
   }
 
   function openDetail(id, fly) {
@@ -798,7 +852,10 @@
       setGpsBusy(false);
       state.origin = { lat: pos.coords.latitude, lon: pos.coords.longitude, real: true, accuracy: pos.coords.accuracy };
       // карта остаётся на человеке: перерисовка не должна увести её к «лучшей» станции
-      if (map) map.setView([state.origin.lat, state.origin.lon], firstFix || o.zoom ? Math.max(o.zoom || 15, 14) : Math.max(map.getZoom(), 14));
+      if (map) {
+        const z = firstFix || o.zoom ? Math.max(o.zoom || 15, 14) : Math.max(map.getZoom(), 14);
+        map.setView(viewCenter([state.origin.lat, state.origin.lon], z), z);
+      }
       firstFix = false;
       quietRender = true;
       try { renderAll(); } finally { quietRender = false; }
@@ -851,6 +908,28 @@
   }
 
   /* ---------- события ---------- */
+  // Панель можно тянуть вверх и вниз за ручку; обычное нажатие работает как раньше
+  let dragSuppressClick = false;
+  (function sheetDrag() {
+    const g = $('grab');
+    let y0 = null;
+    g.addEventListener('pointerdown', (e) => {
+      y0 = e.clientY;
+      try { g.setPointerCapture(e.pointerId); } catch (err) { /* не критично */ }
+    });
+    g.addEventListener('pointerup', (e) => {
+      if (y0 === null) return;
+      const dy = e.clientY - y0;
+      y0 = null;
+      if (Math.abs(dy) > 24) {
+        setSheetOpen(dy < 0);
+        dragSuppressClick = true;
+        setTimeout(() => { dragSuppressClick = false; }, 60);
+      }
+    });
+    g.addEventListener('pointercancel', () => { y0 = null; });
+  })();
+
   document.addEventListener('click', (e) => {
     const el = e.target.closest('button');
     if (!el) return;
@@ -864,7 +943,7 @@
     else if (el.id === 'btn-locate') locate({ zoom: 15 });
     else if (el.id === 'btn-gps') locate({ zoom: 16 });
     else if (el.id === 'btn-retry') { setStatus('loading'); loadStations(true); loadLive(true); }
-    else if (el.id === 'grab') setSheetOpen($('sheet').dataset.open !== 'true');
+    else if (el.id === 'grab') { if (!dragSuppressClick) setSheetOpen($('sheet').dataset.open !== 'true'); }
     else if (el.id === 'btn-lang') { lang = lang === 'ru' ? 'en' : 'ru'; store.set('ur_lang', lang); renderAll(); }
     else if (el.id === 'btn-theme') {
       state.theme = state.theme === 'dark' ? 'light' : 'dark';
