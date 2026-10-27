@@ -335,4 +335,182 @@ test('patternFor: берёт нужные сутки и текущий час, �
   assert.equal(UR.patternFor(st, null), null);
 });
 
+/* ---------- профиль машины ---------- */
+const mkSt = (o) => Object.assign({ id: 'x', lat: 56.95, lon: 24.1, sockets: {}, kw: null, cls: 'unknown', pay: [], operatorId: 'other' }, o);
+const car = (id) => UR.normalizeCar({ id });
+
+test('normalizeCar: мусор заменяется значениями пресета, правки сохраняются', () => {
+  assert.equal(UR.normalizeCar(null), null);
+  assert.equal(UR.normalizeCar('x'), null);
+  const c = UR.normalizeCar({ id: 'leaf40', kwh: '41,5', dc: 'abc', conn: ['foo'], cons: 99 });
+  assert.equal(c.kwh, 41.5);
+  assert.equal(c.dc, 46, 'не число: берём из пресета');
+  assert.deepEqual(c.conn, ['chademo', 'type2'], 'неизвестные разъёмы отбрасываются');
+  assert.equal(c.cons, 16.5, 'вне допустимых границ: из пресета');
+  assert.equal(c.onlyCompatible, true);
+});
+
+test('carAccepts: Leaf не ездит на CCS, а станции без данных не прячем', () => {
+  const leaf = car('leaf40');
+  assert.equal(UR.carAccepts(leaf, mkSt({ sockets: { ccs: 2 } })), false);
+  assert.equal(UR.carAccepts(leaf, mkSt({ sockets: { ccs: 2, chademo: 1 } })), true);
+  assert.equal(UR.carAccepts(leaf, mkSt({ sockets: {} })), true);
+  assert.equal(UR.carAccepts(car('id3'), mkSt({ sockets: { tesla: 4 } })), false, 'фирменный разъём Tesla чужой машине не подходит');
+  assert.equal(UR.carAccepts(car('tesla3'), mkSt({ sockets: { tesla: 4 } })), true);
+  assert.equal(UR.carAccepts(null, mkSt({ sockets: { tesla: 4 } })), true);
+});
+
+test('carPowerKw: предел машины и разъём, AC на смешанной станции не получает DC-мощность', () => {
+  const id3 = car('id3'); // DC 120, AC 11
+  assert.equal(UR.carPowerKw(id3, mkSt({ sockets: { ccs: 2 }, kw: 300 })), 120);
+  assert.equal(UR.carPowerKw(id3, mkSt({ sockets: { type2: 2 }, kw: 22 })), 11);
+  // станция CCS 150 + Type 2: Type 2 оцениваем не больше 22, но CCS остаётся лучшим
+  assert.equal(UR.carPowerKw(id3, mkSt({ sockets: { ccs: 1, type2: 1 }, kw: 150 })), 120);
+  assert.equal(UR.carPowerKw(car('leaf40'), mkSt({ sockets: { ccs: 2 }, kw: 150 })), null);
+  // живые точки точнее: у станции есть CCS на 50 и 150, берём то, что подходит
+  const live = mkSt({ sockets: { ccs: 2 }, kw: 150, live: { pts: [{ t: 'ccs', kw: 50 }, { t: 'ccs', kw: 150 }, { t: 'chademo', kw: 50 }] } });
+  assert.equal(UR.carPowerKw(id3, live), 120);
+  assert.equal(UR.carPowerKw(car('leaf40'), live), 46);
+});
+
+test('chargeEstimate: время и цена зарядки 20→80%', () => {
+  const c = car('id3'); // 58 кВт·ч
+  const e = UR.chargeEstimate(c, 100, { mid: 0.4 }, 20, 80);
+  assert.ok(Math.abs(e.energy - 34.8) < 0.01);
+  assert.ok(Math.abs(e.billed - 34.8 / 0.93) < 0.01);
+  assert.equal(e.minutes, 25); // 37.4 кВт·ч / (100*0.85) кВт ≈ 26 мин, округление до 5
+  assert.ok(Math.abs(e.cost - (34.8 / 0.93) * 0.4) < 0.01);
+  assert.equal(UR.chargeEstimate(c, 0, { mid: 0.4 }), null);
+  assert.equal(UR.chargeEstimate(c, 50, null, 80, 20), null);
+  assert.equal(UR.chargeEstimate(c, 50, null).cost, null);
+  assert.ok(UR.chargeEstimate(c, 11, { mid: 0.3 }).minutes > 200, 'розетка 11 кВт: часы');
+});
+
+test('coldFactor и rangeKm: холод сокращает запас', () => {
+  assert.equal(UR.coldFactor(22), 1);
+  assert.equal(UR.coldFactor(null), 1);
+  assert.ok(UR.coldFactor(0) > 1.15 && UR.coldFactor(0) < 1.17);
+  assert.ok(UR.coldFactor(-10) > 1.27 && UR.coldFactor(-10) < 1.29);
+  assert.equal(UR.coldFactor(-50), UR.coldFactor(-25), 'ниже −25 не растёт дальше');
+  const c = car('id3');
+  assert.ok(UR.rangeKm(c, 100, -10) < UR.rangeKm(c, 100, 20) * 0.8);
+  assert.equal(UR.rangeKm(null, 100, 20), null);
+});
+
+test('costPer100: станция, дом, бензин', () => {
+  const r = UR.costPer100(car('id3'), 20, { stationPrice: 0.4, homePrice: 0.2, petrolPrice: 1.9, petrolCons: 7 });
+  assert.ok(Math.abs(r.station - (16.5 / 0.93) * 0.4) < 0.01);
+  assert.ok(Math.abs(r.home - (16.5 / 0.9) * 0.2) < 0.01);
+  assert.equal(r.petrol, 7 * 1.9);
+  assert.equal(UR.costPer100(null, 20, {}).station, null);
+});
+
+test('фильтры: свободно сейчас, 24/7, оплата картой, поиск без диакритики, совместимость', () => {
+  const free = mkSt({ id: 'a', name: 'Rīgas Centrs', address: 'Brīvības iela 1', operatorName: 'Eleport', sockets: { ccs: 1 }, hours: '24/7', pay: ['app', 'card'],
+    live: { pts: [{ t: 'ccs', kw: 50, s: 'free' }] } });
+  const busy = mkSt({ id: 'b', name: 'Mols', sockets: { chademo: 1 }, hours: 'Mo-Su 08:00-22:00', pay: ['app'],
+    live: { pts: [{ t: 'chademo', kw: 50, s: 'busy' }] } });
+  const all = [free, busy];
+  const base = { connector: 'any', power: 'any', operator: 'all' };
+  assert.deepEqual(UR.applyFilters(all, Object.assign({}, base, { freeNow: true })).map((s) => s.id), ['a']);
+  assert.deepEqual(UR.applyFilters(all, Object.assign({}, base, { open247: true })).map((s) => s.id), ['a']);
+  assert.deepEqual(UR.applyFilters(all, Object.assign({}, base, { cardPay: true })).map((s) => s.id), ['a']);
+  assert.deepEqual(UR.applyFilters(all, Object.assign({}, base, { query: 'brivibas' })).map((s) => s.id), ['a'], 'ī ≈ i');
+  assert.deepEqual(UR.applyFilters(all, Object.assign({}, base, { query: 'eleport centrs' })).map((s) => s.id), ['a']);
+  assert.deepEqual(UR.applyFilters(all, Object.assign({}, base, { query: 'нет такого' })).map((s) => s.id), []);
+  assert.deepEqual(UR.applyFilters(all, Object.assign({}, base, { car: car('leaf40') })).map((s) => s.id), ['b']);
+  assert.deepEqual(UR.applyFilters(all, Object.assign({}, base, { car: Object.assign({}, car('leaf40'), { onlyCompatible: false }) })).map((s) => s.id), ['a', 'b']);
+});
+
+test('«свободно» считает только точки с моими разъёмами', () => {
+  const st = mkSt({ sockets: { ccs: 1, chademo: 1 }, live: { pts: [{ t: 'ccs', kw: 50, s: 'busy' }, { t: 'chademo', kw: 50, s: 'free' }] } });
+  assert.equal(UR.liveSummary(st, { car: car('id3') }).level, 'busy');
+  assert.equal(UR.liveSummary(st, { car: car('leaf40') }).level, 'free');
+  assert.equal(UR.liveSummary(st, null).level, 'free');
+});
+
+test('rank с машиной: свой разъём выше, время по её мощности', () => {
+  const here = { lat: 56.95, lon: 24.1 };
+  const a = mkSt({ id: 'a', lat: 56.951, sockets: { ccs: 2 }, kw: 150, cls: 'hpc', operatorId: 'eleport' });
+  const b = mkSt({ id: 'b', lat: 56.9505, sockets: { chademo: 1 }, kw: 50, cls: 'dc', operatorId: 'eleport' });
+  const r = UR.rank([a, b], here, 'balanced', { connector: 'any', power: 'any', operator: 'all' }, { car: car('leaf40'), tempC: 20 });
+  assert.equal(r[0].st.id, 'b');
+  assert.equal(r[0].kwCar, 46);
+  assert.equal(r[1].incompatible, true);
+  const plain = UR.rank([a], here, 'balanced', { connector: 'any', power: 'any', operator: 'all' });
+  assert.equal(plain[0].incompatible, false);
+  assert.ok(plain[0].minutes > 0);
+  // на морозе та же зарядка 100 км дольше
+  const cold = UR.rank([a], here, 'balanced', { connector: 'any', power: 'any', operator: 'all' }, { car: car('id3'), tempC: -10 });
+  const warm = UR.rank([a], here, 'balanced', { connector: 'any', power: 'any', operator: 'all' }, { car: car('id3'), tempC: 20 });
+  assert.ok(cold[0].minutes >= warm[0].minutes && cold[0].costPer100 > warm[0].costPer100);
+});
+
+/* ---------- прогноз, надёжность, цена ---------- */
+test('forecastFor: берёт нужные сутки и час через заданное время, переход через полночь и выходные', () => {
+  const row = new Array(48).fill(-1);
+  row[18] = 70;  // будни 18:00
+  row[0] = 5;    // будни 00:00
+  row[24] = 33;  // выходные 00:00
+  const patterns = { sites: { a1: row } };
+  const st = { napId: 'a1' };
+  // вторник 27.10.2026 17:30 в Риге = 15:30 UTC; через час 18:30, будни
+  assert.equal(UR.forecastFor(st, patterns, Date.parse('2026-10-27T15:30:00Z'), 60).pct, 70);
+  // пятница 30.10 23:30 Рига (21:30 UTC) + 60 мин = суббота 00:30: выходные, час 0
+  assert.equal(UR.forecastFor(st, patterns, Date.parse('2026-10-30T21:30:00Z'), 60).pct, 33);
+  // час без данных: null, а не выдуманное число
+  assert.equal(UR.forecastFor(st, patterns, Date.parse('2026-10-27T05:00:00Z'), 60), null);
+  assert.equal(UR.forecastFor({ napId: 'zzz' }, patterns), null);
+});
+
+test('reliabilityOf и priceChangeOf: уровни и защита от мусора', () => {
+  const p = { rel: { a: [1, 400], b: [8, 400], c: [30, 400] }, px: { a: [0.44, 0.41, '2026-10-27'], b: [0.4, 0.4, '2026-10-27'] } };
+  assert.equal(UR.reliabilityOf({ napId: 'a' }, p).level, 'good');
+  assert.equal(UR.reliabilityOf({ napId: 'b' }, p).level, 'mid');
+  assert.equal(UR.reliabilityOf({ napId: 'c' }, p).level, 'bad');
+  assert.equal(UR.reliabilityOf({ napId: 'zz' }, p), null);
+  assert.equal(UR.reliabilityOf({ napId: 'a' }, {}), null);
+  assert.deepEqual(UR.priceChangeOf({ napId: 'a' }, p), { now: 0.44, prev: 0.41, delta: 0.03, date: '2026-10-27' });
+  assert.equal(UR.priceChangeOf({ napId: 'b' }, p), null, 'нулевая разница не новость');
+  assert.equal(UR.priceChangeOf({}, p), null);
+});
+
+/* ---------- маршрут ---------- */
+test('stationsAlong: порядок вдоль маршрута и отсев далёких станций', () => {
+  // прямая линия с запада на восток по широте 57°, 0.1° долготы ≈ 6 км
+  const line = [[57, 24.0], [57, 24.5], [57, 25.0]];
+  const mk = (id, lat, lon) => mkSt({ id, lat, lon });
+  const list = [mk('far', 57.2, 24.4), mk('late', 57.005, 24.9), mk('early', 56.995, 24.1), mk('mid', 57.0, 24.5)];
+  const got = UR.stationsAlong(list, line, 3);
+  assert.deepEqual(got.map((x) => x.st.id), ['early', 'mid', 'late']);
+  assert.ok(got[0].along > 5 && got[0].along < 7.5, 'along=' + got[0].along);
+  assert.ok(got[0].off > 0.4 && got[0].off < 0.7, 'off=' + got[0].off);
+  assert.deepEqual(UR.stationsAlong(list, [[57, 24]], 3), []);
+});
+
+test('planStops: без остановок, с остановками и когда станций нет', () => {
+  const c = car('id3'); // запас при 100% ≈ 351 км при +20 °C
+  const mk = (id) => mkSt({ id, sockets: { ccs: 2 }, kw: 150 });
+  const cands = [{ st: mk('s1'), along: 200, off: 1 }, { st: mk('s2'), along: 280, off: 0.5 }, { st: mk('s3'), along: 520, off: 2 }];
+  const short = UR.planStops(c, cands, 150, 100, 20);
+  assert.equal(short.ok, true); assert.equal(short.stops.length, 0);
+  const mid = UR.planStops(c, cands, 400, 100, 20);
+  assert.equal(mid.ok, true);
+  assert.deepEqual(mid.stops.map((x) => x.st.id), ['s2'], 'берём дальнюю достижимую станцию');
+  assert.ok(mid.stops[0].arriveSoc >= 10 && mid.stops[0].arriveSoc < 40);
+  const two = UR.planStops(c, cands, 700, 100, 20);
+  assert.deepEqual(two.stops.map((x) => x.st.id), ['s2', 's3'], 'две остановки подряд');
+  const long = UR.planStops(c, cands, 900, 100, 20);
+  assert.equal(long.ok, false);
+  assert.equal(long.reason, 'noNext');
+  const none = UR.planStops(c, [], 700, 100, 20);
+  assert.equal(none.ok, false); assert.equal(none.reason, 'noStart');
+  // на морозе запас меньше, и остановка нужна там, где летом хватало
+  assert.equal(UR.planStops(c, cands, 300, 100, 20).stops.length, 0);
+  assert.ok(UR.planStops(c, cands, 300, 100, -15).stops.length >= 1);
+  // слабые станции (22 кВт) для остановки в дороге не берём
+  const weak = [{ st: mkSt({ id: 'w', sockets: { type2: 2 }, kw: 22 }), along: 280, off: 0 }];
+  assert.equal(UR.planStops(c, weak, 400, 100, 20).ok, false);
+});
+
 console.log('\n' + passed + ' tests passed');

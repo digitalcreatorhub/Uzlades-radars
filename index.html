@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Uzlādes Radars</title>
   <meta name="description" content="Где зарядить электромобиль в Риге: станции, разъёмы, мощность и цены по сетям.">
-  <meta name="theme-color" content="#0a1820">
+  <meta name="theme-color" content="#060b16">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Uzlādes">
@@ -15,14 +15,15 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header class="top">
-    <h1>Uzlādes Radars</h1>
+    <h1><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M13.5 2 5 13.5h6L10 22l9-12.5h-6.2z"/></svg></span><span>Uzlādes <b>Radars</b></span></h1>
     <div class="top-actions">
+      <button id="btn-car" class="pill pill-icon" aria-label="Моя машина"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16v-3.6l1.9-4.6A2 2 0 018.3 6.5h7.4a2 2 0 011.9 1.3l1.9 4.6V16M3 16h18M7 16v2.2M17 16v2.2M7.5 12.6h.01M16.5 12.6h.01"/></svg></button>
       <button id="btn-install" class="pill"></button>
       <button id="btn-lang" class="pill" aria-label="Language"></button>
       <button id="btn-theme" class="pill" aria-label="Theme"></button>
@@ -52,6 +53,18 @@
       <p id="install-lead"></p>
       <ol id="install-steps"></ol>
       <button id="install-close" class="btn btn-primary"></button>
+    </div>
+  </div>
+
+  <div id="car-dialog" class="modal" role="dialog" aria-modal="true" aria-labelledby="car-title" hidden>
+    <div class="modal-card car-card">
+      <div class="modal-head"><h2 id="car-title"></h2><button id="car-close" class="icon-btn" aria-label="Закрыть"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+      <p id="car-lead"></p>
+      <div id="car-body"></div>
+      <div class="btn-row modal-actions">
+        <button id="car-clear" class="btn" hidden></button>
+        <button id="car-save" class="btn btn-primary"></button>
+      </div>
     </div>
   </div>
 

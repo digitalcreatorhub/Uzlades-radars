@@ -1,5 +1,5 @@
 /* Service worker: оболочка приложения работает офлайн. Данные станций кэширует само приложение. */
-const VERSION = 'ur-v6';
+const VERSION = 'ur-v8';
 const SHELL = [
   './',
   'index.html',
@@ -30,7 +30,7 @@ self.addEventListener('fetch', (event) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
 
-  // Тайлы карты, Overpass и живые данные (live.json) не кэшируем здесь: свежесть важнее.
+  // Тайлы карты (OSM), Overpass и живые данные (live.json) не кэшируем здесь: свежесть важнее.
   if (url.hostname.endsWith('openstreetmap.org') || url.hostname.includes('overpass') || url.hostname === 'raw.githubusercontent.com') return;
 
   if (url.origin === self.location.origin) {

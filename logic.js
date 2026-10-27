@@ -203,6 +203,9 @@
     if (f.connector && f.connector !== 'any' && pt.t !== f.connector) return false;
     if (f.power === 'fast' && !(pt.kw > 43)) return false;
     if (f.power === 'ultra' && !(pt.kw >= 150)) return false;
+    // «Только мои разъёмы»: точки чужого типа не считаем ни свободными, ни занятыми
+    const car = f.car;
+    if (car && car.onlyCompatible && pt.t && pt.t !== 'other' && !(car.conn.includes(pt.t) || (pt.t === 'tesla' && car.tesla))) return false;
     return true;
   }
 
@@ -405,13 +408,153 @@
     return true;
   }
 
+  /* ---------- профиль машины ---------- */
+  // Ориентировочные паспортные данные: полезная ёмкость, пик зарядки DC и AC, средний расход в смешанном режиме.
+  // Это отправная точка: в приложении любое значение можно поправить под свою машину.
+  const CARS = [
+    { id: 'tesla3', name: 'Tesla Model 3 (RWD)', kwh: 57.5, dc: 170, ac: 11, cons: 15.5, conn: ['ccs', 'type2'], tesla: true },
+    { id: 'tesla3lr', name: 'Tesla Model 3 Long Range', kwh: 75, dc: 250, ac: 11, cons: 16, conn: ['ccs', 'type2'], tesla: true },
+    { id: 'teslay', name: 'Tesla Model Y Long Range', kwh: 75, dc: 250, ac: 11, cons: 17, conn: ['ccs', 'type2'], tesla: true },
+    { id: 'id3', name: 'VW ID.3 Pro (58 кВт·ч)', kwh: 58, dc: 120, ac: 11, cons: 16.5, conn: ['ccs', 'type2'] },
+    { id: 'id4', name: 'VW ID.4 Pro (77 кВт·ч)', kwh: 77, dc: 135, ac: 11, cons: 19, conn: ['ccs', 'type2'] },
+    { id: 'enyaq', name: 'Škoda Enyaq 85', kwh: 77, dc: 135, ac: 11, cons: 18.5, conn: ['ccs', 'type2'] },
+    { id: 'elroq', name: 'Škoda Elroq 85', kwh: 77, dc: 175, ac: 11, cons: 17, conn: ['ccs', 'type2'] },
+    { id: 'kona', name: 'Hyundai Kona Electric 65', kwh: 64.8, dc: 100, ac: 11, cons: 15.5, conn: ['ccs', 'type2'] },
+    { id: 'ioniq5', name: 'Hyundai Ioniq 5 (77 кВт·ч)', kwh: 74, dc: 220, ac: 11, cons: 18, conn: ['ccs', 'type2'] },
+    { id: 'niro', name: 'Kia Niro EV', kwh: 64.8, dc: 85, ac: 11, cons: 16.5, conn: ['ccs', 'type2'] },
+    { id: 'ev6', name: 'Kia EV6 (77 кВт·ч)', kwh: 74, dc: 230, ac: 11, cons: 18, conn: ['ccs', 'type2'] },
+    { id: 'leaf40', name: 'Nissan Leaf 40 кВт·ч', kwh: 37, dc: 46, ac: 6.6, cons: 16.5, conn: ['chademo', 'type2'] },
+    { id: 'leaf62', name: 'Nissan Leaf e+ 62 кВт·ч', kwh: 59, dc: 100, ac: 6.6, cons: 18, conn: ['chademo', 'type2'] },
+    { id: 'zoe', name: 'Renault Zoe R135', kwh: 52, dc: 46, ac: 22, cons: 17, conn: ['ccs', 'type2'] },
+    { id: 'mg4', name: 'MG4 Long Range', kwh: 61.7, dc: 140, ac: 11, cons: 17, conn: ['ccs', 'type2'] },
+    { id: 'bmwi4', name: 'BMW i4 eDrive40', kwh: 80.7, dc: 205, ac: 11, cons: 18.5, conn: ['ccs', 'type2'] },
+    { id: 'polestar2', name: 'Polestar 2 Long Range', kwh: 75, dc: 205, ac: 11, cons: 18.5, conn: ['ccs', 'type2'] },
+    { id: 'byd', name: 'BYD Dolphin (60 кВт·ч)', kwh: 60.5, dc: 88, ac: 11, cons: 16, conn: ['ccs', 'type2'] },
+    { id: 'e208', name: 'Peugeot e-208', kwh: 46, dc: 100, ac: 11, cons: 16.5, conn: ['ccs', 'type2'] },
+    { id: 'custom', name: 'Другая машина', kwh: 60, dc: 100, ac: 11, cons: 17, conn: ['ccs', 'type2'] },
+  ];
+  const DC_TYPES = ['ccs', 'chademo', 'tesla'];
+
+  // Приводит сохранённый профиль к допустимому виду (из localStorage приходит что угодно)
+  function normalizeCar(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    const num = (v, lo, hi, d) => { const n = parseFloat(String(v).replace(',', '.')); return isFinite(n) && n >= lo && n <= hi ? n : d; };
+    const base = CARS.find((c) => c.id === raw.id) || CARS[CARS.length - 1];
+    const conn = Array.isArray(raw.conn) ? raw.conn.filter((c) => ['ccs', 'type2', 'chademo'].includes(c)) : base.conn;
+    return {
+      id: base.id,
+      name: typeof raw.name === 'string' && raw.name ? raw.name.slice(0, 60) : base.name,
+      kwh: num(raw.kwh, 10, 200, base.kwh),
+      dc: num(raw.dc, 3, 500, base.dc),
+      ac: num(raw.ac, 1.4, 50, base.ac),
+      cons: num(raw.cons, 8, 40, base.cons),
+      conn: conn.length ? conn : base.conn,
+      tesla: raw.tesla == null ? !!base.tesla : !!raw.tesla,
+      onlyCompatible: raw.onlyCompatible !== false,
+    };
+  }
+
+  // Подходит ли станции разъёмом машине. Если разъёмы станции неизвестны, не прячем её.
+  function carAccepts(car, st) {
+    if (!car) return true;
+    const keys = Object.keys(st.sockets || {});
+    if (!keys.length) return true;
+    return keys.some((k) => car.conn.includes(k) || (k === 'tesla' && car.tesla));
+  }
+
+  // Лучшая мощность, которую машина реально возьмёт на этой станции, кВт. null, если разъём не подходит.
+  function carPowerKw(car, st) {
+    if (!car) return st.kw || null;
+    const cands = [];
+    if (st.live && st.live.pts && st.live.pts.length) {
+      for (const p of st.live.pts) if (p.t && p.kw) cands.push([p.t, p.kw]);
+    }
+    if (!cands.length) {
+      for (const t of Object.keys(st.sockets || {})) {
+        if (st.kw) cands.push([t, t === 'type2' ? Math.min(st.kw, 22) : st.kw]);
+      }
+    }
+    let best = null;
+    for (const [t, kw] of cands) {
+      if (!(car.conn.includes(t) || (t === 'tesla' && car.tesla))) continue;
+      const lim = DC_TYPES.includes(t) ? car.dc : car.ac;
+      const v = Math.min(kw, lim);
+      if (best == null || v > best) best = v;
+    }
+    return best;
+  }
+
+  const CHARGE_LOSS = 0.93; // доля энергии из розетки, которая попадает в батарею
+  // Оценка зарядки от from% до to% (по умолчанию 20→80). price: {mid}. Это оценка, не обещание:
+  // у быстрых станций мощность падает к концу зарядки, учтено усреднением.
+  function chargeEstimate(car, kw, price, from, to) {
+    if (!car || !kw) return null;
+    const a = from == null ? 20 : from;
+    const b = to == null ? 80 : to;
+    if (!(b > a)) return null;
+    const energy = (car.kwh * (b - a)) / 100;
+    const dc = kw > 22;
+    const avg = kw * (dc ? (b <= 80 ? 0.85 : 0.65) : 0.95);
+    const minutes = Math.max(5, Math.round(((energy / CHARGE_LOSS) / avg) * 60 / 5) * 5);
+    const billed = energy / CHARGE_LOSS;
+    return { minutes, energy, billed, cost: price ? billed * price.mid : null, from: a, to: b };
+  }
+
+  // Множитель расхода от температуры воздуха: на холоде расход растёт (печка, батарея, шины).
+  // Оценка по общим данным испытаний, не по конкретной машине.
+  function coldFactor(tempC) {
+    if (tempC == null || !isFinite(tempC)) return 1;
+    const t = Math.max(-25, Math.min(40, tempC));
+    if (t >= 20) return 1;
+    if (t >= 10) return 1 + (20 - t) * 0.006;
+    if (t >= 0) return 1.06 + (10 - t) * 0.01;
+    return 1.16 + -t * 0.012;
+  }
+
+  function rangeKm(car, soc, tempC) {
+    if (!car) return null;
+    return Math.round(((car.kwh * soc) / 100) / ((car.cons * coldFactor(tempC)) / 100));
+  }
+
+  // Стоимость 100 км: зарядка на этой станции, дома и бензин. Все значения в евро, null если данных нет.
+  function costPer100(car, tempC, opts) {
+    const o = opts || {};
+    const cons = (car ? car.cons : KWH_PER_100KM) * coldFactor(tempC);
+    return {
+      cons,
+      station: o.stationPrice != null ? (cons / CHARGE_LOSS) * o.stationPrice : null,
+      home: o.homePrice != null ? (cons / 0.9) * o.homePrice : null,
+      petrol: o.petrolPrice != null ? (o.petrolCons || 7) * o.petrolPrice : null,
+    };
+  }
+
+  /* ---------- поиск и фильтры ---------- */
+  const fold = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+  function matchesQuery(st, q) {
+    if (!q) return true;
+    const hay = fold([st.name, st.address, st.operatorName].filter(Boolean).join(' '));
+    return fold(q).split(/\s+/).filter(Boolean).every((w) => hay.includes(w));
+  }
+
+  function isOpen247(st) {
+    return /24\s*\/\s*7/.test(st.hours || '');
+  }
+
   function applyFilters(stations, f) {
-    return stations.filter(
-      (st) =>
-        matchesConnector(st, f.connector) &&
-        matchesSpeed(st, f.power) &&
-        (f.operator === 'all' || st.operatorId === f.operator)
-    );
+    return stations.filter((st) => {
+      if (!matchesConnector(st, f.connector) || !matchesSpeed(st, f.power)) return false;
+      if (f.operator !== 'all' && st.operatorId !== f.operator) return false;
+      if (f.open247 && !isOpen247(st)) return false;
+      if (f.cardPay && !(st.pay || []).includes('card')) return false;
+      if (f.query && !matchesQuery(st, f.query)) return false;
+      if (f.car && f.car.onlyCompatible && !carAccepts(f.car, st)) return false;
+      if (f.freeNow) {
+        const sum = liveSummary(st, f);
+        if (!sum || sum.level !== 'free') return false;
+      }
+      return true;
+    });
   }
 
   const WEIGHTS = {
@@ -426,29 +569,166 @@
 
   // Добавляет расстояние, цену, время и оценку; сортирует от лучшей к худшей.
   // filters нужны, чтобы считать свободные точки и цену только по подходящим разъёмам.
-  function rank(stations, origin, priority, filters) {
+  // ctx: { car, tempC }. С профилем машины время и стоимость считаются под неё, чужие разъёмы уходят вниз.
+  function rank(stations, origin, priority, filters, ctx) {
     const w = WEIGHTS[priority] || WEIGHTS.balanced;
+    const car = ctx && ctx.car;
+    const tempC = ctx && ctx.tempC;
     const out = stations.map((st) => {
       const distKm = haversine(origin.lat, origin.lon, st.lat, st.lon);
       const price = priceOf(st, filters);
-      const minutes = chargeMinutes100(st.kw, st.cls);
+      let minutes = chargeMinutes100(st.kw, st.cls);
+      let kwCar = null;
+      let kwhPer100 = KWH_PER_100KM;
+      let incompatible = false;
+      if (car) {
+        kwhPer100 = car.cons * coldFactor(tempC);
+        kwCar = carPowerKw(car, st);
+        if (kwCar == null) {
+          incompatible = true;
+          minutes = null;
+        } else {
+          const eff = kwCar * (kwCar > 22 ? 0.85 : 0.95);
+          minutes = Math.max(5, Math.round(((kwhPer100 / CHARGE_LOSS) / eff) * 60 / 5) * 5);
+        }
+      }
       const live = liveSummary(st, filters);
       const p = price ? price.mid : UNKNOWN_PRICE;
       let score =
         distKm * w.dist + ((p - 0.25) / 0.1) * w.price + ((minutes == null ? 60 : minutes) / 10) * w.time;
       if (live && live.level === 'busy') score += BUSY_PENALTY;
       if (live && live.level === 'out') score += OUT_PENALTY;
+      if (incompatible) score += 200;
       return {
         st,
         distKm,
         price,
         minutes,
         live,
-        costPer100: price ? price.mid * KWH_PER_100KM : null,
+        kwCar,
+        incompatible,
+        costPer100: price ? (price.mid * kwhPer100) / (car ? CHARGE_LOSS : 1) : null,
         score,
       };
     });
     out.sort((a, b) => a.score - b.score);
+    return out;
+  }
+
+  /* ---------- прогноз, надёжность, смена цены (из patterns.json) ---------- */
+  // Занятость через `aheadMin` минут: время и тип дня берём по Риге, поэтому переход через полночь и в выходные верен.
+  function forecastFor(st, patterns, nowMs, aheadMin) {
+    if (!st || !st.napId || !patterns || !patterns.sites) return null;
+    const row = patterns.sites[st.napId];
+    if (!row || row.length !== 48) return null;
+    const at = (nowMs == null ? Date.now() : nowMs) + (aheadMin == null ? 60 : aheadMin) * 60000;
+    const clock = rigaClock(at);
+    const v = row[(clock.weekend ? 24 : 0) + clock.hour];
+    if (v == null || v < 0) return null;
+    return { pct: v, hour: clock.hour, atMs: at };
+  }
+
+  // Надёжность площадки: доля снимков, где часть точек не работала. null, пока снимков мало.
+  function reliabilityOf(st, patterns) {
+    if (!st || !st.napId || !patterns || !patterns.rel) return null;
+    const r = patterns.rel[st.napId];
+    if (!r || r.length !== 2) return null;
+    const pct = r[0];
+    return { pct, n: r[1], level: pct <= 3 ? 'good' : pct <= 12 ? 'mid' : 'bad' };
+  }
+
+  // Недавняя смена цены: { now, prev, delta, date } или null
+  function priceChangeOf(st, patterns) {
+    if (!st || !st.napId || !patterns || !patterns.px) return null;
+    const r = patterns.px[st.napId];
+    if (!r || r.length !== 3) return null;
+    const delta = Math.round((r[0] - r[1]) * 100) / 100;
+    if (!delta) return null;
+    return { now: r[0], prev: r[1], delta, date: r[2] };
+  }
+
+  /* ---------- маршрут A→B ---------- */
+  // Всё считаем на плоскости вокруг средней широты: для коридора в несколько километров точности хватает.
+  function projector(lat0) {
+    const kx = Math.cos((lat0 * Math.PI) / 180) * 111.32;
+    return (lat, lon) => [lon * kx, lat * 110.57];
+  }
+
+  // Длина маршрута и накопленная длина до каждой точки; line: [[lat, lon], ...]
+  function routeLengths(line) {
+    const cum = [0];
+    for (let i = 1; i < line.length; i++) cum.push(cum[i - 1] + haversine(line[i - 1][0], line[i - 1][1], line[i][0], line[i][1]));
+    return cum;
+  }
+
+  // Расстояние от точки до маршрута и место проекции вдоль него. { off, along } в километрах.
+  function locateOnRoute(lat, lon, line, cum) {
+    const pr = projector(lat);
+    const p = pr(lat, lon);
+    let best = null;
+    for (let i = 1; i < line.length; i++) {
+      const a = pr(line[i - 1][0], line[i - 1][1]);
+      const b = pr(line[i][0], line[i][1]);
+      const dx = b[0] - a[0];
+      const dy = b[1] - a[1];
+      const len2 = dx * dx + dy * dy;
+      let u = len2 ? ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / len2 : 0;
+      u = Math.max(0, Math.min(1, u));
+      const off = Math.hypot(p[0] - (a[0] + u * dx), p[1] - (a[1] + u * dy));
+      if (!best || off < best.off) best = { off, along: cum[i - 1] + u * (cum[i] - cum[i - 1]) };
+    }
+    return best;
+  }
+
+  // Станции вдоль маршрута не дальше maxOffKm от него, по порядку следования
+  function stationsAlong(stations, line, maxOffKm) {
+    if (!line || line.length < 2) return [];
+    const cum = routeLengths(line);
+    let s = 90, w = 180, n = -90, e = -180;
+    for (const q of line) { s = Math.min(s, q[0]); n = Math.max(n, q[0]); w = Math.min(w, q[1]); e = Math.max(e, q[1]); }
+    const pad = maxOffKm / 100 + 0.02;
+    const out = [];
+    for (const st of stations) {
+      if (st.lat < s - pad || st.lat > n + pad || st.lon < w - pad * 2 || st.lon > e + pad * 2) continue;
+      const r = locateOnRoute(st.lat, st.lon, line, cum);
+      if (r && r.off <= maxOffKm) out.push({ st, along: r.along, off: r.off });
+    }
+    out.sort((a, b) => a.along - b.along);
+    return out;
+  }
+
+  // Остановки на зарядку. Едем с start% до резерва 10%, заряжаемся до 80% на быстрых станциях.
+  // Возвращает { total, stops: [{st, along, off, arriveSoc}], ok, reason } .
+  function planStops(car, cands, totalKm, startSoc, tempC, opts) {
+    const o = opts || {};
+    const reserve = 10;
+    const target = 80;
+    const minKw = o.minKw || 50;
+    const out = { total: totalKm, stops: [], ok: true, reason: null };
+    if (!car) return out;
+    const usable = (soc) => Math.max(0, rangeKm(car, soc - reserve, tempC));
+    let pos = 0;
+    let soc = startSoc == null ? 90 : startSoc;
+    for (let guard = 0; guard < 12; guard++) {
+      const reach = usable(soc);
+      if (totalKm - pos <= reach) return out;
+      const lo = pos + 20; // ближе 20 км заряжаться бессмысленно
+      const win = cands.filter((c) => c.along > lo && c.along <= pos + reach && (carPowerKw(car, c.st) || 0) >= Math.min(minKw, car.dc));
+      if (!win.length) { out.ok = false; out.reason = pos === 0 ? 'noStart' : 'noNext'; return out; }
+      // Чем дальше достижимая быстрая станция, тем меньше остановок: берём из последних 30% запаса
+      // самую мощную (при равенстве ближе к трассе); если там пусто, самую дальнюю из достижимых.
+      const far = win.filter((c) => c.along >= pos + reach * 0.7);
+      const pick = far.length
+        ? far.slice().sort((x, y) => (carPowerKw(car, y.st) || 0) - (carPowerKw(car, x.st) || 0) || x.off - y.off)[0]
+        : win.slice().sort((x, y) => y.along - x.along)[0];
+      const used = pick.along - pos;
+      const arrive = Math.max(reserve, soc - (used / (rangeKm(car, 100, tempC) || 1)) * 100);
+      out.stops.push({ st: pick.st, along: pick.along, off: pick.off, arriveSoc: Math.round(arrive) });
+      pos = pick.along;
+      soc = target;
+    }
+    out.ok = false;
+    out.reason = 'tooMany';
     return out;
   }
 
@@ -484,6 +764,23 @@
     LIVE_FRESH_MS,
     segments,
     chargeMinutes100,
+    CARS,
+    normalizeCar,
+    carAccepts,
+    carPowerKw,
+    chargeEstimate,
+    coldFactor,
+    rangeKm,
+    costPer100,
+    matchesQuery,
+    isOpen247,
+    forecastFor,
+    reliabilityOf,
+    priceChangeOf,
+    routeLengths,
+    locateOnRoute,
+    stationsAlong,
+    planStops,
     matchesConnector,
     matchesSpeed,
     applyFilters,

@@ -12,6 +12,9 @@
     set(k, v) { try { window.localStorage.setItem(k, v); } catch (e) { /* без хранилища работаем дальше */ } },
   };
 
+  const readJson = (k, d) => { try { const v = JSON.parse(store.get(k)); return v == null ? d : v; } catch (e) { return d; } };
+  const writeJson = (k, v) => store.set(k, JSON.stringify(v));
+
   /* ---------- тексты ---------- */
   const I18N = {
     ru: {
@@ -26,9 +29,9 @@
       installAndroid3: 'Подтвердите установку.',
       installOther1: 'В адресной строке браузера нажмите значок установки или откройте меню и выберите «Установить Uzlādes Radars».',
       installClose: 'Понятно',
-      tabGo: 'Куда ехать', tabList: 'Рядом', tabPrices: 'Цены',
+      tabGo: 'Куда', tabList: 'Рядом', tabPrices: 'Цены',
       connAny: 'Все', pwrFast: '50+ кВт', pwrUltra: '150+ кВт', unitKm: 'км',
-      loading: 'Загружаю станции Риги…',
+      loading: 'Загружаю станции…',
       loadError: 'Не удалось загрузить станции. Проверьте интернет.',
       stale: 'Показаны сохранённые данные: обновить не получилось.',
       retry: 'Повторить',
@@ -45,9 +48,9 @@
       prioBalanced: 'Баланс', prioCheap: 'Дешевле', prioNear: 'Ближе',
       noResults: 'Под эти фильтры станций нет. Попробуйте другой разъём или мощность.',
       alsoGood: 'Ещё варианты',
-      distCenter: '{n} км от центра', distYou: '{n} км от вас',
+      distCenter: '{n} км от центра', distYou: '{n} км от вас', fromCenterShort: 'от центра', fromYouShort: 'от вас',
       per100: 'за 100 км хода',
-      minFor100: '≈ {n} мин на 100 км',
+      minFor100: '≈ {n} мин на 100 км', per100Short: '≈ {eur} € / 100 км', per100Time: '≈ {eur} € · {n} мин / 100 км',
       priceUnknown: 'цена не известна',
       perKwh: '€/кВт·ч',
       go: 'Поехали',
@@ -87,6 +90,58 @@
       note_neste: 'Ночью (19:00–07:00) 0,32 €/кВт·ч до 30.11.2026. Дневную цену смотрите в приложении Neste.',
       note_tesla: 'Цены в приложении и на карте Tesla.',
       note_ionity: 'Цена без подписки. С подпиской дешевле.',
+      tabRoute: 'Маршрут', tabFav: 'Мои',
+      estShort: '{from}→{to}%: {min} мин · {cost} €', estShortNoCost: '{from}→{to}%: {min} мин', estNoneShort: 'нет вашего разъёма',
+      fFree: 'Свободно', fOpen: '24/7', fCard: 'Картой', fCar: 'Для моей',
+      carBtn: 'Моя машина', carTitle: 'Моя машина',
+      carLead: 'Выберите модель. Значения ориентировочные, любое можно поправить под свою машину.',
+      carModel: 'Модель', carKwh: 'Батарея (полезная), кВт·ч', carDc: 'Макс. быстрая (DC), кВт', carAc: 'Макс. AC, кВт', carCons: 'Расход, кВт·ч/100 км',
+      carConn: 'Разъёмы машины', carOnly: 'Показывать только подходящие станции',
+      carPetrol: 'Бензин, €/л', carPetrolHint: 'пусто = средняя 95 из Degvielas Radars', carPetrolCons: 'Расход бензиновой машины, л/100 км',
+      carHome: 'Дома, €/кВт·ч', carHomeHint: 'необязательно',
+      carSave: 'Сохранить', carClear: 'Убрать машину', carClose: 'Закрыть',
+      carSet: 'Машина: {name}',
+      rangeLine: '{t} °C: запас ≈ {km} км (в тепле {full})',
+      rangeLineWarm: 'запас хода при 100% ≈ {km} км',
+      estTitle: 'Моя машина здесь', estSpeed: 'Возьмёт до {kw} кВт',
+      estLine: 'Зарядка {from}→{to}%: ≈ {min} мин · ≈ {cost} €',
+      estLineNoCost: 'Зарядка {from}→{to}%: ≈ {min} мин',
+      estNone: 'Разъёмы этой станции вашей машине не подходят.',
+      estNote: 'Оценка: реальная скорость зависит от температуры батареи и заряда.',
+      cmpTitle: 'Стоимость 100 км', cmpHere: 'Здесь', cmpHome: 'Дома', cmpPetrol: 'Бензин',
+      cmpSave: 'Дешевле бензина на ≈ {eur} € за 100 км',
+      cmpMore: 'Дороже бензина на ≈ {eur} € за 100 км',
+      cmpPetrolNote: '{l} л/100 км по {price} €/л',
+      relGood: 'Работает стабильно', relMid: 'Иногда не работают точки ({pct}%)', relBad: 'Часто не работают точки ({pct}%)',
+      relNote: 'по {n} замерам', relTitle: 'Надёжность',
+      fcLine: 'Через час обычно занято ≈ {n}%',
+      priceUp: 'Подорожала на {d} € с {date}', priceDown: 'Подешевела на {d} € с {date}',
+      favAdd: 'В избранное', favRemove: 'В избранном', favEmpty: 'Пока пусто. Нажмите ★ у станции, и она появится здесь с живым статусом.',
+      favTitle: 'Избранные станции',
+      share: 'Поделиться', shareCopied: 'Ссылка скопирована', shareText: 'Зарядная станция: {name}',
+      appleMaps: 'Apple Карты',
+      watch: 'Следить', unwatch: 'Слежу', watchOn: 'Скажу, когда освободится. Работает, пока приложение открыто.',
+      watchNoLive: 'Для этой станции нет статуса в реальном времени.',
+      watchFreeNow: 'Свободная зарядка уже есть.',
+      watchFreed: 'Освободилась: {name}',
+      watchOff: 'Больше не слежу',
+      searchPh: 'Название, адрес или сеть', searchClear: 'Сбросить поиск',
+      routeFrom: 'Откуда', routeTo: 'Куда', routeFromMine: 'Моё место', routeToPh: 'Город или адрес',
+      routeGo: 'Найти станции', routeSoc: 'Заряд на старте, %',
+      routeLen: 'Маршрут {km} км, в пути ≈ {h}',
+      routeNoNeed: 'Доедете без зарядки: запас хода ≈ {km} км.',
+      routeStops: 'Остановки на зарядку', routeStop: 'Остановка {n}',
+      routeNoCar: 'Укажите машину, и я посчитаю остановки по запасу хода. Пока показываю станции у маршрута.',
+      routeNoStart: 'В пределах запаса хода нет подходящих быстрых станций у маршрута. Выберите другую машину, заряд или объезд.',
+      routeNoNext: 'После последней остановки на пути нет подходящей быстрой станции в пределах запаса хода.',
+      routeTooMany: 'Слишком много остановок для расчёта. Разбейте маршрут на части.',
+      routeAlong: 'Все станции у маршрута', routeFail: 'Маршрут не найден. Проверьте адрес и интернет.',
+      routeNotFound: 'Не нашёл такое место. Уточните название.',
+      routeClear: 'Сбросить маршрут', routeKm: 'на {n} км', routeOff: 'в {n} м от трассы', routeOffKm: 'в {n} км от трассы',
+      routeArrive: 'приедете с {n}%', routeNoStations: 'Вдоль маршрута нет станций с вашими фильтрами.',
+      routeWait: 'Ищу маршрут…',
+      baltics: 'Литва и Эстония: станции из OpenStreetMap без статуса в реальном времени.',
+      loadingBalt: 'Загружаю станции…',
       sockType2: 'Type 2', sockCcs: 'CCS', sockChademo: 'CHAdeMO', sockTesla: 'Tesla',
     },
     en: {
@@ -101,9 +156,9 @@
       installAndroid3: 'Confirm the installation.',
       installOther1: 'Click the install icon in the address bar, or open the menu and choose “Install Uzlādes Radars”.',
       installClose: 'Got it',
-      tabGo: 'Where to go', tabList: 'Nearby', tabPrices: 'Prices',
+      tabGo: 'Best', tabList: 'Nearby', tabPrices: 'Prices',
       connAny: 'All', pwrFast: '50+ kW', pwrUltra: '150+ kW', unitKm: 'km',
-      loading: 'Loading Riga stations…',
+      loading: 'Loading stations…',
       loadError: 'Could not load stations. Check your connection.',
       stale: 'Showing saved data: the update failed.',
       retry: 'Retry',
@@ -120,9 +175,9 @@
       prioBalanced: 'Balanced', prioCheap: 'Cheaper', prioNear: 'Closer',
       noResults: 'No stations match these filters. Try another connector or power.',
       alsoGood: 'More options',
-      distCenter: '{n} km from centre', distYou: '{n} km from you',
+      distCenter: '{n} km from centre', distYou: '{n} km from you', fromCenterShort: 'from centre', fromYouShort: 'from you',
       per100: 'per 100 km of range',
-      minFor100: '≈ {n} min per 100 km',
+      minFor100: '≈ {n} min per 100 km', per100Short: '≈ {eur} € / 100 km', per100Time: '≈ {eur} € · {n} min / 100 km',
       priceUnknown: 'price unknown',
       perKwh: '€/kWh',
       go: 'Go',
@@ -162,6 +217,58 @@
       note_neste: 'Night price (19:00–07:00) 0.32 €/kWh until 30.11.2026. See the Neste app for day prices.',
       note_tesla: 'Prices are in the Tesla app and map.',
       note_ionity: 'Price without subscription. Cheaper with one.',
+      tabRoute: 'Route', tabFav: 'Saved',
+      estShort: '{from}→{to}%: {min} min · {cost} €', estShortNoCost: '{from}→{to}%: {min} min', estNoneShort: 'no connector for your car',
+      fFree: 'Free now', fOpen: '24/7', fCard: 'Card', fCar: 'My car',
+      carBtn: 'My car', carTitle: 'My car',
+      carLead: 'Pick a model. Values are approximate, edit any of them to match your car.',
+      carModel: 'Model', carKwh: 'Battery (usable), kWh', carDc: 'Max fast (DC), kW', carAc: 'Max AC, kW', carCons: 'Consumption, kWh/100 km',
+      carConn: 'Car connectors', carOnly: 'Show compatible stations only',
+      carPetrol: 'Petrol, €/l', carPetrolHint: 'empty = average 95 from Degvielas Radars', carPetrolCons: 'Petrol car consumption, l/100 km',
+      carHome: 'Home, €/kWh', carHomeHint: 'optional',
+      carSave: 'Save', carClear: 'Remove car', carClose: 'Close',
+      carSet: 'Car: {name}',
+      rangeLine: '{t} °C: range ≈ {km} km ({full} when warm)',
+      rangeLineWarm: 'range at 100% ≈ {km} km',
+      estTitle: 'My car here', estSpeed: 'Will take up to {kw} kW',
+      estLine: 'Charging {from}→{to}%: ≈ {min} min · ≈ {cost} €',
+      estLineNoCost: 'Charging {from}→{to}%: ≈ {min} min',
+      estNone: 'This station has no connector your car can use.',
+      estNote: 'An estimate: real speed depends on battery temperature and charge level.',
+      cmpTitle: 'Cost of 100 km', cmpHere: 'Here', cmpHome: 'At home', cmpPetrol: 'Petrol',
+      cmpSave: 'Cheaper than petrol by ≈ {eur} € per 100 km',
+      cmpMore: 'More expensive than petrol by ≈ {eur} € per 100 km',
+      cmpPetrolNote: '{l} l/100 km at {price} €/l',
+      relGood: 'Works reliably', relMid: 'Some points are down at times ({pct}%)', relBad: 'Points are often down ({pct}%)',
+      relNote: 'from {n} checks', relTitle: 'Reliability',
+      fcLine: 'In an hour usually ≈ {n}% busy',
+      priceUp: 'Price up {d} € since {date}', priceDown: 'Price down {d} € since {date}',
+      favAdd: 'Save', favRemove: 'Saved', favEmpty: 'Nothing yet. Tap ★ on a station and it will appear here with live status.',
+      favTitle: 'Saved stations',
+      share: 'Share', shareCopied: 'Link copied', shareText: 'Charging station: {name}',
+      appleMaps: 'Apple Maps',
+      watch: 'Watch', unwatch: 'Watching', watchOn: 'I will tell you when one frees up. Works while the app is open.',
+      watchNoLive: 'This station has no live status.',
+      watchFreeNow: 'A free charger is already available.',
+      watchFreed: 'Now free: {name}',
+      watchOff: 'Stopped watching',
+      searchPh: 'Name, address or network', searchClear: 'Clear search',
+      routeFrom: 'From', routeTo: 'To', routeFromMine: 'My location', routeToPh: 'City or address',
+      routeGo: 'Find stations', routeSoc: 'Charge at start, %',
+      routeLen: 'Route {km} km, ≈ {h} driving',
+      routeNoNeed: 'You can make it without charging: range ≈ {km} km.',
+      routeStops: 'Charging stops', routeStop: 'Stop {n}',
+      routeNoCar: 'Set your car and I will plan stops from its range. For now: stations along the route.',
+      routeNoStart: 'No suitable fast stations along the route within your range. Try another car, charge level or detour.',
+      routeNoNext: 'After the last stop there is no suitable fast station within range.',
+      routeTooMany: 'Too many stops to plan. Split the route.',
+      routeAlong: 'All stations along the route', routeFail: 'Route not found. Check the address and your connection.',
+      routeNotFound: 'Could not find that place. Be more specific.',
+      routeClear: 'Clear route', routeKm: 'at km {n}', routeOff: '{n} m off the road', routeOffKm: '{n} km off the road',
+      routeArrive: 'arrive with {n}%', routeNoStations: 'No stations along the route match your filters.',
+      routeWait: 'Finding a route…',
+      baltics: 'Lithuania and Estonia: OpenStreetMap stations without live status.',
+      loadingBalt: 'Loading stations…',
       sockType2: 'Type 2', sockCcs: 'CCS', sockChademo: 'CHAdeMO', sockTesla: 'Tesla',
     },
   };
@@ -188,7 +295,15 @@
     stations: [], // результат слияния: их показываем
     liveError: false,
     origin: { lat: RIGA.lat, lon: RIGA.lon, real: false },
-    filters: { connector: 'any', power: 'any', operator: 'all' },
+    filters: { connector: 'any', power: 'any', operator: 'all', freeNow: false, open247: false, cardPay: false, query: '', car: null },
+    car: null, // профиль машины (logic.normalizeCar) или null
+    prefs: { petrol: null, petrolCons: 7, home: null }, // бензин и домашний тариф
+    petrol: null, // средняя цена 95 из Degvielas Radars
+    tempC: null, // температура воздуха там, где человек
+    favs: [], // избранное: [{ k, id, napId, lat, lon, name }]
+    watch: [], // слежение за станциями: [{ k, id, napId, lat, lon, name, free }]
+    route: null, // построенный маршрут
+    osmBy: {}, // станции OSM по странам
     priority: 'balanced',
     tab: 'go',
     detailId: null,
@@ -206,37 +321,38 @@
     'https://overpass.kumi.systems/api/interpreter',
     'https://overpass.private.coffee/api/interpreter',
   ];
-  const BBOX_ARR = [56.85, 23.93, 57.07, 24.35]; // юг, запад, север, восток: Рига с пригородами
-  const BBOX = BBOX_ARR.join(',');
-  const QUERY =
-    '[out:json][timeout:25];(' +
-    'node["amenity"="charging_station"](' + BBOX + ');' +
-    'way["amenity"="charging_station"](' + BBOX + ');' +
-    ');out center tags;';
-  const CACHE_KEY = 'ur_stations_v1';
+  // Страны: код ISO для запроса и рамка, по которой понимаем, что карту увели в другую страну.
+  // Латвия грузится сразу, Литва и Эстония только когда на них смотрят или строят маршрут.
+  const COUNTRIES = {
+    LV: { bbox: [55.67, 20.97, 58.09, 28.24] },
+    LT: { bbox: [53.89, 20.93, 56.45, 26.84] },
+    EE: { bbox: [57.51, 21.76, 59.68, 28.21] },
+  };
+  const queryFor = (cc) =>
+    '[out:json][timeout:90];area["ISO3166-1"="' + cc + '"][admin_level=2]->.a;(' +
+    'node["amenity"="charging_station"](area.a);way["amenity"="charging_station"](area.a););out center tags;';
+  const cacheKey = (cc) => 'ur_osm_' + cc + '_v2';
   const CACHE_TTL = 12 * 3600 * 1000;
+  const loadingCountry = {};
 
-  function readCache() {
-    const raw = store.get(CACHE_KEY);
-    if (!raw) return null;
-    try {
-      const c = JSON.parse(raw);
-      return c && Array.isArray(c.stations) ? c : null;
-    } catch (e) { return null; }
+  function readCache(cc) {
+    const c = readJson(cacheKey(cc), null);
+    return c && Array.isArray(c.stations) ? c : null;
   }
 
   // Спрашиваем все зеркала Overpass одновременно, берём первый хороший ответ.
-  async function fetchElements() {
+  async function fetchElements(cc) {
     const controllers = [];
+    const query = queryFor(cc);
     const attempt = async (url) => {
       const ctl = new AbortController();
       controllers.push(ctl);
-      const timer = setTimeout(() => ctl.abort(), 20000);
+      const timer = setTimeout(() => ctl.abort(), 60000);
       try {
         const res = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: 'data=' + encodeURIComponent(QUERY),
+          body: 'data=' + encodeURIComponent(query),
           signal: ctl.signal,
         });
         if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -257,33 +373,235 @@
   // Слияние OSM и национальной точки доступа; живые цены сетей обновляем вместе с ним.
   function rebuildStations() {
     UR.setLivePrices(state.live ? UR.buildPriceTable(state.live) : {});
-    state.stations = UR.mergeLive(state.osm, state.live, { bbox: BBOX_ARR });
+    state.osm = [].concat.apply([], Object.keys(state.osmBy).map((k) => state.osmBy[k]));
+    state.stations = UR.mergeLive(state.osm, state.live, {});
+    openPendingStation();
   }
 
-  async function loadStations(force) {
-    const cached = readCache();
-    if (cached) {
-      state.osm = cached.stations;
-      rebuildStations();
-      quietRender = state.origin.real;
-      renderAll();
-      quietRender = false;
-      if (!force && Date.now() - cached.t < CACHE_TTL) return;
-    }
-    if (!cached && !state.stations.length) setStatus('loading');
+  // Загрузка одной страны: сначала кэш, потом сеть. Возвращает true, если сеть ответила.
+  async function loadCountry(cc, force) {
+    if (loadingCountry[cc]) return false;
+    loadingCountry[cc] = true;
     try {
-      const els = await fetchElements();
-      state.osm = els.map(UR.toStation).filter(Boolean);
-      store.set(CACHE_KEY, JSON.stringify({ t: Date.now(), stations: state.osm }));
-      rebuildStations();
-      setStatus(null);
-    } catch (e) {
-      // Overpass недоступен: если есть данные национальной точки доступа, приложение всё равно работает
-      setStatus(state.stations.length ? (state.osm.length ? 'stale' : null) : 'error');
+      const cached = readCache(cc);
+      if (cached) {
+        state.osmBy[cc] = cached.stations;
+        rebuildStations();
+        quietRender = state.origin.real;
+        renderAll();
+        quietRender = false;
+        if (!force && Date.now() - cached.t < CACHE_TTL) return true;
+      }
+      const main = cc === 'LV';
+      if (main && !cached && !state.stations.length) setStatus('loading');
+      try {
+        const els = await fetchElements(cc);
+        state.osmBy[cc] = els.map(UR.toStation).filter(Boolean);
+        writeJson(cacheKey(cc), { t: Date.now(), stations: state.osmBy[cc] });
+        rebuildStations();
+        if (main) setStatus(null);
+        return true;
+      } catch (e) {
+        // Overpass недоступен: если есть данные национальной точки доступа, приложение всё равно работает
+        if (main) setStatus(state.stations.length ? (state.osm.length ? 'stale' : null) : 'error');
+        return false;
+      } finally {
+        quietRender = state.origin.real;
+        renderAll();
+        quietRender = false;
+      }
+    } finally {
+      loadingCountry[cc] = false;
     }
-    quietRender = state.origin.real;
-    renderAll();
-    quietRender = false;
+  }
+
+  const loadStations = (force) => loadCountry('LV', force);
+
+  // Какая страна под центром карты (для подгрузки Литвы и Эстонии)
+  function countryAt(lat, lon) {
+    for (const cc of Object.keys(COUNTRIES)) {
+      const b = COUNTRIES[cc].bbox;
+      if (lat >= b[0] && lat <= b[2] && lon >= b[1] && lon <= b[3]) return cc;
+    }
+    return null;
+  }
+  let balticNoted = false;
+  function onMapMoved() {
+    if (!map || !map.getCenter) return;
+    const c = map.getCenter();
+    const cc = countryAt(c.lat, c.lng);
+    if (cc && cc !== 'LV' && !state.osmBy[cc]) {
+      if (!balticNoted) { balticNoted = true; toast(t('baltics')); }
+      loadCountry(cc, false);
+    }
+  }
+
+
+  /* ---------- моя машина, цены бензина, погода ---------- */
+  function loadProfile() {
+    state.car = UR.normalizeCar(readJson('ur_car_v1', null));
+    const p = readJson('ur_prefs_v1', {});
+    const num = (v, lo, hi) => { const n = parseFloat(String(v).replace(',', '.')); return isFinite(n) && n >= lo && n <= hi ? n : null; };
+    state.prefs = { petrol: num(p.petrol, 0.5, 5), petrolCons: num(p.petrolCons, 2, 25) || 7, home: num(p.home, 0.01, 2) };
+    state.filters.car = state.car;
+  }
+  function saveProfile() {
+    writeJson('ur_car_v1', state.car);
+    writeJson('ur_prefs_v1', state.prefs);
+    state.filters.car = state.car;
+  }
+  const rankCtx = () => ({ car: state.car, tempC: state.car ? state.tempC : null });
+  const petrolPrice = () => state.prefs.petrol || state.petrol || 1.85;
+
+  // Средняя цена бензина 95 из соседнего приложения Degvielas Radars (его отчёт открыт на GitHub)
+  const FUEL_URL = 'https://raw.githubusercontent.com/digitalcreatorhub/degvievas-radars/main/data/report.json';
+  async function loadFuel() {
+    const c = readJson('ur_fuel_v1', null);
+    if (c && isFinite(c.v)) state.petrol = c.v;
+    if (c && Date.now() - c.t < 12 * 3600 * 1000) return;
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 10000);
+    try {
+      const res = await fetch(FUEL_URL, { signal: ctl.signal });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const j = await res.json();
+      const v = j && j.fuels && j.fuels['95'] && j.fuels['95'].avg;
+      if (isFinite(v) && v > 0.5 && v < 5) {
+        state.petrol = v;
+        writeJson('ur_fuel_v1', { t: Date.now(), v });
+        renderPanelQuiet();
+      }
+    } catch (e) { /* возьмём запасное значение */ } finally { clearTimeout(timer); }
+  }
+
+  // Температура воздуха нужна, чтобы честно считать запас хода на холоде. Спрашиваем, только если задана машина.
+  async function loadWeather() {
+    if (!state.car) return;
+    const o = state.origin;
+    const key = Math.round(o.lat * 2) + ',' + Math.round(o.lon * 2);
+    const c = readJson('ur_temp_v1', null);
+    if (c && c.key === key && Date.now() - c.t < 30 * 60 * 1000) { state.tempC = c.v; return; }
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 10000);
+    try {
+      const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=' + o.lat.toFixed(2) + '&longitude=' + o.lon.toFixed(2) + '&current=temperature_2m', { signal: ctl.signal });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const j = await res.json();
+      const v = j && j.current && j.current.temperature_2m;
+      if (isFinite(v)) {
+        state.tempC = v;
+        writeJson('ur_temp_v1', { t: Date.now(), key, v });
+        renderPanelQuiet();
+      }
+    } catch (e) { /* без поправки на холод */ } finally { clearTimeout(timer); }
+  }
+  function renderPanelQuiet() {
+    quietRender = true;
+    try { renderPanel(); } finally { quietRender = false; }
+  }
+
+  /* ---------- избранное и слежение ---------- */
+  const refOf = (st) => ({ k: st.napId ? 'n:' + st.napId : 'o:' + st.id, id: st.id, napId: st.napId || null, lat: st.lat, lon: st.lon, name: stationTitle(st) });
+  // Находим станцию по сохранённой ссылке: сначала по номеру, потом по месту (id при слиянии может смениться)
+  function resolveRef(ref) {
+    let st = ref.napId && state.stations.find((x) => x.napId === ref.napId);
+    if (!st) st = state.stations.find((x) => x.id === ref.id);
+    if (!st) {
+      let best = null;
+      for (const x of state.stations) {
+        const d = UR.haversine(ref.lat, ref.lon, x.lat, x.lon);
+        if (d < 0.1 && (!best || d < best.d)) best = { st: x, d };
+      }
+      st = best && best.st;
+    }
+    return st || null;
+  }
+  const isFav = (st) => state.favs.some((f) => f.k === refOf(st).k);
+  function toggleFav(st) {
+    const r = refOf(st);
+    const i = state.favs.findIndex((f) => f.k === r.k);
+    if (i >= 0) state.favs.splice(i, 1); else state.favs.unshift(r);
+    writeJson('ur_favs_v1', state.favs);
+  }
+  const isWatched = (st) => state.watch.some((w) => w.k === refOf(st).k);
+
+  async function askNotifyPermission() {
+    try {
+      if ('Notification' in window && Notification.permission === 'default') await Notification.requestPermission();
+    } catch (e) { /* не критично: останется сообщение внутри приложения */ }
+  }
+  function notifyUser(text, tag) {
+    toast(text);
+    try { if (navigator.vibrate) navigator.vibrate([120, 60, 120]); } catch (e) { /* без вибрации */ }
+    try {
+      if ('Notification' in window && Notification.permission === 'granted') {
+        if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+          navigator.serviceWorker.ready.then((reg) => reg.showNotification('Uzlādes Radars', { body: text, tag, icon: 'icons/icon-192.png' })).catch(() => new Notification('Uzlādes Radars', { body: text, tag }));
+        } else new Notification('Uzlādes Radars', { body: text, tag });
+      }
+    } catch (e) { /* уведомление не получилось, сообщение в приложении уже показано */ }
+  }
+
+  async function toggleWatch(st) {
+    const r = refOf(st);
+    const i = state.watch.findIndex((w) => w.k === r.k);
+    if (i >= 0) {
+      state.watch.splice(i, 1);
+      writeJson('ur_watch_v1', state.watch);
+      toast(t('watchOff'));
+      return;
+    }
+    const sum = UR.liveSummary(st, null);
+    if (!sum || !UR.isLiveFresh(state.live)) { toast(t('watchNoLive')); return; }
+    await askNotifyPermission();
+    state.watch.push(Object.assign(r, { free: sum.free }));
+    writeJson('ur_watch_v1', state.watch);
+    toast(sum.free > 0 ? t('watchFreeNow') : t('watchOn'));
+  }
+
+  // После каждого обновления статуса: была ли занята вся станция, а теперь есть свободная
+  function checkWatches() {
+    if (!state.watch.length || !state.live || !UR.isLiveFresh(state.live)) return;
+    let changed = false;
+    for (const w of state.watch) {
+      const st = resolveRef(w);
+      const sum = st && UR.liveSummary(st, null);
+      if (!sum) continue;
+      if (w.free === 0 && sum.free > 0) notifyUser(t('watchFreed', { name: w.name }), 'watch-' + w.k);
+      if (w.free !== sum.free) { w.free = sum.free; changed = true; }
+    }
+    if (changed) writeJson('ur_watch_v1', state.watch);
+  }
+
+  /* ---------- ссылки: станция, вкладка, ярлыки ---------- */
+  const params = new URLSearchParams(location.search);
+  state.pending = { st: params.get('st'), go: params.get('go'), tab: params.get('tab') };
+  function stationUrl(st) {
+    return location.origin + location.pathname + '?st=' + encodeURIComponent(st.napId || st.id);
+  }
+  // Станция из ссылки открывается, как только она появилась в данных. Один раз.
+  function openPendingStation() {
+    const p = state.pending;
+    if (!p || !p.st) return;
+    const st = state.stations.find((x) => x.napId === p.st || x.id === p.st);
+    if (!st) return;
+    p.st = null;
+    setTimeout(() => { openDetail(st.id, true); setSheetOpen(true); }, 0);
+  }
+  async function shareStation(st) {
+    const url = stationUrl(st);
+    const text = t('shareText', { name: stationTitle(st) });
+    try {
+      if (navigator.share) { await navigator.share({ title: 'Uzlādes Radars', text, url }); return; }
+    } catch (e) {
+      if (e && e.name === 'AbortError') return;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      toast(t('shareCopied'));
+    } catch (e) {
+      toast(url);
+    }
   }
 
   /* ---------- живые данные (статус и цены) ---------- */
@@ -324,9 +642,11 @@
       clearTimeout(timer);
     }
     rebuildStations();
+    checkWatches();
     quietRender = !!quiet || state.origin.real;
     renderAll();
     quietRender = false;
+    applyShortcut();
     if (state.status === 'error' && state.stations.length) setStatus(null);
   }
 
@@ -355,7 +675,7 @@
   setInterval(() => { if (document.visibilityState === 'visible') loadLive(true); }, LIVE_REFRESH_MS);
 
   /* ---------- карта ---------- */
-  let map, tiles, markerLayer, youMarker, youCircle;
+  let map, tiles, markerLayer, routeLayer, youMarker, youCircle;
   const markers = new Map();
 
   function cssVar(name) {
@@ -364,9 +684,13 @@
   const classColor = (cls) => cssVar('--c-' + cls) || cssVar('--c-unknown');
 
   function initMap() {
-    map = L.map('map', { zoomControl: false, preferCanvas: true }).setView([RIGA.lat, RIGA.lon], 12);
+    map = L.map('map', { zoomControl: false, attributionControl: false, preferCanvas: true }).setView([RIGA.lat, RIGA.lon], 12);
     L.control.zoom({ position: 'topright' }).addTo(map);
+    // подпись источника карты нельзя прятать; снизу её закрывает панель, поэтому она сверху слева
+    if (L.control.attribution) L.control.attribution({ position: 'topleft', prefix: false }).addTo(map);
+    routeLayer = L.layerGroup().addTo(map);
     markerLayer = L.layerGroup().addTo(map);
+    if (map.on) map.on('moveend', onMapMoved);
     setTiles();
   }
 
@@ -384,16 +708,29 @@
     markerLayer.clearLayers();
     markers.clear();
     const stroke = cssVar('--bg');
+    const okColor = cssVar('--ok');
+    const textColor = cssVar('--text');
     for (const st of list) {
       const selected = st.id === state.detailId;
       const sum = UR.liveSummary(st, state.filters);
       const level = sum ? sum.level : 'unknown';
-      // свободно: зелёная рамка; все заняты: тусклая метка; не работает: ещё бледнее
-      const ring = level === 'free' ? cssVar('--ok') : stroke;
+      // свободно: зелёная рамка и мягкое свечение; все заняты: тусклая метка; не работает: ещё бледнее
+      const ring = level === 'free' ? okColor : stroke;
+      if (selected || level === 'free') {
+        // ореол под меткой: свечение у свободных и выбранной станции
+        L.circleMarker([st.lat, st.lon], {
+          radius: selected ? 20 : 15,
+          weight: 0,
+          fillColor: selected ? textColor : okColor,
+          fillOpacity: selected ? 0.2 : 0.2,
+          interactive: false,
+          halo: true,
+        }).addTo(markerLayer);
+      }
       const m = L.circleMarker([st.lat, st.lon], {
         radius: selected ? 11 : 8,
         weight: selected ? 3 : level === 'free' ? 3 : 2,
-        color: selected ? cssVar('--text') : ring,
+        color: selected ? textColor : ring,
         fillColor: classColor(st.cls),
         fillOpacity: level === 'out' ? 0.3 : level === 'busy' ? 0.55 : 1,
       });
@@ -532,17 +869,57 @@
       '<div class="btn-row">' +
       '<a class="btn btn-primary" href="' + g + '" target="_blank" rel="noopener">' + esc(t('navGoogle')) + '</a>' +
       '<a class="btn" href="' + w + '" target="_blank" rel="noopener">' + esc(t('navWaze')) + '</a>' +
+      (isApple && !withDetails ? '<a class="btn" href="https://maps.apple.com/?daddr=' + st.lat + ',' + st.lon + '&dirflg=d" target="_blank" rel="noopener">' + esc(t('appleMaps')) + '</a>' : '') +
       (withDetails ? '<button class="btn" data-detail="' + esc(st.id) + '">' + esc(t('details')) + '</button>' : '') +
       '</div>'
     );
   }
 
-  const filtered = () => UR.applyFilters(state.stations, state.filters);
+
+  /* ---------- значки ---------- */
+  const SVG = (inner, fill) => '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="' + (fill || 'none') + '" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + inner + '</svg>';
+  const ICON = {
+    star: SVG('<path d="M12 3.3l2.7 5.5 6.1.9-4.4 4.3 1 6.1L12 17.2 6.6 20.1l1-6.1L3.2 9.7l6.1-.9z"/>'),
+    share: SVG('<path d="M12 15V3M8 7l4-4 4 4M5 12v7a1 1 0 001 1h12a1 1 0 001-1v-7"/>'),
+    bell: SVG('<path d="M6 17h12l-1.6-2.1V11a4.4 4.4 0 00-8.8 0v3.9zM10 20.5h4"/>'),
+    car: SVG('<path d="M4.5 16v-3.6l1.9-4.6A2 2 0 018.3 6.5h7.4a2 2 0 011.9 1.3l1.9 4.6V16M3 16h18M7 16v2.2M17 16v2.2M7.5 12.6h.01M16.5 12.6h.01"/>'),
+    search: SVG('<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/>'),
+    close: SVG('<path d="M6 6l12 12M18 6L6 18"/>'),
+  };
+  const STAR_FILLED = (on) => (on ? ICON.star.replace('fill="none"', 'fill="currentColor"') : ICON.star);
 
   /* ---------- вкладки ---------- */
+  const filtered = () => UR.applyFilters(state.stations, state.filters);
+  const stationById = (id) => state.stations.find((x) => x.id === id);
+
+  function favButton(st, cls) {
+    const on = isFav(st);
+    return '<button class="' + (cls || 'icon-btn') + '" data-fav="' + esc(st.id) + '" aria-pressed="' + on + '" aria-label="' + esc(t(on ? 'favRemove' : 'favAdd')) + '">' + STAR_FILLED(on) + (cls === 'tool' ? '<span>' + esc(t(on ? 'favRemove' : 'favAdd')) + '</span>' : '') + '</button>';
+  }
+
+  // Строка про машину и запас хода: видна на главной вкладке, если задана машина
+  function carLine() {
+    if (!state.car) return '';
+    const warm = UR.rangeKm(state.car, 100, 20);
+    const now = UR.rangeKm(state.car, 100, state.tempC);
+    const cold = state.tempC != null && state.tempC < 12;
+    const text = cold ? t('rangeLine', { t: String(Math.round(state.tempC)).replace('-', '−'), km: now, full: warm }) : t('rangeLineWarm', { km: now });
+    return '<button class="car-line" data-act="car">' + ICON.car + '<span><b>' + esc(state.car.name) + '</b> · ' + esc(text) + '</span></button>';
+  }
+
+  // Короткая подпись под ценой в карточке: с машиной это зарядка 20→80%, без неё стоимость 100 км хода
+  function priceCaption(best) {
+    if (state.car) {
+      if (best.incompatible) return t('estNoneShort');
+      const e = UR.chargeEstimate(state.car, best.kwCar, best.price, 20, 80);
+      if (e) return e.cost != null ? t('estShort', { from: 20, to: 80, min: e.minutes, cost: fmtEur(e.cost) }) : t('estShortNoCost', { from: 20, to: 80, min: e.minutes });
+    }
+    return best.minutes ? t('per100Time', { eur: fmtEur(best.costPer100), n: best.minutes }) : t('per100Short', { eur: fmtEur(best.costPer100) });
+  }
+
   function renderGo() {
     const list = filtered();
-    const ranked = UR.rank(list, state.origin, state.priority, state.filters);
+    const ranked = UR.rank(list, state.origin, state.priority, state.filters, rankCtx());
     const prios = [['balanced', 'prioBalanced'], ['cheap', 'prioCheap'], ['near', 'prioNear']];
     let html =
       '<div class="seg" role="group">' +
@@ -550,6 +927,7 @@
       '</div>' +
       '<div class="origin-line"><span>' + esc(originText()) + '</span>' +
       '<button class="link-btn" id="btn-locate">' + esc(state.locating ? t('locating') : t('locate')) + '</button></div>' +
+      carLine() +
       (liveNote() && !liveFreshForBest(ranked) ? '<div class="live-note">' + esc(liveNote()) + '</div>' : '');
 
     if (!ranked.length) {
@@ -562,21 +940,20 @@
     const st = best.st;
     html +=
       '<article class="best">' +
-      '<div class="best-head"><div><h2>' + esc(stationTitle(st)) + '</h2><div class="sub">' + esc(stationSub(st)) + '</div>' +
+      '<div class="best-head"><div class="best-title"><h2>' + esc(stationTitle(st)) + '</h2><div class="sub">' + esc(stationSub(st)) + '</div>' +
       (best.live ? '<div class="live-line">' + livePill(best.live) + (state.live && UR.isLiveFresh(state.live) ? ' <span class="live-time">' + esc(t('liveUpd', { time: fmtTime(UR.liveTime(state.live)) })) + '</span>' : '') + '</div>' : '') + '</div>' +
-      gauge(st, true) + '</div>' +
+      '<div class="best-side">' + gauge(st, true) + favButton(st) + '</div></div>' +
       '<div class="facts">' +
-      '<div><b>' + esc(t(state.origin.real ? 'distYou' : 'distCenter', { n: fmtKm(best.distKm) })) + '</b>' +
-      (best.minutes ? ' <span>· ' + esc(t('minFor100', { n: best.minutes })) + '</span>' : '') + '</div>' +
+      '<div><b>' + esc(fmtKm(best.distKm)) + ' ' + esc(t('unitKm')) + '</b><span>' + esc(t(state.origin.real ? 'fromYouShort' : 'fromCenterShort')) + '</span></div>' +
       '<div>' + (best.price
-        ? '<b>' + fmtRange(best.price) + ' ' + esc(t('perKwh')) + '</b> <span>≈ ' + fmtEur(best.costPer100) + ' € ' + esc(t('per100')) + '</span>'
-        : '<span>' + esc(t('priceUnknown')) + '</span>') + '</div>' +
+        ? '<b>' + fmtRange(best.price) + ' ' + esc(t('perKwh')) + '</b><span>' + esc(priceCaption(best)) + '</span>'
+        : '<b>' + esc(t('priceUnknown')) + '</b>') + '</div>' +
       '</div>' + payChips(st, true) + usualLine(st) + navLinks(st, true) +
       '</article>';
 
     const more = ranked.slice(1, 4);
     if (more.length) {
-      html += '<h3 style="margin:0 0 4px;font-size:15px">' + esc(t('alsoGood')) + '</h3><div class="rows">' + more.map(rowHtml).join('') + '</div>';
+      html += '<h3 class="sect">' + esc(t('alsoGood')) + '</h3><div class="rows">' + more.map(rowHtml).join('') + '</div>';
     }
     $('panel').innerHTML = html;
     focusStation(st);
@@ -584,9 +961,11 @@
 
   function rowHtml(r) {
     const st = r.st;
+    const rel = UR.reliabilityOf(st, state.patterns);
+    const warn = rel && rel.level === 'bad' ? ' <span class="warn" title="' + esc(t('relBad', { pct: rel.pct })) + '">⚠</span>' : '';
     return (
       '<button class="row" data-detail="' + esc(st.id) + '">' + gauge(st, false) +
-      '<span class="main"><span class="title" style="display:block">' + esc(stationTitle(st)) + '</span>' +
+      '<span class="main"><span class="title" style="display:block">' + (isFav(st) ? '<span class="fav-mark">★</span> ' : '') + esc(stationTitle(st)) + warn + '</span>' +
       '<span class="meta" style="display:block">' + esc(stationSub(st)) + '</span>' +
       (r.live ? '<span class="live-line" style="display:block">' + livePill(r.live) + '</span>' : '') + '</span>' +
       '<span class="side">' + esc(fmtKm(r.distKm)) + ' ' + esc(t('unitKm')) +
@@ -594,18 +973,44 @@
     );
   }
 
+  // Список «Рядом»: поиск остаётся на месте, а строки перерисовываются отдельно (клавиатура не закрывается)
+  function listBodyHtml() {
+    const ranked = UR.rank(filtered(), state.origin, 'near', state.filters, rankCtx());
+    if (!ranked.length) return { count: 0, html: '<p class="empty">' + esc(state.stations.length ? t('noResults') : state.status === 'loading' ? t('loading') : '') + '</p>' };
+    return { count: ranked.length, html: '<div class="rows">' + ranked.slice(0, 80).map(rowHtml).join('') + '</div>' };
+  }
+  function renderListBody() {
+    const body = $('list-body');
+    if (!body) return;
+    const r = listBodyHtml();
+    body.innerHTML = r.html;
+    const c = $('list-count');
+    if (c) c.textContent = t('count', { n: r.count });
+  }
+
   function renderList() {
-    const ranked = UR.rank(filtered(), state.origin, 'near', state.filters);
     const ops = UR.OPERATORS.map((o) => [o.id, o.name]).concat([['other', t('otherNet')]]);
     const options = [['all', t('allOperators')]].concat(ops)
       .map(([id, name]) => '<option value="' + id + '"' + (state.filters.operator === id ? ' selected' : '') + '>' + esc(name) + '</option>').join('');
-    let html =
+    const r = listBodyHtml();
+    $('panel').innerHTML =
+      '<div class="search">' + ICON.search +
+      '<input id="q" type="search" inputmode="search" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="' + esc(t('searchPh')) + '" value="' + esc(state.filters.query) + '">' +
+      '<button class="search-x" id="q-clear" aria-label="' + esc(t('searchClear')) + '"' + (state.filters.query ? '' : ' hidden') + '>' + ICON.close + '</button></div>' +
       '<div class="list-tools"><select id="sel-operator" aria-label="' + esc(t('operator')) + '">' + options + '</select>' +
-      '<span class="count">' + esc(t('count', { n: ranked.length })) + '</span></div>';
-    if (!ranked.length) {
-      html += '<p class="empty">' + esc(state.stations.length ? t('noResults') : state.status === 'loading' ? t('loading') : '') + '</p>';
+      '<span class="count" id="list-count">' + esc(t('count', { n: r.count })) + '</span></div>' +
+      '<div id="list-body">' + r.html + '</div>';
+  }
+
+  function renderFav() {
+    const refs = state.favs.map((f) => resolveRef(f)).filter(Boolean);
+    let html = '<h3 class="sect">' + esc(t('favTitle')) + '</h3>';
+    if (!refs.length) {
+      html += '<p class="empty">' + esc(t('favEmpty')) + '</p>';
     } else {
-      html += '<div class="rows">' + ranked.slice(0, 80).map(rowHtml).join('') + '</div>';
+      const neutral = Object.assign({}, state.filters, { connector: 'any', power: 'any', operator: 'all', freeNow: false, open247: false, cardPay: false, query: '' });
+      const ranked = UR.rank(refs, state.origin, 'near', neutral, rankCtx());
+      html += '<div class="rows">' + ranked.map(rowHtml).join('') + '</div>';
     }
     $('panel').innerHTML = html;
   }
@@ -657,6 +1062,66 @@
     );
   }
 
+  /* ---------- «Подробнее»: надёжность, прогноз, машина, сравнение ---------- */
+  function insightsHtml(st) {
+    const out = [];
+    const rel = UR.reliabilityOf(st, state.patterns);
+    if (rel) {
+      const key = rel.level === 'good' ? 'relGood' : rel.level === 'mid' ? 'relMid' : 'relBad';
+      out.push('<div class="insight rel-' + rel.level + '"><i></i><span><b>' + esc(t(key, { pct: rel.pct })) + '</b> <small>' + esc(t('relNote', { n: rel.n })) + '</small></span></div>');
+    }
+    const fc = UR.forecastFor(st, state.patterns, Date.now(), 60);
+    if (fc) out.push('<div class="insight"><i></i><span>' + esc(t('fcLine', { n: fc.pct })) + '</span></div>');
+    const pc = UR.priceChangeOf(st, state.patterns);
+    if (pc) {
+      const d = pc.date.split('-').reverse().slice(0, 2).join('.');
+      out.push('<div class="insight ' + (pc.delta > 0 ? 'px-up' : 'px-down') + '"><i></i><span>' + esc(t(pc.delta > 0 ? 'priceUp' : 'priceDown', { d: fmtEur(Math.abs(pc.delta)), date: d })) + '</span></div>');
+    }
+    return out.length ? '<div class="insights">' + out.join('') + '</div>' : '';
+  }
+
+  function carBlock(st, price) {
+    if (!state.car) return '';
+    const kw = UR.carPowerKw(state.car, st);
+    if (kw == null) return '<div class="est est-none"><div class="est-head">' + ICON.car + '<b>' + esc(t('estTitle')) + '</b></div><p>' + esc(t('estNone')) + '</p></div>';
+    const e = UR.chargeEstimate(state.car, kw, price, 20, 80);
+    return (
+      '<div class="est"><div class="est-head">' + ICON.car + '<b>' + esc(t('estTitle')) + '</b><span>' + esc(state.car.name) + '</span></div>' +
+      '<p><b>' + esc(t('estSpeed', { kw: Math.round(kw) })) + '</b></p>' +
+      (e ? '<p>' + esc(e.cost != null ? t('estLine', { from: 20, to: 80, min: e.minutes, cost: fmtEur(e.cost) }) : t('estLineNoCost', { from: 20, to: 80, min: e.minutes })) + '</p>' : '') +
+      '<small>' + esc(t('estNote')) + '</small></div>'
+    );
+  }
+
+  function compareBlock(price) {
+    const c = UR.costPer100(state.car, state.car ? state.tempC : null, {
+      stationPrice: price ? price.mid : null, homePrice: state.prefs.home, petrolPrice: petrolPrice(), petrolCons: state.prefs.petrolCons,
+    });
+    if (c.station == null && c.home == null) return '';
+    const cell = (label, v, cls) => '<div class="cmp-cell' + (cls ? ' ' + cls : '') + '"><span>' + esc(label) + '</span><b>' + fmtEur(v) + ' €</b></div>';
+    const cells = [];
+    if (c.station != null) cells.push(cell(t('cmpHere'), c.station, 'is-ev'));
+    if (c.home != null) cells.push(cell(t('cmpHome'), c.home, 'is-ev'));
+    cells.push(cell(t('cmpPetrol'), c.petrol, 'is-petrol'));
+    const ref = c.station != null ? c.station : c.home;
+    const diff = c.petrol - ref;
+    return (
+      '<div class="cmp"><div class="cmp-head"><b>' + esc(t('cmpTitle')) + '</b><small>' + esc(t('cmpPetrolNote', { l: String(state.prefs.petrolCons).replace('.', ','), price: fmtEur(petrolPrice()) })) + '</small></div>' +
+      '<div class="cmp-grid">' + cells.join('') + '</div>' +
+      '<p>' + esc(t(diff >= 0 ? 'cmpSave' : 'cmpMore', { eur: fmtEur(Math.abs(diff)) })) + '</p></div>'
+    );
+  }
+
+  function toolsHtml(st) {
+    const live = !!(st.live && UR.isLiveFresh(state.live));
+    const watched = isWatched(st);
+    return (
+      '<div class="tools">' + favButton(st, 'tool') +
+      '<button class="tool" data-share="' + esc(st.id) + '">' + ICON.share + '<span>' + esc(t('share')) + '</span></button>' +
+      '<button class="tool" data-watch="' + esc(st.id) + '" aria-pressed="' + watched + '"' + (live || watched ? '' : ' aria-disabled="true"') + '>' + ICON.bell + '<span>' + esc(t(watched ? 'unwatch' : 'watch')) + '</span></button></div>'
+    );
+  }
+
   function renderDetail() {
     const st = state.stations.find((s) => s.id === state.detailId);
     if (!st) { state.detailId = null; renderPanel(); return; }
@@ -679,8 +1144,12 @@
       '<button class="link-btn back" id="btn-back">' + esc(t('back')) + '</button>' +
       '<div class="detail"><div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">' +
       '<div><h2>' + esc(stationTitle(st)) + '</h2><div class="sub">' + esc(st.operatorName || t('otherNet')) + '</div></div>' + gauge(st, true) + '</div>' +
+      toolsHtml(st) +
       '<dl>' + rows.map(([k, v, raw]) => '<dt>' + esc(k) + '</dt><dd>' + (raw ? v : esc(v)) + '</dd>').join('') +
       '<dt>' + esc(t('dtBusy')) + '</dt><dd>' + busyHtml + '</dd></dl>' +
+      insightsHtml(st) +
+      carBlock(st, price) +
+      compareBlock(price) +
       (st.live ? livePoints(st) + (liveNote() ? '<p class="note">' + esc(liveNote()) + '</p>' : '') : '') +
       usualChart(st) +
       navLinks(st) +
@@ -688,33 +1157,212 @@
       (st.live ? '<p class="note">' + esc(t('liveSource')) + '</p>' : '') + '</div>';
   }
 
+  /* ---------- маршрут A→B ---------- */
+  state.routeForm = { from: '', to: '', soc: 90 };
+
+  async function geocode(q) {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 12000);
+    try {
+      const res = await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&accept-language=' + lang + '&q=' + encodeURIComponent(q), { signal: ctl.signal });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const j = await res.json();
+      if (!Array.isArray(j) || !j.length) return null;
+      return { lat: parseFloat(j[0].lat), lon: parseFloat(j[0].lon), label: String(j[0].display_name || q).split(',').slice(0, 2).join(',').trim() };
+    } finally { clearTimeout(timer); }
+  }
+
+  async function fetchRoute(a, b) {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 25000);
+    try {
+      const url = 'https://router.project-osrm.org/route/v1/driving/' + a.lon + ',' + a.lat + ';' + b.lon + ',' + b.lat + '?overview=full&geometries=geojson';
+      const res = await fetch(url, { signal: ctl.signal });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const j = await res.json();
+      const r = j && j.routes && j.routes[0];
+      if (!r || !r.geometry || !Array.isArray(r.geometry.coordinates)) throw new Error('no route');
+      return { km: r.distance / 1000, min: r.duration / 60, line: r.geometry.coordinates.map((c) => [c[1], c[0]]) };
+    } finally { clearTimeout(timer); }
+  }
+
+  async function findRoute() {
+    const f = state.routeForm;
+    if (!f.to.trim()) return;
+    state.route = { status: 'wait' };
+    renderPanel();
+    try {
+      let from;
+      if (!f.from.trim() || f.from.trim().toLowerCase() === t('routeFromMine').toLowerCase()) {
+        from = { lat: state.origin.lat, lon: state.origin.lon, label: t('routeFromMine') };
+      } else {
+        from = await geocode(f.from.trim());
+        if (!from) { state.route = { status: 'notfound', which: 'from' }; renderPanel(); return; }
+        await new Promise((r) => setTimeout(r, 1100)); // правила геокодера: не чаще запроса в секунду
+      }
+      const to = await geocode(f.to.trim());
+      if (!to) { state.route = { status: 'notfound', which: 'to' }; renderPanel(); return; }
+      const r = await fetchRoute(from, to);
+      // загружаем страны, через которые идёт маршрут
+      const need = Object.keys(COUNTRIES).filter((cc) => !state.osmBy[cc] && r.line.some((q, i) => i % 20 === 0 && countryAt(q[0], q[1]) === cc));
+      if (need.length) await Promise.all(need.map((cc) => loadCountry(cc, false)));
+      state.route = { status: 'ok', from, to, km: r.km, min: r.min, line: r.line, cache: null };
+      renderAll();
+      fitRoute();
+    } catch (e) {
+      state.route = { status: 'fail' };
+      renderPanel();
+    }
+  }
+
+  function fitRoute() {
+    const r = state.route;
+    if (!r || r.status !== 'ok' || !map || !map.fitBounds || !L.latLngBounds) return;
+    const top = ($('filters').getBoundingClientRect().bottom || 120) + 10;
+    const bottom = window.innerWidth < 760 ? window.innerHeight - $('sheet').getBoundingClientRect().top + 10 : 20;
+    const left = window.innerWidth < 760 ? 24 : $('sheet').getBoundingClientRect().right + 24;
+    try { map.fitBounds(L.latLngBounds(r.line), { paddingTopLeft: [left, top], paddingBottomRight: [24, bottom] }); } catch (e) { /* карта сама подстроится */ }
+  }
+
+  // Остановки и станции вдоль маршрута считаем один раз на набор данных и фильтров
+  function routeCalc() {
+    const r = state.route;
+    if (!r || r.status !== 'ok') return null;
+    const f = state.filters;
+    const sig = [state.stations.length, state.live && state.live.generated, f.connector, f.power, f.operator, f.open247, f.cardPay, f.query, state.car && [state.car.id, state.car.kwh, state.car.dc, state.car.cons, state.car.conn.join(), state.car.onlyCompatible].join(), state.tempC == null ? '' : Math.round(state.tempC), state.routeForm.soc].join('|');
+    if (r.cache && r.cache.sig === sig) return r.cache;
+    const pool = UR.applyFilters(state.stations, Object.assign({}, f, { freeNow: false }));
+    const along = UR.stationsAlong(pool, r.line, 3);
+    const plan = state.car ? UR.planStops(state.car, along, r.km, Math.max(15, Math.min(100, state.routeForm.soc)), state.tempC) : null;
+    r.cache = { sig, along, plan };
+    return r.cache;
+  }
+
+  const fmtDur = (min) => {
+    const h = Math.floor(min / 60);
+    const m = Math.round(min % 60);
+    return h ? h + (lang === 'ru' ? ' ч ' : ' h ') + (m ? m + (lang === 'ru' ? ' мин' : ' min') : '') : m + (lang === 'ru' ? ' мин' : ' min');
+  };
+  const fmtOff = (km) => (km < 1 ? t('routeOff', { n: Math.max(50, Math.round(km * 10) * 100 / 10 | 0) }) : t('routeOffKm', { n: fmtKm(km) }));
+
+  function routeRow(c, title, extra) {
+    const st = c.st;
+    return (
+      '<button class="row" data-detail="' + esc(st.id) + '">' + gauge(st, false) +
+      '<span class="main"><span class="title" style="display:block">' + esc(title || stationTitle(st)) + '</span>' +
+      '<span class="meta" style="display:block">' + esc((title ? stationTitle(st) + ' · ' : '') + stationSub(st)) + '</span>' +
+      (extra ? '<span class="meta" style="display:block">' + esc(extra) + '</span>' : '') +
+      (UR.liveSummary(st, state.filters) ? '<span class="live-line" style="display:block">' + livePill(UR.liveSummary(st, state.filters)) + '</span>' : '') + '</span>' +
+      '<span class="side">' + esc(t('routeKm', { n: Math.round(c.along) })) + '<small>' + esc(fmtOff(c.off)) + '</small></span></button>'
+    );
+  }
+
+  function renderRoute() {
+    const f = state.routeForm;
+    const r = state.route;
+    let html =
+      '<form class="route-form" id="route-form" autocomplete="off">' +
+      '<label><span>' + esc(t('routeFrom')) + '</span><input id="route-from" type="text" enterkeyhint="next" placeholder="' + esc(t('routeFromMine')) + '" value="' + esc(f.from) + '"></label>' +
+      '<label><span>' + esc(t('routeTo')) + '</span><input id="route-to" type="text" enterkeyhint="search" placeholder="' + esc(t('routeToPh')) + '" value="' + esc(f.to) + '"></label>' +
+      (state.car ? '<label class="soc"><span>' + esc(t('routeSoc')) + '</span><input id="route-soc" type="number" inputmode="numeric" min="15" max="100" value="' + esc(f.soc) + '"></label>' : '') +
+      '<button class="btn btn-primary" type="submit" id="route-go">' + esc(t('routeGo')) + '</button></form>';
+
+    if (!r) {
+      if (!state.car) html += '<p class="note">' + esc(t('routeNoCar')) + '</p>';
+    } else if (r.status === 'wait') {
+      html += '<p class="empty">' + esc(t('routeWait')) + '</p>';
+    } else if (r.status === 'fail') {
+      html += '<p class="empty">' + esc(t('routeFail')) + '</p>';
+    } else if (r.status === 'notfound') {
+      html += '<p class="empty">' + esc(t('routeNotFound')) + '</p>';
+    } else if (r.status === 'ok') {
+      const calc = routeCalc();
+      html += '<div class="route-sum"><span>' + esc(t('routeLen', { km: Math.round(r.km), h: fmtDur(r.min) })) + '</span><button class="link-btn" data-act="routeClear">' + esc(t('routeClear')) + '</button></div>';
+      if (!state.car) html += '<p class="note">' + esc(t('routeNoCar')) + '</p>';
+      if (calc.plan) {
+        const plan = calc.plan;
+        if (plan.ok && !plan.stops.length) {
+          html += '<div class="route-ok">' + esc(t('routeNoNeed', { km: UR.rangeKm(state.car, Math.max(15, Math.min(100, f.soc)), state.tempC) })) + '</div>';
+        }
+        if (plan.stops.length) {
+          html += '<h3 class="sect">' + esc(t('routeStops')) + '</h3><div class="rows">' +
+            plan.stops.map((s, i) => {
+              const kw = UR.carPowerKw(state.car, s.st);
+              const e = UR.chargeEstimate(state.car, kw, UR.priceOf(s.st, state.filters), s.arriveSoc, 80);
+              const extra = t('routeArrive', { n: s.arriveSoc }) + (e ? ' · ' + s.arriveSoc + '→80%: ≈ ' + e.minutes + (lang === 'ru' ? ' мин' : ' min') : '');
+              return routeRow(s, t('routeStop', { n: i + 1 }), extra);
+            }).join('') + '</div>';
+        }
+        if (!plan.ok) html += '<div class="route-warn">' + esc(t(plan.reason === 'noStart' ? 'routeNoStart' : plan.reason === 'tooMany' ? 'routeTooMany' : 'routeNoNext')) + '</div>';
+      }
+      if (!calc.along.length) {
+        html += '<p class="empty">' + esc(t('routeNoStations')) + '</p>';
+      } else {
+        html += '<h3 class="sect">' + esc(t('routeAlong')) + '</h3><div class="rows">' + calc.along.slice(0, 60).map((c) => routeRow(c)).join('') + '</div>';
+      }
+    }
+    $('panel').innerHTML = html;
+  }
+
+  // Линия маршрута и остановки на карте (свой слой, отдельный от станций)
+  function drawRoute() {
+    if (!map || !routeLayer) return;
+    routeLayer.clearLayers();
+    const r = state.route;
+    if (!r || r.status !== 'ok' || !L.polyline) return;
+    L.polyline(r.line, { color: cssVar('--accent'), weight: 5, opacity: 0.85, interactive: false, lineJoin: 'round' }).addTo(routeLayer);
+    const calc = routeCalc();
+    const pin = (ll, text, cls) => {
+      if (!L.marker || !L.divIcon) return;
+      L.marker(ll, { icon: L.divIcon({ className: 'pin ' + cls, html: '<span>' + esc(text) + '</span>', iconSize: [28, 28], iconAnchor: [14, 14] }), interactive: false, keyboard: false }).addTo(routeLayer);
+    };
+    pin(r.line[0], 'A', 'pin-end');
+    pin(r.line[r.line.length - 1], 'B', 'pin-end');
+    if (calc && calc.plan) calc.plan.stops.forEach((s, i) => pin([s.st.lat, s.st.lon], String(i + 1), 'pin-stop'));
+  }
+
   function renderPanel() {
     if (state.detailId) return renderDetail();
     if (state.tab === 'go') return renderGo();
     if (state.tab === 'list') return renderList();
+    if (state.tab === 'route') return renderRoute();
+    if (state.tab === 'fav') return renderFav();
     return renderPrices();
   }
 
   function renderTabs() {
-    const tabs = [['go', 'tabGo'], ['list', 'tabList'], ['prices', 'tabPrices']];
+    const tabs = [['go', 'tabGo'], ['list', 'tabList'], ['route', 'tabRoute'], ['fav', 'tabFav'], ['prices', 'tabPrices']];
     $('tabs').innerHTML = tabs
-      .map(([id, key]) => '<button class="tab" role="tab" data-tab="' + id + '" aria-selected="' + (state.tab === id && !state.detailId) + '">' + esc(t(key)) + '</button>')
+      .map(([id, key]) => '<button class="tab" role="tab" data-tab="' + id + '" aria-selected="' + (state.tab === id && !state.detailId) + '">' +
+        (id === 'fav' ? '<span class="tab-star">★</span>' : '') + esc(t(key)) + (id === 'fav' && state.favs.length ? '<em>' + state.favs.length + '</em>' : '') + '</button>')
       .join('');
   }
 
   function renderFilters() {
+    const liveOk = !!(state.live && UR.isLiveFresh(state.live));
+    if (state.filters.freeNow && !liveOk) state.filters.freeNow = false;
     const conn = [['any', t('connAny')], ['ccs', 'CCS'], ['type2', 'Type 2'], ['chademo', 'CHAdeMO']];
     const pwr = [['fast', t('pwrFast')], ['ultra', t('pwrUltra')]]; // повторное нажатие снимает фильтр
+    const extra = [];
+    if (liveOk) extra.push(['freeNow', t('fFree')]);
+    extra.push(['open247', t('fOpen')], ['cardPay', t('fCard')]);
     $('filters').innerHTML =
+      (state.car ? '<button class="chip chip-car" data-act="carOnly" aria-pressed="' + state.car.onlyCompatible + '">' + ICON.car + esc(t('fCar')) + '</button><span class="chip-gap"></span>' : '') +
       conn.map(([id, label]) => '<button class="chip" data-conn="' + id + '" aria-pressed="' + (state.filters.connector === id) + '">' + esc(label) + '</button>').join('') +
       '<span class="chip-gap"></span>' +
-      pwr.map(([id, label]) => '<button class="chip" data-pwr="' + id + '" aria-pressed="' + (state.filters.power === id) + '">' + esc(label) + '</button>').join('');
+      pwr.map(([id, label]) => '<button class="chip" data-pwr="' + id + '" aria-pressed="' + (state.filters.power === id) + '">' + esc(label) + '</button>').join('') +
+      '<span class="chip-gap"></span>' +
+      extra.map(([id, label]) => '<button class="chip" data-flt="' + id + '" aria-pressed="' + !!state.filters[id] + '">' + esc(label) + '</button>').join('');
   }
 
   function renderTop() {
     $('btn-lang').textContent = lang === 'ru' ? 'RU' : 'EN';
     $('btn-theme').textContent = state.theme === 'dark' ? '☾' : '☀';
     $('btn-install').textContent = t('install');
+    $('btn-install').title = t('install');
+    $('btn-car').title = t('carBtn');
+    $('btn-car').setAttribute('aria-label', t('carBtn'));
+    $('btn-car').classList.toggle('on', !!state.car);
     $('btn-install').hidden = isStandalone();
     $('btn-gps').setAttribute('aria-label', t('myPlace'));
     $('btn-gps').title = t('myPlace');
@@ -751,14 +1399,33 @@
     renderTabs();
     renderStatus();
     renderMarkers(filtered());
+    drawRoute();
     renderPanel();
   }
 
   /* ---------- действия ---------- */
   let quietRender = false; // фоновое обновление не должно уводить карту от того, что смотрит человек
+  // Видимая часть карты: на телефоне её нижнюю часть закрывает панель, на компьютере левый край.
+  // Чтобы станция и «вы» оказывались на виду, центр карты сдвигаем в середину видимой части.
+  function viewCenter(latlng, zoom) {
+    if (!map || !map.project || !map.unproject || !map.getSize) return latlng;
+    const size = map.getSize();
+    const sh = $('sheet').getBoundingClientRect();
+    const top = $('filters').getBoundingClientRect().bottom + 8;
+    let left = 0;
+    let bottom = size.y;
+    if (sh.width < size.x * 0.9) left = sh.right + 8;
+    else bottom = Math.max(sh.top - 8, top + 140);
+    const dx = (left + size.x) / 2 - size.x / 2;
+    const dy = (top + bottom) / 2 - size.y / 2;
+    const ll = L.latLng(latlng);
+    return map.unproject(map.project(ll, zoom).subtract([dx, dy]), zoom);
+  }
+
   function focusStation(st) {
     if (!map || quietRender) return;
-    map.flyTo([st.lat, st.lon], Math.max(map.getZoom(), 14), { duration: 0.6 });
+    const z = Math.max(map.getZoom(), 14);
+    map.flyTo(viewCenter([st.lat, st.lon], z), z, { duration: 0.6 });
   }
 
   function openDetail(id, fly) {
@@ -797,8 +1464,12 @@
       lastFixAt = Date.now();
       setGpsBusy(false);
       state.origin = { lat: pos.coords.latitude, lon: pos.coords.longitude, real: true, accuracy: pos.coords.accuracy };
+      loadWeather();
       // карта остаётся на человеке: перерисовка не должна увести её к «лучшей» станции
-      if (map) map.setView([state.origin.lat, state.origin.lon], firstFix || o.zoom ? Math.max(o.zoom || 15, 14) : Math.max(map.getZoom(), 14));
+      if (map) {
+        const z = firstFix || o.zoom ? Math.max(o.zoom || 15, 14) : Math.max(map.getZoom(), 14);
+        map.setView(viewCenter([state.origin.lat, state.origin.lon], z), z);
+      }
       firstFix = false;
       quietRender = true;
       try { renderAll(); } finally { quietRender = false; }
@@ -851,11 +1522,48 @@
   }
 
   /* ---------- события ---------- */
+  // Панель можно тянуть вверх и вниз за ручку; обычное нажатие работает как раньше
+  let dragSuppressClick = false;
+  (function sheetDrag() {
+    const g = $('grab');
+    let y0 = null;
+    g.addEventListener('pointerdown', (e) => {
+      y0 = e.clientY;
+      try { g.setPointerCapture(e.pointerId); } catch (err) { /* не критично */ }
+    });
+    g.addEventListener('pointerup', (e) => {
+      if (y0 === null) return;
+      const dy = e.clientY - y0;
+      y0 = null;
+      if (Math.abs(dy) > 24) {
+        setSheetOpen(dy < 0);
+        dragSuppressClick = true;
+        setTimeout(() => { dragSuppressClick = false; }, 60);
+      }
+    });
+    g.addEventListener('pointercancel', () => { y0 = null; });
+  })();
+
   document.addEventListener('click', (e) => {
     const el = e.target.closest('button');
     if (!el) return;
     const d = el.dataset;
     if (d.conn) { state.filters.connector = d.conn; state.detailId = null; renderAll(); }
+    else if (d.flt) { state.filters[d.flt] = !state.filters[d.flt]; state.detailId = null; renderAll(); }
+    else if (d.fav) {
+      const st = stationById(d.fav);
+      if (st) { toggleFav(st); renderTabs(); renderPanel(); }
+    }
+    else if (d.share) { const st = stationById(d.share); if (st) shareStation(st); }
+    else if (d.watch) {
+      const st = stationById(d.watch);
+      if (st) toggleWatch(st).then(() => renderPanel());
+    }
+    else if (d.act === 'car') openCarDialog();
+    else if (d.act === 'carOnly' && state.car) { state.car.onlyCompatible = !state.car.onlyCompatible; saveProfile(); state.detailId = null; renderAll(); }
+    else if (d.act === 'routeClear') { state.route = null; renderAll(); }
+    else if (el.id === 'btn-car') openCarDialog();
+    else if (el.id === 'q-clear') { state.filters.query = ''; renderAll(); const q = $('q'); if (q) q.focus(); }
     else if (d.pwr) { state.filters.power = state.filters.power === d.pwr ? 'any' : d.pwr; state.detailId = null; renderAll(); }
     else if (d.tab) { state.tab = d.tab; state.detailId = null; renderTabs(); renderMarkers(filtered()); renderPanel(); $('panel').scrollTop = 0; }
     else if (d.prio) { state.priority = d.prio; renderPanel(); }
@@ -864,7 +1572,7 @@
     else if (el.id === 'btn-locate') locate({ zoom: 15 });
     else if (el.id === 'btn-gps') locate({ zoom: 16 });
     else if (el.id === 'btn-retry') { setStatus('loading'); loadStations(true); loadLive(true); }
-    else if (el.id === 'grab') setSheetOpen($('sheet').dataset.open !== 'true');
+    else if (el.id === 'grab') { if (!dragSuppressClick) setSheetOpen($('sheet').dataset.open !== 'true'); }
     else if (el.id === 'btn-lang') { lang = lang === 'ru' ? 'en' : 'ru'; store.set('ur_lang', lang); renderAll(); }
     else if (el.id === 'btn-theme') {
       state.theme = state.theme === 'dark' ? 'light' : 'dark';
@@ -875,9 +1583,109 @@
     }
   });
 
+  // поиск по названию, адресу и сети: перерисовываем только список, поле остаётся в фокусе
+  let searchTimer;
+  document.addEventListener('input', (e) => {
+    const id = e.target.id;
+    if (id === 'q') {
+      state.filters.query = e.target.value;
+      const x = $('q-clear');
+      if (x) x.hidden = !e.target.value;
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => { renderMarkers(filtered()); renderListBody(); }, 160);
+    } else if (id === 'route-from') state.routeForm.from = e.target.value;
+    else if (id === 'route-to') state.routeForm.to = e.target.value;
+    else if (id === 'route-soc') state.routeForm.soc = parseFloat(e.target.value) || 90;
+  });
+  document.addEventListener('submit', (e) => {
+    if (e.target.id === 'route-form') { e.preventDefault(); findRoute(); }
+  });
+
   document.addEventListener('change', (e) => {
     if (e.target.id === 'sel-operator') { state.filters.operator = e.target.value; renderAll(); }
   });
+
+  /* ---------- окно «Моя машина» ---------- */
+  function openCarDialog() {
+    const c = state.car || Object.assign({}, UR.CARS[0], { onlyCompatible: true });
+    const pr = state.prefs;
+    const field = (id, label, val, hint, step) =>
+      '<label class="fld"><span>' + esc(label) + '</span><input id="' + id + '" type="text" inputmode="decimal" value="' + esc(val == null ? '' : String(val).replace('.', ',')) + '"' + (hint ? ' placeholder="' + esc(hint) + '"' : '') + '></label>';
+    const conns = [['ccs', 'CCS'], ['type2', 'Type 2'], ['chademo', 'CHAdeMO']];
+    $('car-body').innerHTML =
+      '<label class="fld"><span>' + esc(t('carModel')) + '</span><select id="car-model">' +
+      UR.CARS.map((m) => '<option value="' + m.id + '"' + (m.id === c.id ? ' selected' : '') + '>' + esc(m.name) + '</option>').join('') + '</select></label>' +
+      '<div class="fld-grid">' + field('car-kwh', t('carKwh'), c.kwh) + field('car-cons', t('carCons'), c.cons) + field('car-dc', t('carDc'), c.dc) + field('car-ac', t('carAc'), c.ac) + '</div>' +
+      '<div class="fld"><span>' + esc(t('carConn')) + '</span><div class="checks">' +
+      conns.map(([id, label]) => '<label class="check"><input type="checkbox" data-conn-box="' + id + '"' + (c.conn.includes(id) ? ' checked' : '') + '><span>' + label + '</span></label>').join('') + '</div></div>' +
+      '<label class="check wide"><input type="checkbox" id="car-only"' + (c.onlyCompatible ? ' checked' : '') + '><span>' + esc(t('carOnly')) + '</span></label>' +
+      '<div class="fld-grid">' + field('car-petrol', t('carPetrol'), pr.petrol, t('carPetrolHint') + ' (' + fmtEur(state.petrol || 1.85) + ')') + field('car-pcons', t('carPetrolCons'), pr.petrolCons) + field('car-home', t('carHome'), pr.home, t('carHomeHint')) + '</div>';
+    $('car-title').textContent = t('carTitle');
+    $('car-lead').textContent = t('carLead');
+    $('car-save').textContent = t('carSave');
+    $('car-clear').textContent = t('carClear');
+    $('car-clear').hidden = !state.car;
+    $('car-close').setAttribute('aria-label', t('carClose'));
+    $('car-dialog').hidden = false;
+    $('car-model').focus();
+  }
+  function closeCarDialog() { $('car-dialog').hidden = true; }
+  function readCarForm() {
+    const val = (id) => $(id).value.trim();
+    const conn = Array.from(document.querySelectorAll('[data-conn-box]')).filter((b) => b.checked).map((b) => b.dataset.connBox);
+    const car = UR.normalizeCar({ id: val('car-model'), kwh: val('car-kwh'), cons: val('car-cons'), dc: val('car-dc'), ac: val('car-ac'), conn, onlyCompatible: $('car-only').checked });
+    const num = (id, lo, hi) => { const n = parseFloat(val(id).replace(',', '.')); return isFinite(n) && n >= lo && n <= hi ? n : null; };
+    return { car, prefs: { petrol: num('car-petrol', 0.5, 5), petrolCons: num('car-pcons', 2, 25) || 7, home: num('car-home', 0.01, 2) } };
+  }
+  function saveCarDialog() {
+    const r = readCarForm();
+    state.car = r.car;
+    state.prefs = r.prefs;
+    saveProfile();
+    closeCarDialog();
+    loadWeather();
+    state.detailId = null;
+    renderAll();
+  }
+  $('car-save').addEventListener('click', saveCarDialog);
+  $('car-close').addEventListener('click', closeCarDialog);
+  $('car-clear').addEventListener('click', () => {
+    state.car = null;
+    state.tempC = null;
+    saveProfile();
+    closeCarDialog();
+    renderAll();
+  });
+  $('car-dialog').addEventListener('click', (e) => { if (e.target === $('car-dialog')) closeCarDialog(); });
+  // выбор модели подставляет её данные в поля; правки руками сохраняются до следующей смены модели
+  $('car-dialog').addEventListener('change', (e) => {
+    if (e.target.id !== 'car-model') return;
+    const m = UR.CARS.find((x) => x.id === e.target.value);
+    if (!m) return;
+    const set = (id, v) => { $(id).value = String(v).replace('.', ','); };
+    set('car-kwh', m.kwh); set('car-cons', m.cons); set('car-dc', m.dc); set('car-ac', m.ac);
+    document.querySelectorAll('[data-conn-box]').forEach((b) => { b.checked = m.conn.includes(b.dataset.connBox); });
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('car-dialog').hidden) closeCarDialog(); });
+
+  /* ярлыки на рабочем столе и ссылки: ?tab=fav, ?go=free */
+  function applyShortcut() {
+    const p = state.pending;
+    if (!p) return;
+    if (p.tab && ['go', 'list', 'route', 'fav', 'prices'].includes(p.tab)) {
+      state.tab = p.tab;
+      p.tab = null;
+      renderTabs();
+      renderPanel();
+    }
+    if (p.go === 'free' && state.live && UR.isLiveFresh(state.live)) {
+      p.go = null;
+      state.tab = 'go';
+      state.filters.freeNow = true;
+      state.priority = 'near';
+      renderAll();
+    }
+  }
 
   /* установка как приложения */
   // Chrome на Android даёт системное окно установки (beforeinstallprompt). В Safari на iPhone такого нет,
@@ -886,6 +1694,7 @@
   const UA = navigator.userAgent || '';
   const isIos = /iPad|iPhone|iPod/.test(UA) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const isAndroid = /Android/i.test(UA);
+  const isApple = isIos || /Macintosh/.test(UA);
   function isStandalone() {
     try {
       return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
@@ -923,11 +1732,17 @@
 
   /* ---------- запуск ---------- */
   document.documentElement.dataset.theme = state.theme;
+  loadProfile();
+  state.favs = readJson('ur_favs_v1', []).filter((f) => f && f.k && isFinite(f.lat) && isFinite(f.lon));
+  state.watch = readJson('ur_watch_v1', []).filter((w) => w && w.k && isFinite(w.lat) && isFinite(w.lon));
   initMap();
+  applyShortcut();
   renderAll();
   loadStations(false);
   loadLive(false);
   loadPatterns();
+  loadFuel();
+  loadWeather();
 
   locateOnOpen();
 

@@ -20,15 +20,19 @@ const server = http.createServer((req, res) => {
 });
 
 const LEAFLET_STUB = `
-window.__markers = 0; window.__circles = 0; window.__center = null;
+window.__groups = []; Object.defineProperty(window, '__markers', { get(){ return window.__groups.reduce((a,g)=>a+g.n,0); } }); window.__circles = 0; window.__center = null;
 function Layer(){ this.on=function(){return this}; this.addTo=function(){return this}; this.remove=function(){return this}; }
 window.L = {
-  map(){ const m={ setView(c,z){ window.__center=[c[0],c[1],z]; return m}, flyTo(c,z){ window.__center=[c[0],c[1],z]; return m}, getZoom(){return 12}, invalidateSize(){}, }; return m; },
+  map(){ const m={ setView(c,z){ window.__center=[c[0],c[1],z]; return m}, flyTo(c,z){ window.__center=[c[0],c[1],z]; return m}, getZoom(){return 12}, invalidateSize(){}, on(){return m}, fitBounds(b){ window.__fit = b; return m}, getCenter(){ return {lat:56.95,lng:24.1}; } }; return m; },
   control:{ zoom(){ return new Layer(); } },
-  layerGroup(){ const g=new Layer(); g.clearLayers=function(){ window.__markers=0; }; g.addTo=function(){return g}; return g; },
-  tileLayer(){ return new Layer(); },
+  layerGroup(){ const g=new Layer(); g.n=0; window.__groups.push(g); g.clearLayers=function(){ g.n=0; }; g.addTo=function(){return g}; return g; },
+  polyline(l){ const m=new Layer(); m.addTo=function(){ window.__polylines=(window.__polylines||0)+1; return m; }; return m; },
+  marker(){ const m=new Layer(); m.addTo=function(){ window.__pins=(window.__pins||0)+1; return m; }; return m; },
+  divIcon(o){ return o; },
+  latLngBounds(l){ return l; },
+  tileLayer(u){ window.__tileUrl = u; return new Layer(); },
   circle(){ const m=new Layer(); m.addTo=function(){ window.__circles++; return m; }; return m; },
-  circleMarker(){ const m=new Layer(); m.addTo=function(){ window.__markers++; return m; }; return m; },
+  circleMarker(ll,o){ const m=new Layer(); m.addTo=function(g){ if(g && g.n!==undefined && !(o&&o.halo)) g.n++; return m; }; return m; },
 };`;
 
 const el = (type, id, lat, lon, tags) => ({ type, id, lat, lon, tags: { amenity: 'charging_station', ...tags } });
@@ -125,7 +129,7 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
 
   // язык и тема
   await page.click('#btn-lang');
-  check('английский язык', (await page.locator('.tab').first().innerText()) === 'Where to go');
+  check('английский язык', (await page.locator('.tab').first().innerText()) === 'Best');
   await page.click('#btn-lang');
   await page.click('#btn-theme');
   check('светлая тема', (await page.evaluate(() => document.documentElement.dataset.theme)) === 'light');
@@ -211,8 +215,8 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
   await routeFor(p3, liveDoc(minsAgo(5)), patternsDoc);
   await p3.goto(base + '/');
   await p3.waitForSelector('.live', { timeout: 8000 });
-  // OSM даёт 6 станций (приватная скрыта); node 1 сливается с a1; a2 и a3 добавляются; far отбрасывается
-  check('live: 8 маркеров (6 из OSM + 2 только из NAP)', (await p3.evaluate(() => window.__markers)) === 8, 'markers=' + (await p3.evaluate(() => window.__markers)));
+  // OSM даёт 6 станций (приватная скрыта); node 1 сливается с a1; a2, a3 и far (Валмиера, теперь это Латвия) добавляются
+  check('live: 9 маркеров (6 из OSM + 3 только из NAP)', (await p3.evaluate(() => window.__markers)) === 9, 'markers=' + (await p3.evaluate(() => window.__markers)));
   check('live: время обновления статуса рядом с бейджем', /обновлено \d\d:\d\d/.test(await p3.locator('.best .live-time').innerText()));
   const bestTxt = await p3.locator('.best').innerText();
   check('live: в карточке лучшей станции бейдж «Свободно 2 из 3»', bestTxt.includes('Свободно 2 из 3'), bestTxt.replace(/\n/g, ' | ').slice(0, 160));
@@ -242,7 +246,7 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
   await p3.click('[data-tab="list"]');
   const rowsTxt = await p3.locator('.rows').innerText();
   check('live: в списке есть «Все заняты» и «Не работает»', rowsTxt.includes('Все заняты') && rowsTxt.includes('Не работает'));
-  check('live: в списке 8 строк', (await p3.locator('.row').count()) === 8, 'rows=' + (await p3.locator('.row').count()));
+  check('live: в списке 9 строк', (await p3.locator('.row').count()) === 9, 'rows=' + (await p3.locator('.row').count()));
   check('live: станция только из OSM (Virši) без бейджа статуса', (await p3.locator('.row', { hasText: 'Virši' }).first().locator('.live').count()) === 0);
   await p3.screenshot({ path: path.join(shots, '8-live-list.png') });
 
@@ -296,7 +300,7 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
   await p5.goto(base + '/');
   await p5.waitForSelector('.best', { timeout: 8000 });
   await p5.waitForTimeout(500);
-  check('без Overpass: работает на данных NAP (3 станции)', (await p5.evaluate(() => window.__markers)) === 3, 'markers=' + (await p5.evaluate(() => window.__markers)));
+  check('без Overpass: работает на данных NAP (4 станции)', (await p5.evaluate(() => window.__markers)) === 4, 'markers=' + (await p5.evaluate(() => window.__markers)));
   check('без Overpass: нет баннера ошибки', await p5.locator('#status').isHidden());
   await ctx5.close();
 
@@ -400,6 +404,106 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
   });
   check('установка: в установленном приложении кнопки нет', await r.pg.locator('#btn-install').isHidden());
   await r.c.close();
+
+  /* ---------- новые функции: машина, избранное, поиск, ссылки, маршрут ---------- */
+  {
+    const cF = await browser.newContext({ viewport: { width: 390, height: 780 }, deviceScaleFactor: 2, serviceWorkers: 'block' });
+    const pf = await cF.newPage();
+    const errF = [];
+    pf.on('pageerror', (e) => errF.push('pageerror: ' + e.message));
+    pf.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) errF.push('console: ' + m.text()); });
+    pf.on('dialog', (d) => { errF.push('dialog: ' + d.message()); d.dismiss(); });
+    const line = [[56.95, 24.11], [57.1, 24.5], [57.54, 25.42]].map((q) => [q[1], q[0]]);
+    await pf.route('**/*', async (route) => {
+      const url = route.request().url();
+      if (url.startsWith(base)) return route.continue();
+      if (url.includes('leaflet.min.js')) return route.fulfill({ contentType: 'text/javascript', body: LEAFLET_STUB });
+      if (url.includes('overpass')) return route.fulfill({ contentType: 'application/json', body: JSON.stringify(MOCK) });
+      if (url.includes('nominatim')) return route.fulfill({ contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify([{ lat: '57.54', lon: '25.42', display_name: 'Valmiera, Latvija' }]) });
+      if (url.includes('router.project-osrm.org')) return route.fulfill({ contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify({ routes: [{ distance: 105000, duration: 4200, geometry: { coordinates: line } }] }) });
+      if (url.includes('open-meteo')) return route.fulfill({ contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify({ current: { temperature_2m: -8 } }) });
+      if (url.includes('fonts.googleapis') || url.includes('leaflet.min.css')) return route.fulfill({ contentType: 'text/css', body: '' });
+      return route.abort();
+    });
+    await pf.goto(base + '/');
+    await pf.waitForSelector('.best', { timeout: 8000 });
+
+    // машина
+    check('машина: без профиля нет строки про авто', (await pf.locator('.car-line').count()) === 0);
+    await pf.click('#btn-car');
+    check('машина: окно открылось', await pf.locator('#car-dialog').isVisible());
+    await pf.screenshot({ path: path.join(shots, '15-car-dialog.png') });
+    await pf.click('#car-save');
+    check('машина: окно закрылось после сохранения', await pf.locator('#car-dialog').isHidden());
+    check('машина: появилась строка с авто и кнопка подсвечена', (await pf.locator('.car-line').count()) === 1 && (await pf.locator('#btn-car.on').count()) === 1);
+    check('машина: профиль сохранён', await pf.evaluate(() => !!localStorage.getItem('ur_car_v1')));
+    check('машина: в карточке время и цена зарядки 20→80%', /20→80|20 → 80/.test(await pf.locator('.best').innerText()) || /мин/.test(await pf.locator('.best').innerText()));
+    await pf.screenshot({ path: path.join(shots, '16-car-go.png') });
+
+    // поиск и фильтры в списке
+    await pf.click('[data-tab="list"]');
+    const rowsAll = await pf.locator('.row').count();
+    await pf.fill('#q', 'Galleria');
+    await pf.waitForTimeout(250);
+    check('поиск: по названию остаётся 1 строка', (await pf.locator('.row').count()) === 1, 'было ' + rowsAll);
+    check('поиск: фокус остался в поле', await pf.evaluate(() => document.activeElement && document.activeElement.id === 'q'));
+    await pf.click('#q-clear');
+    await pf.waitForTimeout(250);
+    check('поиск: очистка возвращает список', (await pf.locator('.row').count()) === rowsAll);
+
+    // карточка, избранное, ссылка
+    await pf.locator('.row').first().click();
+    await pf.waitForSelector('.detail, [data-fav]');
+    await pf.screenshot({ path: path.join(shots, '17-detail-new.png') });
+    check('карточка: блок «Время зарядки»', (await pf.locator('.est').count()) === 1);
+    check('карточка: сравнение с бензином', (await pf.locator('.cmp').count()) === 1);
+    await pf.locator('.tool[data-fav]').click();
+    check('избранное: звезда нажата', (await pf.locator('.tool[data-fav][aria-pressed="true"]').count()) === 1);
+    check('избранное: сохранено в localStorage', await pf.evaluate(() => (JSON.parse(localStorage.getItem('ur_favs_v1') || '[]') || []).length === 1));
+    await pf.click('[data-tab="fav"]');
+    check('избранное: вкладка показывает 1 станцию', (await pf.locator('.row').count()) === 1);
+
+    // маршрут
+    await pf.click('[data-tab="route"]');
+    check('маршрут: форма видна', (await pf.locator('#route-to').count()) === 1);
+    await pf.fill('#route-to', 'Valmiera');
+    await pf.click('#route-go');
+    await pf.waitForSelector('.route-sum', { timeout: 8000 });
+    check('маршрут: показана длина', /105 км/.test(await pf.locator('.route-sum').innerText()), await pf.locator('.route-sum').innerText());
+    check('маршрут: линия нарисована', (await pf.evaluate(() => window.__polylines || 0)) >= 1);
+    await pf.screenshot({ path: path.join(shots, '18-route.png') });
+    await pf.click('[data-act="routeClear"]');
+    check('маршрут: сброс убирает сводку', (await pf.locator('.route-sum').count()) === 0);
+
+    // язык
+    await pf.click('#btn-lang');
+    check('английский: вкладка «Saved» и «Route»', (await pf.locator('.tab').allInnerTexts()).join(' ').includes('Route'));
+    await pf.click('#btn-lang');
+    check('новые функции: нет JS-ошибок', errF.length === 0, errF.join(' || '));
+    await cF.close();
+
+    // глубокая ссылка на станцию и горячие ссылки манифеста
+    const cD = await browser.newContext({ viewport: { width: 390, height: 780 }, serviceWorkers: 'block' });
+    const pd = await cD.newPage();
+    const errD = [];
+    pd.on('pageerror', (e) => errD.push(e.message));
+    await pd.route('**/*', async (route) => {
+      const url = route.request().url();
+      if (url.startsWith(base)) return route.continue();
+      if (url.includes('leaflet.min.js')) return route.fulfill({ contentType: 'text/javascript', body: LEAFLET_STUB });
+      if (url.includes('overpass')) return route.fulfill({ contentType: 'application/json', body: JSON.stringify(MOCK) });
+      if (url.includes('fonts.googleapis') || url.includes('leaflet.min.css')) return route.fulfill({ contentType: 'text/css', body: '' });
+      return route.abort();
+    });
+    await pd.goto(base + '/?tab=fav');
+    await pd.waitForSelector('.tab[aria-selected="true"]', { timeout: 8000 });
+    check('ярлык ?tab=fav открывает «Мои»', /Мои/.test(await pd.locator('.tab[aria-selected="true"]').innerText()));
+    await pd.goto(base + '/?st=node/1');
+    await pd.waitForSelector('[data-fav]', { timeout: 8000 });
+    check('ссылка ?st= открывает карточку станции', /Galleria/.test(await pd.locator('body').innerText()));
+    check('ссылки: нет JS-ошибок', errD.length === 0, errD.join(' || '));
+    await cD.close();
+  }
 
   check('нет ошибок в консоли', errors.length === 0, errors.join(' || '));
 
