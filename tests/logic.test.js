@@ -154,4 +154,137 @@ test('haversine: Рига центр -> аэропорт примерно 8–10
   assert.ok(d > 7 && d < 11, 'd=' + d);
 });
 
+/* ---------- живые данные национальной точки доступа ---------- */
+const NOW = Date.parse('2026-10-27T10:00:00Z');
+const BBOX = [56.85, 23.93, 57.07, 24.35];
+const pt = (t, kw, s, p) => ({ e: 'LV*X*' + Math.random(), t, m: kw > 43 ? 'dc' : 'ac', kw, s, p });
+const site = (id, lat, lon, op, pts, extra) =>
+  Object.assign({ id, n: 'CODE_1-2', op, lat, lon, a: 'Brīvības iela 1', c: 'Rīga', h: '24/7', u: '2026-10-27T09:30:00+00:00', pts }, extra || {});
+const liveOf = (sites, statusTime) => ({ v: 1, statusTime: statusTime || '2026-10-27T09:50:00+00:00', sites });
+
+test('isLiveFresh: до 90 минут свежие, старше нет', () => {
+  assert.equal(UR.isLiveFresh(liveOf([], '2026-10-27T09:50:00+00:00'), NOW), true);
+  assert.equal(UR.isLiveFresh(liveOf([], '2026-10-27T08:00:00+00:00'), NOW), false);
+  assert.equal(UR.isLiveFresh({ sites: [] }, NOW), false);
+});
+
+test('prettyName: внутренние коды скрываем, нормальные названия оставляем', () => {
+  assert.equal(UR.prettyName('PLVRIXPB12_EDLV-52'), '');
+  assert.equal(UR.prettyName('Elektrum, DC 50kW'), 'Elektrum, DC 50kW');
+  assert.equal(UR.prettyName('CODE_with space'), '');
+  assert.equal(UR.prettyName(null), '');
+});
+
+test('mergeLive: NAP-станция без соседей по OSM добавляется как новая', () => {
+  const live = liveOf([site('a1', 56.95, 24.11, 'Elektrum Drive', [pt('ccs', 150, 'free', 0.44), pt('type2', 22, 'busy', 0.4)])]);
+  const out = UR.mergeLive([], live, { bbox: BBOX, now: NOW });
+  assert.equal(out.length, 1);
+  const st = out[0];
+  assert.equal(st.id, 'nap:a1');
+  assert.equal(st.operatorId, 'elektrum');
+  assert.equal(st.cls, 'hpc');
+  assert.deepEqual(st.sockets, { ccs: 1, type2: 1 });
+  assert.equal(st.points, 2);
+  assert.equal(st.name, ''); // код "CODE_1-2" не показываем
+  assert.equal(st.address, 'Brīvības iela 1');
+  assert.equal(st.osmType, null);
+});
+
+test('mergeLive: станция OSM рядом поглощается, название и OSM-id сохраняются, данные берутся из NAP', () => {
+  const osm = [
+    UR.toStation({ type: 'node', id: 7, lat: 56.95, lon: 24.11, tags: { amenity: 'charging_station', name: 'Galleria Riga', operator: 'Elektrum Drive', 'socket:type2': '1' } }),
+    // второй узел OSM на той же площадке (50 м) тоже поглощается, а не дублируется
+    UR.toStation({ type: 'node', id: 8, lat: 56.95035, lon: 24.11, tags: { amenity: 'charging_station', operator: 'Elektrum Drive', 'socket:type2': '1' } }),
+    // далёкая станция остаётся
+    UR.toStation({ type: 'node', id: 9, lat: 56.96, lon: 24.12, tags: { amenity: 'charging_station', operator: 'Virši', 'socket:type2_combo': '2' } }),
+  ];
+  const live = liveOf([site('a1', 56.95, 24.11, 'Elektrum Drive', [pt('ccs', 150, 'free', 0.44)])]);
+  const out = UR.mergeLive(osm, live, { bbox: BBOX, now: NOW });
+  assert.equal(out.length, 2);
+  const merged = out.find((s) => s.id === 'node/7');
+  assert.ok(merged, 'должен остаться id узла OSM');
+  assert.equal(merged.name, 'Galleria Riga');
+  assert.equal(merged.osmId, 7);
+  assert.equal(merged.cls, 'hpc');
+  assert.equal(merged.live.pts.length, 1);
+  assert.ok(!out.some((s) => s.id === 'node/8'), 'дубль с той же площадки удалён');
+  assert.ok(out.some((s) => s.id === 'node/9'));
+});
+
+test('mergeLive: разные известные сети рядом не склеиваются', () => {
+  const osm = [UR.toStation({ type: 'node', id: 1, lat: 56.95, lon: 24.11, tags: { amenity: 'charging_station', operator: 'Virši', 'socket:type2_combo': '1' } })];
+  const live = liveOf([site('a1', 56.95, 24.11, 'Elektrum Drive', [pt('ccs', 50, 'free', 0.44)])]);
+  assert.equal(UR.mergeLive(osm, live, { bbox: BBOX, now: NOW }).length, 2);
+});
+
+test('mergeLive: площадки вне Риги отбрасываются; без live вернёт OSM как есть', () => {
+  const live = liveOf([site('far', 57.5, 25.4, 'Elektrum Drive', [pt('ccs', 50, 'free', 0.44)])]);
+  assert.equal(UR.mergeLive([], live, { bbox: BBOX, now: NOW }).length, 0);
+  const osm = [UR.toStation({ type: 'node', id: 1, lat: 56.95, lon: 24.11, tags: { amenity: 'charging_station', 'socket:type2': '1' } })];
+  assert.equal(UR.mergeLive(osm, null, { bbox: BBOX, now: NOW }).length, 1);
+});
+
+test('mergeLive: устаревший поток не выдаёт статусы за актуальные', () => {
+  const live = liveOf([site('a1', 56.95, 24.11, 'Elektrum Drive', [pt('ccs', 50, 'free', 0.44)])], '2026-10-27T06:00:00+00:00');
+  const st = UR.mergeLive([], live, { bbox: BBOX, now: NOW })[0];
+  assert.equal(st.live.pts[0].s, 'unk');
+  assert.equal(UR.liveSummary(st).level, 'unknown');
+  assert.equal(st.live.pts[0].p, 0.44); // цену оставляем
+});
+
+test('liveSummary: подсчёт, уровни и учёт фильтра по разъёму', () => {
+  const st = UR.mergeLive([], liveOf([site('a1', 56.95, 24.11, 'Elektrum Drive', [
+    pt('ccs', 150, 'busy', 0.5), pt('ccs', 150, 'busy', 0.5), pt('type2', 22, 'free', 0.3), pt('chademo', 50, 'out', 0.5),
+  ])]), { bbox: BBOX, now: NOW })[0];
+  const all = UR.liveSummary(st);
+  assert.deepEqual([all.free, all.busy, all.out, all.total, all.level], [1, 2, 1, 4, 'free']);
+  const ccs = UR.liveSummary(st, { connector: 'ccs', power: 'any' });
+  assert.deepEqual([ccs.free, ccs.busy, ccs.total, ccs.level], [0, 2, 2, 'busy']);
+  const cha = UR.liveSummary(st, { connector: 'chademo', power: 'any' });
+  assert.equal(cha.level, 'out');
+  assert.equal(UR.liveSummary(st, { connector: 'tesla', power: 'any' }), null);
+  const ultra = UR.liveSummary(st, { connector: 'any', power: 'ultra' });
+  assert.equal(ultra.total, 2);
+  assert.equal(UR.liveSummary({ sockets: {} }), null);
+});
+
+test('livePriceOf: цена быстрых точек без фильтра, по фильтру только подходящие', () => {
+  const st = UR.mergeLive([], liveOf([site('a1', 56.95, 24.11, 'Elektrum Drive', [
+    pt('ccs', 150, 'free', 0.51), pt('type2', 22, 'free', 0.32),
+  ])]), { bbox: BBOX, now: NOW })[0];
+  assert.deepEqual([UR.livePriceOf(st).lo, UR.livePriceOf(st).hi], [0.51, 0.51]);
+  const ac = UR.livePriceOf(st, { connector: 'type2', power: 'any' });
+  assert.deepEqual([ac.lo, ac.hi], [0.32, 0.32]);
+  assert.equal(UR.livePriceOf({ live: null }), null);
+});
+
+test('rank: все заняты уходит ниже, неработающая в самый конец, цена берётся из NAP', () => {
+  const origin = { lat: 56.9496, lon: 24.1052 };
+  const mkSite = (id, lat, s) => site(id, lat, 24.1052, 'Elektrum Drive', [pt('ccs', 150, s, 0.44)]);
+  const stations = UR.mergeLive([], liveOf([mkSite('near-busy', 56.951, 'busy'), mkSite('mid-free', 56.965, 'free'), mkSite('near-out', 56.9505, 'out')]), { bbox: BBOX, now: NOW });
+  const ranked = UR.rank(stations, origin, 'near', { connector: 'any', power: 'any' });
+  assert.equal(ranked[0].st.id, 'nap:mid-free', 'свободная дальше выигрывает у занятой вплотную');
+  assert.equal(ranked[ranked.length - 1].st.id, 'nap:near-out');
+  assert.equal(ranked[0].live.level, 'free');
+  assert.equal(ranked[0].price.live, true);
+  assert.equal(ranked[0].price.mid, 0.44);
+});
+
+test('buildPriceTable + setLivePrices: живые цены перекрывают справочные, остальное остаётся', () => {
+  const sites = [];
+  for (const p of [0.30, 0.31, 0.32, 0.33, 0.34, 0.35, 0.36, 0.37, 0.38, 0.39, 0.90]) sites.push(site('s' + p, 56.95, 24.11, 'Ignitis ON', [pt('ccs', 60, 'free', p)]));
+  const table = UR.buildPriceTable(liveOf(sites));
+  assert.ok(table.ignitis && table.ignitis.dc, 'DC для Ignitis посчитан');
+  assert.deepEqual(table.ignitis.dc, [0.31, 0.39], 'крайние значения (0,30 и выброс 0,90) отсечены');
+  UR.setLivePrices(table);
+  try {
+    assert.ok(UR.hasLivePrice('ignitis', 'dc'));
+    assert.equal(UR.priceTable('ignitis').ac[0], UR.PRICES.ignitis.ac[0], 'AC остался справочным');
+    assert.equal(UR.priceFor('ignitis', 'dc').lo, 0.31);
+  } finally {
+    UR.setLivePrices({});
+  }
+  assert.equal(UR.priceFor('ignitis', 'dc').lo, UR.PRICES.ignitis.dc[0]);
+});
+
 console.log('\n' + passed + ' tests passed');

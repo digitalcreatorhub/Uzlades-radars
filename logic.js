@@ -146,11 +146,24 @@
     hpc: ['hpc', 'dc'],
   };
 
+  // Живые цены по сетям и классам мощности (из национальной точки доступа), поверх справочных PRICES.
+  let livePrices = {};
+  function setLivePrices(table) {
+    livePrices = table || {};
+  }
+  // Таблица цен сети: справочные значения, перекрытые живыми. Вид: { ac:[lo,hi], dc:[..], hpc:[..], ... }
+  function priceTable(operatorId) {
+    return Object.assign({}, PRICES[operatorId] || {}, livePrices[operatorId] || {});
+  }
+  function hasLivePrice(operatorId, cls) {
+    return !!(livePrices[operatorId] && livePrices[operatorId][cls]);
+  }
+
   // -> { lo, hi, mid } или null, если цену по этой сети/классу мы не знаем
   function priceFor(operatorId, cls) {
-    const table = PRICES[operatorId];
+    const table = priceTable(operatorId);
     const order = FALLBACK_ORDER[cls];
-    if (!table || !order) return null;
+    if (!order) return null;
     for (const c of order) {
       if (table[c]) {
         const [lo, hi] = table[c];
@@ -158,6 +171,173 @@
       }
     }
     return null;
+  }
+
+  /* ---------- живые данные национальной точки доступа (live.json) ---------- */
+  const LIVE_FRESH_MS = 90 * 60 * 1000; // старше этого статус не показываем как актуальный
+  const MATCH_M = 75; // площадка NAP и станция OSM в пределах этого расстояния считаются одним местом
+
+  function liveTime(live) {
+    const t = Date.parse((live && (live.statusTime || live.generated)) || '');
+    return isFinite(t) ? t : null;
+  }
+  function isLiveFresh(live, now) {
+    const t = liveTime(live);
+    return t != null && (now == null ? Date.now() : now) - t <= LIVE_FRESH_MS;
+  }
+
+  // Подходит ли точка зарядки под выбранные фильтры (разъём и скорость)
+  function pointMatches(pt, f) {
+    if (!f) return true;
+    if (f.connector && f.connector !== 'any' && pt.t !== f.connector) return false;
+    if (f.power === 'fast' && !(pt.kw > 43)) return false;
+    if (f.power === 'ultra' && !(pt.kw >= 150)) return false;
+    return true;
+  }
+
+  // Сколько точек свободно / занято / не работает у станции (только подходящие под фильтры).
+  // level: free (есть свободная), busy (все рабочие заняты), out (ничего не работает), unknown.
+  function liveSummary(st, filters) {
+    if (!st || !st.live) return null;
+    const pts = st.live.pts.filter((p) => pointMatches(p, filters));
+    if (!pts.length) return null;
+    const c = { free: 0, busy: 0, out: 0, unk: 0 };
+    for (const p of pts) c[p.s in c ? p.s : 'unk']++;
+    let level = 'unknown';
+    if (c.free > 0) level = 'free';
+    else if (c.busy > 0) level = 'busy';
+    else if (c.out > 0 && c.unk === 0) level = 'out';
+    return { free: c.free, busy: c.busy, out: c.out, unk: c.unk, total: pts.length, level };
+  }
+
+  // Цена станции по данным самих точек: для подходящих под фильтр, а без фильтра для самых быстрых точек.
+  function livePriceOf(st, filters) {
+    if (!st || !st.live) return null;
+    let pts = st.live.pts.filter((p) => p.p != null && pointMatches(p, filters));
+    if (!pts.length) return null;
+    const noFilter = !filters || ((!filters.connector || filters.connector === 'any') && (!filters.power || filters.power === 'any'));
+    if (noFilter) {
+      const top = Math.max.apply(null, pts.map((p) => p.kw || 0));
+      const fastest = pts.filter((p) => (p.kw || 0) >= top * 0.8);
+      if (fastest.length) pts = fastest;
+    }
+    const lo = Math.min.apply(null, pts.map((p) => p.p));
+    const hi = Math.max.apply(null, pts.map((p) => (p.pm != null ? p.pm : p.p)));
+    return { lo, hi, mid: (lo + hi) / 2, live: true };
+  }
+
+  // Цена по умолчанию для станции: живая, если есть, иначе справочная по сети и классу.
+  function priceOf(st, filters) {
+    return livePriceOf(st, filters) || priceFor(st.operatorId, st.cls);
+  }
+
+  // Сводные цены по сетям и классам из всех точек с ценой: 10–90 перцентиль (отсекает редкие выбросы).
+  function buildPriceTable(live) {
+    const buckets = {};
+    for (const site of (live && live.sites) || []) {
+      const op = operatorOf({ operator: site.op, name: site.n }).id;
+      for (const p of site.pts) {
+        if (p.p == null || p.kw == null) continue;
+        const cls = classify(p.kw);
+        if (cls === 'unknown') continue;
+        ((buckets[op] = buckets[op] || {})[cls] = buckets[op][cls] || []).push(p.p);
+      }
+    }
+    const table = {};
+    for (const op of Object.keys(buckets)) {
+      if (op === 'other') continue;
+      for (const cls of Object.keys(buckets[op])) {
+        const v = buckets[op][cls].sort((a, b) => a - b);
+        const n = v.length;
+        const lo = n < 5 ? v[0] : v[Math.floor(0.1 * (n - 1))];
+        const hi = n < 5 ? v[n - 1] : v[Math.ceil(0.9 * (n - 1))];
+        (table[op] = table[op] || {})[cls] = [Math.round(lo * 100) / 100, Math.round(hi * 100) / 100];
+      }
+    }
+    return table;
+  }
+
+  // Внутренние коды вроде "PLVRIXPB12_EDLV-52" людям не показываем
+  function prettyName(n) {
+    if (!n) return '';
+    const s = String(n).trim();
+    if (!/\s/.test(s)) return '';
+    if (/_/.test(s)) return '';
+    return s;
+  }
+
+  function napStation(site, fresh) {
+    const counts = {};
+    let kw = null;
+    for (const p of site.pts) {
+      if (p.t && p.t !== 'other') counts[p.t] = (counts[p.t] || 0) + 1;
+      if (p.kw != null) kw = kw == null ? p.kw : Math.max(kw, p.kw);
+    }
+    const op = operatorOf({ operator: site.op, name: site.n });
+    const city = site.c && site.c !== 'Rīga' ? site.c : '';
+    return {
+      id: 'nap:' + site.id,
+      osmType: null,
+      osmId: null,
+      lat: site.lat,
+      lon: site.lon,
+      name: prettyName(site.n),
+      operatorId: op.id,
+      operatorName: op.name || site.op || null,
+      sockets: counts,
+      kw,
+      powerKnown: kw != null,
+      cls: classify(kw),
+      points: site.pts.length,
+      fee: 'yes',
+      hours: site.h === '24/7' ? '24/7' : null,
+      address: [site.a, city].filter(Boolean).join(', '),
+      live: {
+        upd: site.u || null,
+        pts: site.pts.map((p) => ({ t: p.t, kw: p.kw, s: fresh ? p.s || 'unk' : 'unk', p: p.p, pm: p.pm })),
+      },
+    };
+  }
+
+  function inBbox(lat, lon, bbox) {
+    return !bbox || (lat >= bbox[0] && lat <= bbox[2] && lon >= bbox[1] && lon <= bbox[3]);
+  }
+
+  // Сливает станции OSM с площадками национальной точки доступа.
+  // NAP главный там, где знает площадку (статус, цена, разъёмы, мощность); OSM даёт название и остальное.
+  // opts: { bbox: [south, west, north, east], now }
+  function mergeLive(osmStations, live, opts) {
+    const o = opts || {};
+    if (!live || !Array.isArray(live.sites)) return osmStations.slice();
+    const fresh = isLiveFresh(live, o.now);
+    let remaining = osmStations.slice();
+    const added = [];
+    const merged = [];
+    for (const site of live.sites) {
+      if (!inBbox(site.lat, site.lon, o.bbox)) continue;
+      const nap = napStation(site, fresh);
+      const near = remaining
+        .map((st) => ({ st, d: haversine(nap.lat, nap.lon, st.lat, st.lon) * 1000 }))
+        .filter((x) => x.d <= MATCH_M && (x.st.operatorId === 'other' || nap.operatorId === 'other' || x.st.operatorId === nap.operatorId))
+        .sort((a, b) => a.d - b.d);
+      if (!near.length) { added.push(nap); continue; }
+      const base = near[0].st;
+      const gone = new Set(near.map((x) => x.st.id));
+      remaining = remaining.filter((st) => !gone.has(st.id));
+      merged.push(
+        Object.assign({}, nap, {
+          id: base.id,
+          osmType: base.osmType,
+          osmId: base.osmId,
+          name: base.name || nap.name,
+          address: base.address || nap.address,
+          hours: base.hours || nap.hours,
+          operatorId: nap.operatorId !== 'other' ? nap.operatorId : base.operatorId,
+          operatorName: nap.operatorId !== 'other' ? nap.operatorName : base.operatorName || nap.operatorName,
+        })
+      );
+    }
+    return remaining.concat(merged, added);
   }
 
   // Сколько сегментов (из 5) заполнить на шкале мощности
@@ -207,21 +387,29 @@
   };
   const UNKNOWN_PRICE = 0.45; // для станций без известной цены: чуть выше среднего, чтобы не выигрывали вслепую
 
+  const BUSY_PENALTY = 8; // все рабочие точки заняты: примерно как лишние 5 км пути
+  const OUT_PENALTY = 1000; // ничего не работает: в самый конец
+
   // Добавляет расстояние, цену, время и оценку; сортирует от лучшей к худшей.
-  function rank(stations, origin, priority) {
+  // filters нужны, чтобы считать свободные точки и цену только по подходящим разъёмам.
+  function rank(stations, origin, priority, filters) {
     const w = WEIGHTS[priority] || WEIGHTS.balanced;
     const out = stations.map((st) => {
       const distKm = haversine(origin.lat, origin.lon, st.lat, st.lon);
-      const price = priceFor(st.operatorId, st.cls);
+      const price = priceOf(st, filters);
       const minutes = chargeMinutes100(st.kw, st.cls);
+      const live = liveSummary(st, filters);
       const p = price ? price.mid : UNKNOWN_PRICE;
-      const score =
+      let score =
         distKm * w.dist + ((p - 0.25) / 0.1) * w.price + ((minutes == null ? 60 : minutes) / 10) * w.time;
+      if (live && live.level === 'busy') score += BUSY_PENALTY;
+      if (live && live.level === 'out') score += OUT_PENALTY;
       return {
         st,
         distKm,
         price,
         minutes,
+        live,
         costPer100: price ? price.mid * KWH_PER_100KM : null,
         score,
       };
@@ -242,6 +430,21 @@
     toStation,
     haversine,
     priceFor,
+    priceTable,
+    hasLivePrice,
+    setLivePrices,
+    isLiveFresh,
+    liveTime,
+    pointMatches,
+    liveSummary,
+    livePriceOf,
+    priceOf,
+    buildPriceTable,
+    prettyName,
+    napStation,
+    mergeLive,
+    MATCH_M,
+    LIVE_FRESH_MS,
     segments,
     chargeMinutes100,
     matchesConnector,

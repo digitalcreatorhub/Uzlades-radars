@@ -1,5 +1,5 @@
 /* Service worker: оболочка приложения работает офлайн. Данные станций кэширует само приложение. */
-const VERSION = 'ur-v2';
+const VERSION = 'ur-v3';
 const SHELL = [
   './',
   'index.html',
@@ -30,8 +30,8 @@ self.addEventListener('fetch', (event) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
 
-  // Тайлы карты и Overpass не кэшируем здесь.
-  if (url.hostname.endsWith('openstreetmap.org') || url.hostname.includes('overpass')) return;
+  // Тайлы карты, Overpass и живые данные (live.json) не кэшируем здесь: свежесть важнее.
+  if (url.hostname.endsWith('openstreetmap.org') || url.hostname.includes('overpass') || url.hostname === 'raw.githubusercontent.com') return;
 
   if (url.origin === self.location.origin) {
     // Свои файлы: сначала сеть (чтобы обновления доходили), при её отсутствии кэш.
