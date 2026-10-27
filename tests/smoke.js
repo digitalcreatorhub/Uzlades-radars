@@ -26,9 +26,9 @@ window.L = {
   map(){ const m={ setView(c,z){ window.__center=[c[0],c[1],z]; return m}, flyTo(c,z){ window.__center=[c[0],c[1],z]; return m}, getZoom(){return 12}, invalidateSize(){}, }; return m; },
   control:{ zoom(){ return new Layer(); } },
   layerGroup(){ const g=new Layer(); g.clearLayers=function(){ window.__markers=0; }; g.addTo=function(){return g}; return g; },
-  tileLayer(u){ window.__tileUrl = u; return new Layer(); },
+  tileLayer(){ return new Layer(); },
   circle(){ const m=new Layer(); m.addTo=function(){ window.__circles++; return m; }; return m; },
-  circleMarker(ll,o){ const m=new Layer(); m.addTo=function(){ if(!(o&&o.halo)) window.__markers++; return m; }; return m; },
+  circleMarker(){ const m=new Layer(); m.addTo=function(){ window.__markers++; return m; }; return m; },
 };`;
 
 const el = (type, id, lat, lon, tags) => ({ type, id, lat, lon, tags: { amenity: 'charging_station', ...tags } });
@@ -129,7 +129,6 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
   await page.click('#btn-lang');
   await page.click('#btn-theme');
   check('светлая тема', (await page.evaluate(() => document.documentElement.dataset.theme)) === 'light');
-  check('светлая тема: светлые плитки CARTO', (await page.evaluate(() => window.__tileUrl)).includes('basemaps.cartocdn.com/light_all/'));
   await page.click('[data-tab="go"]');
   await page.screenshot({ path: path.join(shots, '5-light.png') });
   await page.click('#btn-theme');
@@ -148,7 +147,7 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
   await page.waitForSelector('.best', { timeout: 8000 });
   check('повторный запуск показывает станции из кэша', (await page.evaluate(() => window.__markers)) === 6);
 
-  check('тёмная тема: тёмные плитки CARTO без CSS-фильтра', (await page.evaluate(() => window.__tileUrl)).includes('basemaps.cartocdn.com/dark_all/') && !(await page.evaluate(() => document.getElementById('map').classList.contains('dark-tiles'))));
+  check('тёмные тайлы: класс на карте в тёмной теме', await page.evaluate(() => document.getElementById('map').classList.contains('dark-tiles')));
 
   // все зеркала Overpass недоступны и кэша нет: ошибка с кнопкой «Повторить»
   const ctx2 = await browser.newContext({ viewport: { width: 390, height: 780 }, serviceWorkers: 'block' });
