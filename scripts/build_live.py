@@ -27,6 +27,7 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 
 BASE = 'https://www.transportdata.gov.lv'
+LV_VAT = 1.21  # НДС Латвии; в потоке цены без налога (taxIncluded=false), покупателю нужны с налогом
 SAMPLE_STATIC = os.path.join(os.path.dirname(__file__), '..', 'data', 'sample_static.xml')
 
 CONNECTOR = {
@@ -159,9 +160,12 @@ def parse_status(data):
         for rl in st.iter():
             if local(rl.tag) == 'rateLine' and text_of(rl, 'rateLineType') == 'perUnit':
                 try:
-                    prices.append(float(text_of(rl, 'value')))
+                    value = float(text_of(rl, 'value'))
                 except (TypeError, ValueError):
-                    pass
+                    continue
+                if (text_of(rl, 'rateLineTax', 'taxIncluded') or '').lower() != 'true':
+                    value *= LV_VAT
+                prices.append(round(value, 3))
         for rp in children(st, 'refillPointStatus'):
             ref = child(rp, 'reference')
             evse = ref.get('id') if ref is not None else None

@@ -42,8 +42,16 @@ class BuildLive(unittest.TestCase):
         s = self.by_id['2a9bfe1e-bb5e-4a56-9bf4-d6bb0bac2322']
         pts = {p['e']: p for p in s['pts']}
         self.assertEqual(pts['LV*ELR*EPLVRIXPB12012CHA']['s'], 'free')
-        self.assertEqual(pts['LV*ELR*EPLVRIXPB12012CHA']['p'], 0.44)
+        # в потоке 0,44 без НДС, в live.json цена уже с НДС 21%
+        self.assertEqual(pts['LV*ELR*EPLVRIXPB12012CHA']['p'], 0.532)
         self.assertTrue(s['u'].startswith('2026-10-'))
+
+    def test_price_with_vat_only_when_not_included(self):
+        raw = STATUS.replace(b'<fac:taxIncluded>false</fac:taxIncluded>', b'<fac:taxIncluded>true</fac:taxIncluded>', 1)
+        _, status = build_live.parse_status(raw)
+        self.assertEqual(status['LV*ELR*EPLVRIXPB12012CHA']['p'], 0.44)  # налог уже включён: не трогаем
+        _, status = build_live.parse_status(STATUS)
+        self.assertEqual(status['LV*ELR*EPLVRIXPB12012CHA']['p'], 0.532)
 
     def test_status_values_mapped(self):
         allowed = {'free', 'busy', 'out', 'unk'}
