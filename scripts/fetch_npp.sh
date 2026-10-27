@@ -21,10 +21,19 @@ for id in "$@"; do
 done
 
 # 1b) описание набора по номеру (nid) и каталог всех наборов в формате DCAT
-for nid in ${NPP_EXTRA_NIDS:-429625}; do
+for nid in ${NPP_EXTRA_NIDS:-429625 342436}; do
   code=$(curl -sS -m 60 -o "$OUT/meta_nid_$nid.json" -w '%{http_code}' \
     "$BASE/lv/public/metadata/data?dataset_id=$nid" 2>>"$LOG" || echo 000)
   say "metadata nid $nid -> HTTP $code ($(wc -c < "$OUT/meta_nid_$nid.json" 2>/dev/null || echo 0) bytes)"
+done
+# публичные образцы файлов, если набор их предлагает (путь лежит в поле field_field_data_sample)
+for nid in ${NPP_EXTRA_NIDS:-429625 342436}; do
+  sample=$(jq -r '.[0].field_field_data_sample // empty' "$OUT/meta_nid_$nid.json" 2>/dev/null)
+  if [ -n "$sample" ]; then
+    code=$(curl -sS -m 90 -o "$OUT/sample_$nid.xml" -w '%{http_code}' "$BASE$sample" 2>>"$LOG" || echo 000)
+    say "sample nid $nid ($sample) -> HTTP $code ($(wc -c < "$OUT/sample_$nid.xml" 2>/dev/null || echo 0) bytes)"
+    [ "$code" = "200" ] || rm -f "$OUT/sample_$nid.xml"
+  fi
 done
 if [ -n "${NPP_API_KEY:-}" ]; then
   code=$(curl -sS -m 90 -o "$OUT/catalog_dcat.xml" -w '%{http_code}' \
@@ -65,6 +74,7 @@ fetch_with_key() {
 
 fetch_with_key ev "${NPP_API_KEY:-}"
 fetch_with_key prices "${NPP_API_KEY_PRICES:-}"
+fetch_with_key infra "${NPP_API_KEY_INFRA:-}"
 
 # слишком большие файлы в репозиторий не кладём
 find "$OUT" -type f -size +20M -print -delete | while read -r big; do say "удалён слишком большой файл: $big"; done

@@ -18,6 +18,7 @@ jobs:
         env:
           NPP_API_KEY: ${{ secrets.NPP_API_KEY }}
           NPP_API_KEY_PRICES: ${{ secrets.NPP_API_KEY_PRICES }}
+          NPP_API_KEY_INFRA: ${{ secrets.NPP_API_KEY_INFRA }}
         run: bash scripts/fetch_npp.sh 978835ee-f55b-481c-9791-ba0395d3619a a377a160-baa1-4b67-b4e8-6612cd289e22
 
       - name: Commit results
