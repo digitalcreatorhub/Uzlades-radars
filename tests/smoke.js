@@ -20,13 +20,14 @@ const server = http.createServer((req, res) => {
 });
 
 const LEAFLET_STUB = `
-window.__markers = 0;
+window.__markers = 0; window.__circles = 0; window.__center = null;
 function Layer(){ this.on=function(){return this}; this.addTo=function(){return this}; this.remove=function(){return this}; }
 window.L = {
-  map(){ const m={ setView(){return m}, flyTo(){return m}, getZoom(){return 12}, invalidateSize(){}, }; return m; },
+  map(){ const m={ setView(c,z){ window.__center=[c[0],c[1],z]; return m}, flyTo(c,z){ window.__center=[c[0],c[1],z]; return m}, getZoom(){return 12}, invalidateSize(){}, }; return m; },
   control:{ zoom(){ return new Layer(); } },
   layerGroup(){ const g=new Layer(); g.clearLayers=function(){ window.__markers=0; }; g.addTo=function(){return g}; return g; },
   tileLayer(){ return new Layer(); },
+  circle(){ const m=new Layer(); m.addTo=function(){ window.__circles++; return m; }; return m; },
   circleMarker(){ const m=new Layer(); m.addTo=function(){ window.__markers++; return m; }; return m; },
 };`;
 
@@ -69,6 +70,8 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
 
   await page.goto(base + '/');
   await page.waitForSelector('.best', { timeout: 8000 });
+  await page.waitForFunction(() => /Нет доступа/.test(document.querySelector('.origin-line')?.innerText || ''), null, { timeout: 5000 }).catch(() => {});
+  check('нет доступа к GPS: понятная строка и расчёт от центра', (await page.locator('.origin-line').innerText()).includes('Нет доступа к месту'));
   check('без live.json: нет бейджей статуса', (await page.locator('.live').count()) === 0);
   check('без live.json: сообщение, что статус недоступен', (await page.locator('.live-note').innerText()).includes('недоступен'));
 
@@ -270,6 +273,44 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
   check('без Overpass: работает на данных NAP (3 станции)', (await p5.evaluate(() => window.__markers)) === 3, 'markers=' + (await p5.evaluate(() => window.__markers)));
   check('без Overpass: нет баннера ошибки', await p5.locator('#status').isHidden());
   await ctx5.close();
+
+  /* ---------- GPS ---------- */
+  const ctx6 = await browser.newContext({
+    viewport: { width: 390, height: 780 }, serviceWorkers: 'block',
+    permissions: ['geolocation'], geolocation: { latitude: 56.946, longitude: 24.1, accuracy: 40 },
+  });
+  await ctx6.addInitScript(() => { const n = Date.now; window.__skew = 0; Date.now = () => n.call(Date) + window.__skew; });
+  const p6 = await ctx6.newPage();
+  const errors6 = [];
+  p6.on('pageerror', (e) => errors6.push('pageerror: ' + e.message));
+  await routeFor(p6, liveDoc(minsAgo(4)));
+  await p6.goto(base + '/');
+  await p6.waitForFunction(() => /Ваше место/.test(document.querySelector('.origin-line')?.innerText || ''), null, { timeout: 8000 });
+  await p6.waitForTimeout(600); // даём данным станций дозагрузиться
+  const near = (c, lat, lon) => c && Math.abs(c[0] - lat) < 1e-6 && Math.abs(c[1] - lon) < 1e-6;
+  check('GPS при открытии: расчёт от вашего места с точностью', (await p6.locator('.origin-line').innerText()).includes('±40 м'));
+  check('GPS при открытии: карта осталась на вас (данные станций её не увели)', near(await p6.evaluate(() => window.__center), 56.946, 24.1), JSON.stringify(await p6.evaluate(() => window.__center)));
+  check('GPS: нарисован круг точности', (await p6.evaluate(() => window.__circles)) >= 1);
+  check('GPS: в карточке расстояние «от вас»', (await p6.locator('.best').innerText()).includes('от вас'));
+  await p6.screenshot({ path: path.join(shots, '11-gps.png') });
+
+  await ctx6.setGeolocation({ latitude: 56.93, longitude: 24.09, accuracy: 20 });
+  await p6.click('#btn-gps');
+  await p6.waitForFunction(() => /±20 м/.test(document.querySelector('.origin-line')?.innerText || ''), null, { timeout: 5000 });
+  check('кнопка на карте: место обновилось, карта на новой точке', near(await p6.evaluate(() => window.__center), 56.93, 24.09));
+
+  // быстрый возврат (меньше минуты): GPS зря не дёргаем
+  await ctx6.setGeolocation({ latitude: 56.97, longitude: 24.15, accuracy: 15 });
+  await p6.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await p6.waitForTimeout(500);
+  check('быстрый возврат: место не пересчитывается', near(await p6.evaluate(() => window.__center), 56.93, 24.09));
+  // долгий возврат: обновляем
+  await p6.evaluate(() => { window.__skew = 120000; });
+  await p6.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await p6.waitForFunction(() => /±15 м/.test(document.querySelector('.origin-line')?.innerText || ''), null, { timeout: 5000 });
+  check('возврат через 2 минуты: место обновилось', near(await p6.evaluate(() => window.__center), 56.97, 24.15));
+  check('GPS: нет JS-ошибок', errors6.length === 0, errors6.join(' || '));
+  await ctx6.close();
 
   check('нет ошибок в консоли', errors.length === 0, errors.join(' || '));
 

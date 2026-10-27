@@ -384,3 +384,14 @@ select {
 .pt-name { font-weight: 600; }
 .pt-state { color: var(--muted); }
 .pt-price { color: var(--muted); font-variant-numeric: tabular-nums; min-width: 78px; text-align: right; }
+
+/* кнопка «моё место» на карте: под кнопками масштаба */
+.map-fab {
+  position: absolute; top: 88px; right: 10px; z-index: 450;
+  width: 34px; height: 34px; padding: 0;
+  display: grid; place-items: center;
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--line); border-radius: 6px;
+}
+.map-fab[aria-busy="true"] { color: var(--ok); opacity: 0.8; }
+.map-fab:active { background: var(--surface-2); }

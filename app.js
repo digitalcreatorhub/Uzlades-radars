@@ -26,6 +26,10 @@
       toastLocUnavailable: 'Не удалось определить место. Считаю от центра Риги.',
       locate: 'Определить моё место',
       locating: 'Определяю…',
+      myPlace: 'Моё место',
+      accM: '±{n} м',
+      locDeniedLine: 'Нет доступа к месту',
+      yourPlace: 'Ваше место {acc}',
       fromCenter: 'Считаю от центра Риги',
       fromYou: 'Считаю от вашего места',
       prioBalanced: 'Баланс', prioCheap: 'Дешевле', prioNear: 'Ближе',
@@ -80,6 +84,10 @@
       toastLocUnavailable: 'Could not get your location. Using central Riga.',
       locate: 'Use my location',
       locating: 'Locating…',
+      myPlace: 'My location',
+      accM: '±{n} m',
+      locDeniedLine: 'Location blocked',
+      yourPlace: 'Your location {acc}',
       fromCenter: 'Measuring from central Riga',
       fromYou: 'Measuring from your location',
       prioBalanced: 'Balanced', prioCheap: 'Cheaper', prioNear: 'Closer',
@@ -152,6 +160,7 @@
     theme: store.get('ur_theme') === 'light' ? 'light' : 'dark',
     status: null, // 'loading' | 'error' | 'stale' | null
     locating: false,
+    geoDenied: false,
   };
 
   const $ = (id) => document.getElementById(id);
@@ -221,7 +230,9 @@
     if (cached) {
       state.osm = cached.stations;
       rebuildStations();
+      quietRender = state.origin.real;
       renderAll();
+      quietRender = false;
       if (!force && Date.now() - cached.t < CACHE_TTL) return;
     }
     if (!cached && !state.stations.length) setStatus('loading');
@@ -235,7 +246,9 @@
       // Overpass недоступен: если есть данные национальной точки доступа, приложение всё равно работает
       setStatus(state.stations.length ? (state.osm.length ? 'stale' : null) : 'error');
     }
+    quietRender = state.origin.real;
     renderAll();
+    quietRender = false;
   }
 
   /* ---------- живые данные (статус и цены) ---------- */
@@ -276,7 +289,7 @@
       clearTimeout(timer);
     }
     rebuildStations();
-    quietRender = !!quiet;
+    quietRender = !!quiet || state.origin.real;
     renderAll();
     quietRender = false;
     if (state.status === 'error' && state.stations.length) setStatus(null);
@@ -288,7 +301,7 @@
   setInterval(() => { if (document.visibilityState === 'visible') loadLive(true); }, LIVE_REFRESH_MS);
 
   /* ---------- карта ---------- */
-  let map, tiles, markerLayer, youMarker;
+  let map, tiles, markerLayer, youMarker, youCircle;
   const markers = new Map();
 
   function cssVar(name) {
@@ -335,9 +348,18 @@
       markers.set(st.id, m);
     }
     if (youMarker) youMarker.remove();
+    if (youCircle) youCircle.remove();
+    youMarker = youCircle = null;
     if (state.origin.real) {
+      const acc = state.origin.accuracy;
+      // круг точности GPS: честно показывает, насколько можно верить метке (слишком грубые не рисуем)
+      if (acc && acc >= 15 && acc < 3000) {
+        youCircle = L.circle([state.origin.lat, state.origin.lon], {
+          radius: acc, weight: 1, color: cssVar('--you'), fillColor: cssVar('--you'), fillOpacity: 0.1, interactive: false,
+        }).addTo(map);
+      }
       youMarker = L.circleMarker([state.origin.lat, state.origin.lon], {
-        radius: 7, weight: 3, color: cssVar('--bg'), fillColor: cssVar('--you'), fillOpacity: 1,
+        radius: 7, weight: 3, color: cssVar('--bg'), fillColor: cssVar('--you'), fillOpacity: 1, interactive: false,
       }).addTo(map);
     }
   }
@@ -371,6 +393,14 @@
     else if (sum.level === 'out') key = 'liveOut';
     else key = 'liveUnknown';
     return '<span class="live live-' + sum.level + '"><i></i>' + esc(t(key, vars)) + '</span>';
+  }
+
+  function originText() {
+    if (state.origin.real) {
+      const a = state.origin.accuracy;
+      return a ? t('yourPlace', { acc: t('accM', { n: Math.round(a) }) }) : t('fromYou');
+    }
+    return state.geoDenied ? t('locDeniedLine') : t('fromCenter');
   }
 
   function fmtTime(ms) {
@@ -414,7 +444,7 @@
       '<div class="seg" role="group">' +
       prios.map(([id, key]) => '<button data-prio="' + id + '" aria-pressed="' + (state.priority === id) + '">' + esc(t(key)) + '</button>').join('') +
       '</div>' +
-      '<div class="origin-line"><span>' + esc(state.origin.real ? t('fromYou') : t('fromCenter')) + '</span>' +
+      '<div class="origin-line"><span>' + esc(originText()) + '</span>' +
       '<button class="link-btn" id="btn-locate">' + esc(state.locating ? t('locating') : t('locate')) + '</button></div>' +
       (liveNote() ? '<div class="live-note">' + esc(liveNote()) + '</div>' : '');
 
@@ -578,6 +608,8 @@
     $('btn-lang').textContent = lang === 'ru' ? 'RU' : 'EN';
     $('btn-theme').textContent = state.theme === 'dark' ? '☾' : '☀';
     $('btn-install').textContent = t('install');
+    $('btn-gps').setAttribute('aria-label', t('myPlace'));
+    $('btn-gps').title = t('myPlace');
     document.documentElement.lang = lang;
     document.documentElement.dataset.theme = state.theme;
     const meta = document.querySelector('meta[name="theme-color"]');
@@ -638,25 +670,71 @@
     renderPanel();
   }
 
-  function locate() {
-    if (!navigator.geolocation) { toast(t('toastLocUnavailable')); return; }
+  /* ---------- моё местоположение ---------- */
+  let lastFixAt = 0;
+  let firstFix = true;
+
+  // opts.auto: запрос при открытии или возврате в приложение (без всплывающих сообщений об ошибках)
+  function locate(opts) {
+    const o = opts || {};
+    if (!navigator.geolocation) { if (!o.auto) toast(t('toastLocUnavailable')); return; }
+    if (state.locating) return;
     state.locating = true;
-    renderPanel();
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        state.locating = false;
-        state.origin = { lat: pos.coords.latitude, lon: pos.coords.longitude, real: true };
-        map.setView([state.origin.lat, state.origin.lon], 14);
-        renderAll();
-      },
-      (err) => {
-        state.locating = false;
-        toast(err && err.code === 1 ? t('toastLocDenied') : t('toastLocUnavailable'));
-        renderPanel();
-      },
-      { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 }
-    );
+    setGpsBusy(true);
+    if (!o.auto) renderPanel();
+
+    const onFix = (pos) => {
+      state.locating = false;
+      state.geoDenied = false;
+      lastFixAt = Date.now();
+      setGpsBusy(false);
+      state.origin = { lat: pos.coords.latitude, lon: pos.coords.longitude, real: true, accuracy: pos.coords.accuracy };
+      // карта остаётся на человеке: перерисовка не должна увести её к «лучшей» станции
+      if (map) map.setView([state.origin.lat, state.origin.lon], firstFix || o.zoom ? Math.max(o.zoom || 15, 14) : Math.max(map.getZoom(), 14));
+      firstFix = false;
+      quietRender = true;
+      try { renderAll(); } finally { quietRender = false; }
+    };
+    const onFail = (err, retried) => {
+      // слабый сигнал или таймаут при высокой точности: один раз пробуем грубее, но быстрее
+      if (err && err.code !== 1 && !retried) {
+        navigator.geolocation.getCurrentPosition(onFix, (e2) => onFail(e2, true), { enableHighAccuracy: false, timeout: 10000, maximumAge: 120000 });
+        return;
+      }
+      state.locating = false;
+      setGpsBusy(false);
+      if (err && err.code === 1) state.geoDenied = true;
+      if (!o.auto) toast(err && err.code === 1 ? t('toastLocDenied') : t('toastLocUnavailable'));
+      renderPanel();
+    };
+    navigator.geolocation.getCurrentPosition(onFix, (e) => onFail(e, false), { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
   }
+
+  function setGpsBusy(on) {
+    const b = $('btn-gps');
+    if (b) b.setAttribute('aria-busy', String(!!on));
+  }
+
+  // Каждое открытие: сразу спрашиваем место. Если доступ закрыт навсегда, повторно не беспокоим.
+  function locateOnOpen() {
+    const go = () => locate({ auto: true });
+    try {
+      if (navigator.permissions && navigator.permissions.query) {
+        navigator.permissions.query({ name: 'geolocation' }).then((r) => {
+          if (r.state === 'denied') { state.geoDenied = true; renderPanel(); } else go();
+        }).catch(go);
+        return;
+      }
+    } catch (e) { /* падаем в обычный запрос */ }
+    go();
+  }
+
+  // Вернулись в приложение (из другого приложения, после блокировки экрана): обновляем место.
+  function onResume() {
+    if (document.visibilityState === 'visible' && Date.now() - lastFixAt > 60 * 1000 && !state.geoDenied) locate({ auto: true });
+  }
+  document.addEventListener('visibilitychange', onResume);
+  window.addEventListener('pageshow', (e) => { if (e.persisted) onResume(); });
 
   function setSheetOpen(open) {
     $('sheet').dataset.open = String(open);
@@ -675,7 +753,8 @@
     else if (d.prio) { state.priority = d.prio; renderPanel(); }
     else if (d.detail) { openDetail(d.detail, true); setSheetOpen(true); }
     else if (el.id === 'btn-back') closeDetail();
-    else if (el.id === 'btn-locate') locate();
+    else if (el.id === 'btn-locate') locate({ zoom: 15 });
+    else if (el.id === 'btn-gps') locate({ zoom: 16 });
     else if (el.id === 'btn-retry') { setStatus('loading'); loadStations(true); loadLive(true); }
     else if (el.id === 'grab') setSheetOpen($('sheet').dataset.open !== 'true');
     else if (el.id === 'btn-lang') { lang = lang === 'ru' ? 'en' : 'ru'; store.set('ur_lang', lang); renderAll(); }
@@ -715,12 +794,7 @@
   loadStations(false);
   loadLive(false);
 
-  // Если местоположение уже разрешено раньше, берём его без лишних вопросов.
-  try {
-    if (navigator.permissions && navigator.permissions.query) {
-      navigator.permissions.query({ name: 'geolocation' }).then((r) => { if (r.state === 'granted') locate(); }).catch(() => {});
-    }
-  } catch (e) { /* не страшно: останемся с центром Риги */ }
+  locateOnOpen();
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {

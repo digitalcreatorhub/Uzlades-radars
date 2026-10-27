@@ -1,5 +1,5 @@
 /* Service worker: оболочка приложения работает офлайн. Данные станций кэширует само приложение. */
-const VERSION = 'ur-v3';
+const VERSION = 'ur-v4';
 const SHELL = [
   './',
   'index.html',
