@@ -24,7 +24,8 @@ import sys
 import urllib.error
 import urllib.request
 import xml.etree.ElementTree as ET
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 BASE = 'https://www.transportdata.gov.lv'
 LV_VAT = 1.21  # НДС Латвии; в потоке цены без налога (taxIncluded=false), покупателю нужны с налогом
@@ -37,6 +38,14 @@ CONNECTOR = {
     'teslaS': 'tesla',
     'teslaR': 'tesla',
     'teslaConnector': 'tesla',
+}
+# Как оплатить: значения authenticationAndIdentificationMethods -> короткие коды для приложения
+PAY = {
+    'apps': 'app',
+    'rfid': 'rfid',
+    'creditCard': 'card',
+    'debitCard': 'card',
+    'contactlessBankCard': 'card',
 }
 STATUS = {
     'available': 'free',
@@ -111,6 +120,10 @@ def parse_static(data):
         hours_el = child(site, 'operatingHours')
         hours_type = (hours_el.get('{http://www.w3.org/2001/XMLSchema-instance}type') or '') if hours_el is not None else ''
         op_el = child(site, 'operator')
+        pay = set()
+        for el in site.iter():
+            if local(el.tag) == 'authenticationAndIdentificationMethods' and el.text and el.text.strip() in PAY:
+                pay.add(PAY[el.text.strip()])
         pts = []
         for ref in site.iter():
             if local(ref.tag) != 'refillPoint':
@@ -142,6 +155,7 @@ def parse_static(data):
             'a': addr,
             'c': city,
             'h': '24/7' if hours_type.endswith('OpenAllHours') else ('custom' if hours_type else None),
+            'pay': sorted(pay),
             'pts': pts,
         }
     return sites
@@ -193,6 +207,12 @@ def build(static_xml, status_xml, source='api'):
             if st:
                 matched += 1
                 p['s'] = st['s']
+                # когда статус сменился: нужно только для занятых и неработающих точек («занята с 12:40»)
+                if st['s'] in ('busy', 'out') and st['u']:
+                    try:
+                        p['u'] = int(datetime.fromisoformat(st['u']).timestamp() // 60)
+                    except ValueError:
+                        pass
                 if 'p' in st:
                     p['p'] = st['p']
                     if 'pm' in st:
@@ -216,6 +236,63 @@ def build(static_xml, status_xml, source='api'):
             'statusRecords': len(status),
         },
         'sites': result,
+    }
+
+
+# ---------- история занятости: «когда обычно свободно» ----------
+RIGA = ZoneInfo('Europe/Riga')
+HIST_BUCKETS = 48  # 24 часа × (будни, выходные), по времени Риги
+MIN_SAMPLES = 12   # меньше замеров в корзине (это ~3 дня) картину не показываем
+
+
+def bucket_of(dt_utc):
+    local = dt_utc.astimezone(RIGA)
+    return (24 if local.weekday() >= 5 else 0) + local.hour
+
+
+def empty_history(now):
+    return {'v': 1, 'since': now.astimezone(RIGA).strftime('%Y-%m-%d'), 'lastStatusTime': None, 'sites': {}}
+
+
+def update_history(state, live, now=None):
+    """Добавляет текущий снимок в накопленную статистику. Возвращает True, если что-то записано."""
+    now = now or datetime.now(timezone.utc)
+    st_time = live.get('statusTime')
+    if not st_time or st_time == state.get('lastStatusTime'):
+        return False  # тот же снимок уже учтён
+    try:
+        age = now - datetime.fromisoformat(st_time.replace('Z', '+00:00'))
+    except ValueError:
+        return False
+    if age > timedelta(minutes=90):
+        return False  # устаревший поток в статистику не берём
+    b = bucket_of(now)
+    for site in live['sites']:
+        free = sum(1 for p in site['pts'] if p.get('s') == 'free')
+        busy = sum(1 for p in site['pts'] if p.get('s') == 'busy')
+        if free + busy == 0:
+            continue
+        rec = state['sites'].setdefault(site['id'], {'s': [0.0] * HIST_BUCKETS, 'n': [0] * HIST_BUCKETS})
+        rec['s'][b] = round(rec['s'][b] + busy / (free + busy), 3)
+        rec['n'][b] += 1
+    state['lastStatusTime'] = st_time
+    return True
+
+
+def render_patterns(state, now=None):
+    """Компактный файл для приложения: на площадку 48 чисел, процент занятости или -1, если данных мало."""
+    now = now or datetime.now(timezone.utc)
+    sites = {}
+    for sid, rec in state['sites'].items():
+        row = [round(100 * rec['s'][i] / rec['n'][i]) if rec['n'][i] >= MIN_SAMPLES else -1 for i in range(HIST_BUCKETS)]
+        if any(v >= 0 for v in row):
+            sites[sid] = row
+    return {
+        'v': 1,
+        'since': state.get('since'),
+        'updated': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+        'minSamples': MIN_SAMPLES,
+        'sites': sites,
     }
 
 
@@ -245,6 +322,9 @@ def main():
     ap.add_argument('--status')
     ap.add_argument('--fetch', action='store_true')
     ap.add_argument('--out', required=True)
+    ap.add_argument('--history-in')
+    ap.add_argument('--history-out')
+    ap.add_argument('--patterns-out')
     a = ap.parse_args()
 
     source = 'file'
@@ -283,6 +363,24 @@ def main():
     with open(a.out, 'w', encoding='utf-8') as f:
         json.dump(live, f, ensure_ascii=False, separators=(',', ':'))
     print(json.dumps(live['stats'], ensure_ascii=False), 'источник статики:', live['staticSource'], file=sys.stderr)
+
+    # История занятости ведётся отдельно и не должна ронять основную сборку
+    if a.history_out and a.patterns_out:
+        try:
+            state = None
+            if a.history_in and os.path.exists(a.history_in):
+                with open(a.history_in, encoding='utf-8') as f:
+                    state = json.load(f)
+            if not state or state.get('v') != 1:
+                state = empty_history(datetime.now(timezone.utc))
+            changed = update_history(state, live)
+            with open(a.history_out, 'w', encoding='utf-8') as f:
+                json.dump(state, f, separators=(',', ':'))
+            with open(a.patterns_out, 'w', encoding='utf-8') as f:
+                json.dump(render_patterns(state), f, separators=(',', ':'))
+            print('история: %s, площадок в статистике %d' % ('обновлена' if changed else 'без изменений', len(state['sites'])), file=sys.stderr)
+        except Exception as e:  # noqa: BLE001
+            print('История занятости не обновлена: %s' % e, file=sys.stderr)
     return 0
 
 

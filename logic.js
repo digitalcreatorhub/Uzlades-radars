@@ -92,6 +92,16 @@
     return 'ac';
   }
 
+  // Как оплатить, по тегам OSM: app (приложение сети), rfid (карта сети / NFC), card (банковская карта)
+  function parsePay(tags) {
+    const yes = (k) => tags[k] === 'yes';
+    const pay = [];
+    if (yes('authentication:app') || yes('payment:app')) pay.push('app');
+    if (yes('authentication:membership_card') || yes('authentication:nfc')) pay.push('rfid');
+    if (yes('payment:credit_cards') || yes('payment:debit_cards') || yes('payment:contactless')) pay.push('card');
+    return pay;
+  }
+
   function toStation(el) {
     const tags = el.tags || {};
     if (tags.access === 'private' || tags.access === 'no') return null;
@@ -126,6 +136,7 @@
       fee: tags.fee || null,
       hours: tags.opening_hours || null,
       address: [tags['addr:street'], tags['addr:housenumber']].filter(Boolean).join(' '),
+      pay: parsePay(tags),
     };
   }
 
@@ -292,9 +303,12 @@
       fee: 'yes',
       hours: site.h === '24/7' ? '24/7' : null,
       address: [site.a, city].filter(Boolean).join(', '),
+      pay: Array.isArray(site.pay) ? site.pay.slice() : [],
+      napId: site.id,
       live: {
         upd: site.u || null,
-        pts: site.pts.map((p) => ({ t: p.t, kw: p.kw, s: fresh ? p.s || 'unk' : 'unk', p: p.p, pm: p.pm })),
+        // u: когда статус точки сменился (минуты от эпохи), только у занятых и неработающих
+        pts: site.pts.map((p) => ({ t: p.t, kw: p.kw, s: fresh ? p.s || 'unk' : 'unk', p: p.p, pm: p.pm, u: p.u })),
       },
     };
   }
@@ -332,12 +346,32 @@
           name: base.name || nap.name,
           address: base.address || nap.address,
           hours: base.hours || nap.hours,
+          pay: nap.pay.length ? nap.pay : base.pay || [],
           operatorId: nap.operatorId !== 'other' ? nap.operatorId : base.operatorId,
           operatorName: nap.operatorId !== 'other' ? nap.operatorName : base.operatorName || nap.operatorName,
         })
       );
     }
     return remaining.concat(merged, added);
+  }
+
+  /* ---------- «когда обычно занято» (patterns.json) ---------- */
+  // Час и тип дня по времени Риги, независимо от часового пояса телефона
+  function rigaClock(ms) {
+    const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Riga', hour: '2-digit', weekday: 'short', hourCycle: 'h23' }).formatToParts(ms);
+    const get = (type) => (parts.find((x) => x.type === type) || {}).value;
+    return { hour: parseInt(get('hour'), 10) % 24, weekend: get('weekday') === 'Sat' || get('weekday') === 'Sun' };
+  }
+
+  // -> { weekend, hours: [24 значений, процент занятости или -1], now: процент или -1, hour } или null, если данных нет
+  function patternFor(st, patterns, nowMs) {
+    if (!st || !st.napId || !patterns || !patterns.sites) return null;
+    const row = patterns.sites[st.napId];
+    if (!row || row.length !== 48) return null;
+    const clock = rigaClock(nowMs == null ? Date.now() : nowMs);
+    const hours = row.slice(clock.weekend ? 24 : 0, clock.weekend ? 48 : 24);
+    if (!hours.some((v) => v >= 0)) return null;
+    return { weekend: clock.weekend, hours, hour: clock.hour, now: hours[clock.hour], since: patterns.since || null };
   }
 
   // Сколько сегментов (из 5) заполнить на шкале мощности
@@ -443,6 +477,9 @@
     prettyName,
     napStation,
     mergeLive,
+    parsePay,
+    rigaClock,
+    patternFor,
     MATCH_M,
     LIVE_FRESH_MS,
     segments,

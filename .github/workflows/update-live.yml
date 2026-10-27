@@ -2,7 +2,10 @@ name: Update live data
 
 # Раз в 15 минут (как обновляется источник) собирает live.json из национальной точки доступа
 # и кладёт его в отдельную ветку `live` одним коммитом, без роста истории.
-# Приложение читает файл по адресу raw.githubusercontent.com/<репозиторий>/live/live.json.
+# Приложение читает файлы по адресу raw.githubusercontent.com/<репозиторий>/live/.
+#   live.json      свежий статус и цены
+#   patterns.json  «когда обычно занято» по часам, из накопленной истории
+# Накопленная статистика лежит в ветке `history` (state.json) и тоже перезаписывается одним коммитом.
 on:
   schedule:
     - cron: '*/15 * * * *'
@@ -21,23 +24,59 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build live.json
+      - name: Load accumulated history
+        run: |
+          mkdir -p out
+          # «ветки нет» (код 2) и «не удалось связаться» отличаем: во втором случае стоп,
+          # иначе пустая история перезаписала бы накопленную
+          set +e
+          git ls-remote --exit-code --heads origin history >/dev/null 2>&1
+          rc=$?
+          set -e
+          if [ "$rc" -eq 0 ]; then
+            git fetch -q --depth 1 origin history
+            git show FETCH_HEAD:state.json > out/state_prev.json
+          elif [ "$rc" -eq 2 ]; then
+            echo "История ещё не начата"
+          else
+            echo "Не удалось проверить ветку history (код $rc)"
+            exit 1
+          fi
+
+      - name: Build live.json and patterns.json
         env:
           NPP_API_KEY: ${{ secrets.NPP_API_KEY }}
           NPP_API_KEY_INFRA: ${{ secrets.NPP_API_KEY_INFRA }}
         run: |
-          mkdir -p out
-          python3 -I scripts/build_live.py --fetch --out out/live.json
+          python3 -I scripts/build_live.py --fetch --out out/live.json \
+            --history-in out/state_prev.json --history-out out/state.json --patterns-out out/patterns.json
 
       - name: Publish to branch live
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cd out
+          mkdir pub && cp out/live.json pub/
+          [ -f out/patterns.json ] && cp out/patterns.json pub/
+          cd pub
           git init -q
           git checkout -q -b live
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add live.json
+          git add -A
           git commit -q -m "Live data $(date -u +%FT%TZ)"
           git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" live
+
+      - name: Publish history to branch history
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [ -f out/state.json ] || { echo "Нет новой истории"; exit 0; }
+          mkdir hist && cp out/state.json hist/
+          cd hist
+          git init -q
+          git checkout -q -b history
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "History $(date -u +%FT%TZ)"
+          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" history

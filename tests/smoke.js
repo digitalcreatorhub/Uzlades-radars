@@ -172,8 +172,8 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
     v: 1, statusTime, generated: statusTime,
     sites: [
       // совпадает с Galleria Riga (OSM node 1), сеть Eleport
-      { id: 'a1', n: 'GAL_1', op: 'Eleport', lat: 56.95002, lon: 24.11002, a: 'Dzirnavu iela 67', c: 'Rīga', h: '24/7', u: statusTime,
-        pts: [P('ccs', 150, 'free', 0.41), P('ccs', 150, 'busy', 0.41), P('type2', 22, 'free', 0.34)] },
+      { id: 'a1', n: 'GAL_1', op: 'Eleport', lat: 56.95002, lon: 24.11002, a: 'Dzirnavu iela 67', c: 'Rīga', h: '24/7', u: statusTime, pay: ['app', 'rfid', 'card'],
+        pts: [P('ccs', 150, 'free', 0.41), Object.assign(P('ccs', 150, 'busy', 0.41), { u: Math.floor((Date.now() - 25 * 60000) / 60000) }), P('type2', 22, 'free', 0.34)] },
       // только в NAP, все заняты
       { id: 'a2', n: 'Elektrum, DC 50kW', op: 'Elektrum Drive', lat: 56.94, lon: 24.1, a: 'Lāčplēša iela 10', c: 'Rīga', h: '24/7', u: statusTime,
         pts: [P('ccs', 50, 'busy', 0.44), P('chademo', 50, 'busy', 0.44)] },
@@ -185,11 +185,14 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
         pts: [P('ccs', 50, 'free', 0.44)] },
     ],
   });
-  const routeFor = (ctxPage, liveBody) => ctxPage.route('**/*', async (route) => {
+  const routeFor = (ctxPage, liveBody, patternsBody) => ctxPage.route('**/*', async (route) => {
     const url = route.request().url();
     if (url.startsWith(base)) return route.continue();
     if (url.includes('leaflet.min.js')) return route.fulfill({ contentType: 'text/javascript', body: LEAFLET_STUB });
     if (url.includes('overpass')) return route.fulfill({ contentType: 'application/json', body: JSON.stringify(MOCK) });
+    if (url.includes('raw.githubusercontent.com/') && url.includes('patterns.json')) {
+      return patternsBody == null ? route.abort() : route.fulfill({ contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(patternsBody) });
+    }
     if (url.includes('raw.githubusercontent.com')) {
       return liveBody == null ? route.abort() : route.fulfill({ contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(liveBody) });
     }
@@ -203,16 +206,38 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
   const errors3 = [];
   p3.on('pageerror', (e) => errors3.push('pageerror: ' + e.message));
   p3.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) errors3.push('console: ' + m.text()); });
-  await routeFor(p3, liveDoc(minsAgo(5)));
+  const hoursRow = Array.from({ length: 24 }, (_, h) => (h < 6 ? -1 : 10 + h * 3)); // ночью данных нет
+  const patternsDoc = { v: 1, since: '2026-10-27', minSamples: 12, sites: { a1: hoursRow.concat(hoursRow) } };
+  await routeFor(p3, liveDoc(minsAgo(5)), patternsDoc);
   await p3.goto(base + '/');
   await p3.waitForSelector('.live', { timeout: 8000 });
   // OSM даёт 6 станций (приватная скрыта); node 1 сливается с a1; a2 и a3 добавляются; far отбрасывается
   check('live: 8 маркеров (6 из OSM + 2 только из NAP)', (await p3.evaluate(() => window.__markers)) === 8, 'markers=' + (await p3.evaluate(() => window.__markers)));
-  check('live: строка про свежесть статуса', (await p3.locator('.live-note').innerText()).startsWith('Статус свободных зарядок на '));
+  check('live: время обновления статуса рядом с бейджем', /обновлено \d\d:\d\d/.test(await p3.locator('.best .live-time').innerText()));
   const bestTxt = await p3.locator('.best').innerText();
   check('live: в карточке лучшей станции бейдж «Свободно 2 из 3»', bestTxt.includes('Свободно 2 из 3'), bestTxt.replace(/\n/g, ' | ').slice(0, 160));
   check('live: цена в карточке взята из потока (0,41)', bestTxt.includes('0,41'));
   await p3.screenshot({ path: path.join(shots, '7-live-go.png') });
+
+  // оплата, «занята с», график «обычно занято»
+  await p3.waitForSelector('.usual-line', { timeout: 5000 });
+  const bestHtml = await p3.locator('.best').innerText();
+  check('оплата: в карточке лучшей станции видны плашки способов', bestHtml.includes('Приложение') && bestHtml.includes('RFID') && bestHtml.includes('Карта'));
+  const goBtnBottom = await p3.locator('.best a.btn').first().evaluate((a) => a.getBoundingClientRect().bottom);
+  check('оплата и «обычно»: кнопка маршрута всё равно видна на экране 780 px', goBtnBottom <= 780, 'bottom=' + Math.round(goBtnBottom));
+  check('оплата: плашки в одну строку', (await p3.locator('.best .pay').evaluate((el) => el.getBoundingClientRect().height)) < 40);
+  check('обычно занято: строка в карточке лучшей станции', /обычно занято ≈ \d+%/.test(bestHtml));
+  await p3.screenshot({ path: path.join(shots, '13-pay-go.png') });
+  await p3.click('[data-tab="list"]');
+  await p3.locator('.row', { hasText: 'Dzirnavu' }).first().click();
+  const detailTxt = await p3.locator('.detail').innerText();
+  check('оплата: в «Подробнее» строка «Как оплатить» с плашками', detailTxt.includes('Как оплатить') && (await p3.locator('.detail dd .chip-pay').count()) === 3);
+  check('«занята с»: у занятой точки время смены статуса', /занята с \d\d:\d\d/.test(await p3.locator('.pts').innerText()));
+  check('график: 24 столбика, текущий час выделен', (await p3.locator('.bars i').count()) === 24 && (await p3.locator('.bars i.cur').count()) === 1);
+  check('график: часы без данных отмечены отдельно', (await p3.locator('.bars i.na').count()) === 6);
+  check('график: подпись про источник и дату начала', (await p3.locator('.usual .note').innerText()).includes('по данным с 27.10.2026'));
+  await p3.screenshot({ path: path.join(shots, '14-pay-detail.png') });
+  await p3.click('#btn-back');
 
   await p3.click('[data-tab="list"]');
   const rowsTxt = await p3.locator('.rows').innerText();
@@ -236,6 +261,7 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
   await p3.click('#btn-back');
   // станция только из NAP: ссылки на OSM нет
   await p3.locator('.row', { hasText: 'Lāčplēša' }).first().click();
+  check('оплата и график: у станции без этих данных ничего не рисуется', (await p3.locator('.detail .chip-pay').count()) === 0 && (await p3.locator('.usual').count()) === 0);
   check('live: у станции только из NAP нет ссылки на OSM', (await p3.locator('.detail a[href*="openstreetmap.org"]').count()) === 0);
   await p3.click('#btn-back');
 

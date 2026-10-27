@@ -287,4 +287,52 @@ test('buildPriceTable + setLivePrices: живые цены перекрываю�
   assert.equal(UR.priceFor('ignitis', 'dc').lo, UR.PRICES.ignitis.dc[0]);
 });
 
+test('parsePay: оплата из тегов OSM', () => {
+  assert.deepEqual(UR.parsePay({ 'authentication:app': 'yes', 'payment:credit_cards': 'yes' }), ['app', 'card']);
+  assert.deepEqual(UR.parsePay({ 'authentication:membership_card': 'yes', 'authentication:nfc': 'yes' }), ['rfid']);
+  assert.deepEqual(UR.parsePay({ 'authentication:app': 'no' }), []);
+  const st = UR.toStation({ type: 'node', id: 1, lat: 56.95, lon: 24.11, tags: { amenity: 'charging_station', 'authentication:app': 'yes', 'socket:type2': '1' } });
+  assert.deepEqual(st.pay, ['app']);
+});
+
+test('mergeLive: оплата берётся из NAP, при её отсутствии из OSM; время смены статуса сохраняется', () => {
+  const osm = [UR.toStation({ type: 'node', id: 1, lat: 56.95, lon: 24.11, tags: { amenity: 'charging_station', operator: 'Elektrum Drive', 'payment:credit_cards': 'yes', 'socket:type2': '1' } })];
+  const withPay = liveOf([site('a1', 56.95, 24.11, 'Elektrum Drive', [Object.assign(pt('ccs', 50, 'busy', 0.44), { u: 29_000_000 })], { pay: ['app', 'rfid'] })]);
+  const m1 = UR.mergeLive(osm, withPay, { bbox: BBOX, now: NOW })[0];
+  assert.deepEqual(m1.pay, ['app', 'rfid']);
+  assert.equal(m1.live.pts[0].u, 29_000_000);
+  assert.equal(m1.napId, 'a1');
+  const noPay = liveOf([site('a1', 56.95, 24.11, 'Elektrum Drive', [pt('ccs', 50, 'free', 0.44)], { pay: [] })]);
+  assert.deepEqual(UR.mergeLive(osm, noPay, { bbox: BBOX, now: NOW })[0].pay, ['card']);
+  // NAP-площадка без поля pay (старый live.json) не ломает работу
+  const old = liveOf([site('a2', 56.97, 24.13, 'Elektrum Drive', [pt('ccs', 50, 'free', 0.44)])]);
+  assert.deepEqual(UR.mergeLive([], old, { bbox: BBOX, now: NOW })[0].pay, []);
+});
+
+test('rigaClock: час и выходной по времени Риги', () => {
+  // вторник 27.10.2026 10:00 UTC: в Риге 12:00, будни
+  assert.deepEqual(UR.rigaClock(Date.parse('2026-10-27T10:00:00Z')), { hour: 12, weekend: false });
+  // пятница 30.10 22:30 UTC: в Риге уже суббота 00:30
+  assert.deepEqual(UR.rigaClock(Date.parse('2026-10-30T22:30:00Z')), { hour: 0, weekend: true });
+  // летнее время (UTC+3): 15.07.2026 (среда) 10:00 UTC = 13:00
+  assert.deepEqual(UR.rigaClock(Date.parse('2026-07-15T10:00:00Z')), { hour: 13, weekend: false });
+});
+
+test('patternFor: берёт нужные сутки и текущий час, без данных возвращает null', () => {
+  const row = Array.from({ length: 48 }, (_, i) => (i === 12 ? 40 : i === 36 ? 90 : -1));
+  const patterns = { since: '2026-10-27', sites: { a1: row } };
+  const st = { napId: 'a1' };
+  const weekday = UR.patternFor(st, patterns, Date.parse('2026-10-27T10:00:00Z'));
+  assert.equal(weekday.now, 40);
+  assert.equal(weekday.weekend, false);
+  assert.equal(weekday.hours.length, 24);
+  const weekend = UR.patternFor(st, patterns, Date.parse('2026-10-31T10:00:00Z')); // суббота 12:00
+  assert.equal(weekend.weekend, true);
+  assert.equal(weekend.now, 90);
+  assert.equal(UR.patternFor({ napId: 'zzz' }, patterns), null);
+  assert.equal(UR.patternFor({ napId: 'a1' }, { sites: { a1: new Array(48).fill(-1) } }), null);
+  assert.equal(UR.patternFor({}, patterns), null);
+  assert.equal(UR.patternFor(st, null), null);
+});
+
 console.log('\n' + passed + ' tests passed');

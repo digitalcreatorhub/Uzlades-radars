@@ -45,9 +45,9 @@
       prioBalanced: 'Баланс', prioCheap: 'Дешевле', prioNear: 'Ближе',
       noResults: 'Под эти фильтры станций нет. Попробуйте другой разъём или мощность.',
       alsoGood: 'Ещё варианты',
-      distCenter: '{n} км от центра Риги', distYou: '{n} км от вас',
+      distCenter: '{n} км от центра', distYou: '{n} км от вас',
       per100: 'за 100 км хода',
-      minFor100: '≈ {n} мин на 100 км хода',
+      minFor100: '≈ {n} мин на 100 км',
       priceUnknown: 'цена не известна',
       perKwh: '€/кВт·ч',
       go: 'Поехали',
@@ -57,16 +57,23 @@
       operator: 'Сеть', otherNet: 'Другая сеть', unnamed: 'Станция без названия',
       allOperators: 'Все сети',
       count: '{n} станций',
-      dtPower: 'Мощность', dtSockets: 'Разъёмы', dtPoints: 'Точек', dtPrice: 'Цена', dtFee: 'Оплата',
+      dtPower: 'Мощность', dtSockets: 'Разъёмы', dtPoints: 'Точек', dtPrice: 'Цена', dtFee: 'Стоимость',
       dtHours: 'Часы работы', dtAddress: 'Адрес', dtBusy: 'Занятость', dtLiveList: 'Точки',
       powerEst: '{n} кВт (оценка)', powerKnown: 'до {n} кВт', powerNone: 'не указана',
       feeYes: 'платная', feeNo: 'бесплатная',
       busyUnknown: 'Нет данных. Свободна ли станция, покажет приложение сети.',
       priceNote: 'ориентир', priceLive: 'по данным станции',
       liveFree: 'Свободно {f} из {n}', liveBusy: 'Все заняты', liveOut: 'Не работает', liveUnknown: 'Статус неизвестен',
-      liveAsOf: 'Статус свободных зарядок на {time}', liveNone: 'Статус зарядок сейчас недоступен',
+      liveAsOf: 'Статус свободных зарядок на {time}', liveUpd: 'обновлено {time}', liveNone: 'Статус зарядок сейчас недоступен',
       liveStaleNote: 'Статус устарел ({time}), не показываю его как актуальный',
       ptFree: 'свободна', ptBusy: 'занята', ptOut: 'не работает', ptUnk: 'нет данных',
+      busySince: 'занята с {time}', outSince: 'не работает с {time}',
+      payTitle: 'Как оплатить', payShort: 'Оплата',
+      payApp: 'Приложение сети', payRfid: 'RFID-карта', payCard: 'Банковская карта',
+      payAppShort: 'Приложение', payRfidShort: 'RFID', payCardShort: 'Карта',
+      usualTitle: 'Обычно здесь занято', usualWeekday: 'будни', usualWeekend: 'выходные',
+      usualNow: 'Сейчас обычно занято ≈ {n}%', usualSince: 'по данным с {date}',
+      usualLine: 'В это время обычно занято ≈ {n}%',
       liveSource: 'Статус и цены: Eco-Movement через национальную точку доступа Латвии (CC0).',
       pricesLiveIntro: 'Цены в €/кВт·ч с НДС по данным самих станций на {time}. Где данных нет, ориентир от {date}.',
       fixOsm: 'Ошибка в данных? Исправить на OpenStreetMap',
@@ -113,9 +120,9 @@
       prioBalanced: 'Balanced', prioCheap: 'Cheaper', prioNear: 'Closer',
       noResults: 'No stations match these filters. Try another connector or power.',
       alsoGood: 'More options',
-      distCenter: '{n} km from central Riga', distYou: '{n} km from you',
+      distCenter: '{n} km from centre', distYou: '{n} km from you',
       per100: 'per 100 km of range',
-      minFor100: '≈ {n} min for 100 km of range',
+      minFor100: '≈ {n} min per 100 km',
       priceUnknown: 'price unknown',
       perKwh: '€/kWh',
       go: 'Go',
@@ -125,16 +132,23 @@
       operator: 'Network', otherNet: 'Other network', unnamed: 'Unnamed station',
       allOperators: 'All networks',
       count: '{n} stations',
-      dtPower: 'Power', dtSockets: 'Connectors', dtPoints: 'Points', dtPrice: 'Price', dtFee: 'Payment',
+      dtPower: 'Power', dtSockets: 'Connectors', dtPoints: 'Points', dtPrice: 'Price', dtFee: 'Cost',
       dtHours: 'Hours', dtAddress: 'Address', dtBusy: 'Availability', dtLiveList: 'Points',
       powerEst: '{n} kW (estimate)', powerKnown: 'up to {n} kW', powerNone: 'not listed',
       feeYes: 'paid', feeNo: 'free',
       busyUnknown: 'No data. The network app shows whether the station is free.',
       priceNote: 'indicative', priceLive: 'from the station',
       liveFree: '{f} of {n} free', liveBusy: 'All busy', liveOut: 'Out of service', liveUnknown: 'Status unknown',
-      liveAsOf: 'Availability as of {time}', liveNone: 'Availability is unavailable right now',
+      liveAsOf: 'Availability as of {time}', liveUpd: 'updated {time}', liveNone: 'Availability is unavailable right now',
       liveStaleNote: 'Availability is out of date ({time}), not shown as current',
       ptFree: 'free', ptBusy: 'in use', ptOut: 'out of service', ptUnk: 'no data',
+      busySince: 'in use since {time}', outSince: 'out of service since {time}',
+      payTitle: 'How to pay', payShort: 'Pay with',
+      payApp: 'Network app', payRfid: 'RFID card', payCard: 'Bank card',
+      payAppShort: 'App', payRfidShort: 'RFID', payCardShort: 'Card',
+      usualTitle: 'Usually busy here', usualWeekday: 'weekdays', usualWeekend: 'weekends',
+      usualNow: 'Usually ≈ {n}% busy right now', usualSince: 'data since {date}',
+      usualLine: 'Usually ≈ {n}% busy at this time',
       liveSource: 'Availability and prices: Eco-Movement via the Latvian national access point (CC0).',
       pricesLiveIntro: 'Prices in €/kWh incl. VAT as reported by the stations at {time}. Where there is no data: indicative as of {date}.',
       fixOsm: 'Wrong data? Fix it on OpenStreetMap',
@@ -170,6 +184,7 @@
   const state = {
     osm: [], // станции из OpenStreetMap
     live: null, // live.json из национальной точки доступа
+    patterns: null, // patterns.json: «когда обычно занято»
     stations: [], // результат слияния: их показываем
     liveError: false,
     origin: { lat: RIGA.lat, lon: RIGA.lon, real: false },
@@ -315,7 +330,26 @@
     if (state.status === 'error' && state.stations.length) setStatus(null);
   }
 
+  // «Когда обычно занято»: файл меняется медленно, грузим при запуске и изредка обновляем. Нет файла: просто нет графика.
+  const PATTERNS_URL = 'https://raw.githubusercontent.com/digitalcreatorhub/Uzlades-radars/live/patterns.json';
+  let patternsLoadedAt = 0;
+  async function loadPatterns() {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 15000);
+    try {
+      const res = await fetch(PATTERNS_URL, { signal: ctl.signal, cache: 'no-cache' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      if (!data || typeof data.sites !== 'object') throw new Error('bad patterns.json');
+      state.patterns = data;
+      patternsLoadedAt = Date.now();
+      quietRender = true;
+      try { renderPanel(); } finally { quietRender = false; }
+    } catch (e) { /* без графика обойдёмся */ } finally { clearTimeout(timer); }
+  }
+
   document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && Date.now() - patternsLoadedAt > 30 * 60 * 1000) loadPatterns();
     if (document.visibilityState === 'visible' && Date.now() - liveLoadedAt > 2 * 60 * 1000) loadLive(true);
   });
   setInterval(() => { if (document.visibilityState === 'visible') loadLive(true); }, LIVE_REFRESH_MS);
@@ -423,6 +457,56 @@
     return state.geoDenied ? t('locDeniedLine') : t('fromCenter');
   }
 
+  // Плашки «как оплатить». Для неизвестного ничего не рисуем: выдумывать способ оплаты нельзя.
+  function payChips(st, withLabel) {
+    if (!st.pay || !st.pay.length) return '';
+    // в тесной карточке на карте короткие подписи, в «Подробнее» полные
+    const names = withLabel ? { app: 'payAppShort', rfid: 'payRfidShort', card: 'payCardShort' } : { app: 'payApp', rfid: 'payRfid', card: 'payCard' };
+    const chips = st.pay.filter((k) => names[k]).map((k) => '<span class="chip-pay chip-pay-' + k + '">' + esc(t(names[k])) + '</span>').join('');
+    if (!chips) return '';
+    return '<div class="pay">' + (withLabel ? '<span class="pay-label">' + esc(t('payShort')) + '</span>' : '') + chips + '</div>';
+  }
+
+  // «занята с 12:40»: когда статус точки сменился. Старше суток не показываем: смысла мало.
+  function sinceText(p) {
+    if (!p.u || (p.s !== 'busy' && p.s !== 'out')) return '';
+    const ms = p.u * 60000;
+    const age = Date.now() - ms;
+    if (age < 0 || age > 24 * 3600 * 1000) return '';
+    const d = new Date(ms);
+    const sameDay = d.toDateString() === new Date().toDateString();
+    const time = (sameDay ? '' : String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0') + ' ') + fmtTime(ms);
+    return t(p.s === 'busy' ? 'busySince' : 'outSince', { time });
+  }
+
+  // Свежий статус и у лучшей станции он есть: время обновления показываем рядом с бейджем, отдельная строка не нужна
+  function liveFreshForBest(ranked) {
+    return !!(state.live && UR.isLiveFresh(state.live) && ranked.length && ranked[0].live);
+  }
+
+  function usualLine(st) {
+    const pat = UR.patternFor(st, state.patterns);
+    return pat && pat.now >= 0 ? '<div class="usual-line">' + esc(t('usualLine', { n: pat.now })) + '</div>' : '';
+  }
+
+  // График «когда обычно занято» по часам: только если накоплено достаточно замеров
+  function usualChart(st) {
+    const pat = UR.patternFor(st, state.patterns);
+    if (!pat) return '';
+    const bars = pat.hours.map((v, h) => {
+      const cls = v < 0 ? 'na' : v < 35 ? 'lo' : v < 65 ? 'mid' : 'hi';
+      const label = String(h).padStart(2, '0') + ':00 ' + (v < 0 ? '–' : v + '%');
+      return '<i class="' + cls + (h === pat.hour ? ' cur' : '') + '" style="height:' + (v < 0 ? 6 : Math.max(8, v)) + '%" title="' + esc(label) + '"></i>';
+    }).join('');
+    const since = pat.since ? pat.since.split('-').reverse().join('.') : '';
+    return (
+      '<div class="usual"><div class="usual-head"><b>' + esc(t('usualTitle')) + '</b><span>' + esc(t(pat.weekend ? 'usualWeekend' : 'usualWeekday')) + '</span></div>' +
+      '<div class="bars" role="img" aria-label="' + esc(t('usualTitle')) + '">' + bars + '</div>' +
+      '<div class="axis"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div>' +
+      '<p class="note">' + (pat.now >= 0 ? esc(t('usualNow', { n: pat.now })) : '') + (since ? ' · ' + esc(t('usualSince', { date: since })) : '') + '</p></div>'
+    );
+  }
+
   function fmtTime(ms) {
     const d = new Date(ms);
     return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
@@ -466,7 +550,7 @@
       '</div>' +
       '<div class="origin-line"><span>' + esc(originText()) + '</span>' +
       '<button class="link-btn" id="btn-locate">' + esc(state.locating ? t('locating') : t('locate')) + '</button></div>' +
-      (liveNote() ? '<div class="live-note">' + esc(liveNote()) + '</div>' : '');
+      (liveNote() && !liveFreshForBest(ranked) ? '<div class="live-note">' + esc(liveNote()) + '</div>' : '');
 
     if (!ranked.length) {
       html += '<p class="empty">' + esc(state.stations.length ? t('noResults') : state.status === 'loading' ? t('loading') : '') + '</p>';
@@ -479,7 +563,7 @@
     html +=
       '<article class="best">' +
       '<div class="best-head"><div><h2>' + esc(stationTitle(st)) + '</h2><div class="sub">' + esc(stationSub(st)) + '</div>' +
-      (best.live ? '<div class="live-line">' + livePill(best.live) + '</div>' : '') + '</div>' +
+      (best.live ? '<div class="live-line">' + livePill(best.live) + (state.live && UR.isLiveFresh(state.live) ? ' <span class="live-time">' + esc(t('liveUpd', { time: fmtTime(UR.liveTime(state.live)) })) + '</span>' : '') + '</div>' : '') + '</div>' +
       gauge(st, true) + '</div>' +
       '<div class="facts">' +
       '<div><b>' + esc(t(state.origin.real ? 'distYou' : 'distCenter', { n: fmtKm(best.distKm) })) + '</b>' +
@@ -487,7 +571,7 @@
       '<div>' + (best.price
         ? '<b>' + fmtRange(best.price) + ' ' + esc(t('perKwh')) + '</b> <span>≈ ' + fmtEur(best.costPer100) + ' € ' + esc(t('per100')) + '</span>'
         : '<span>' + esc(t('priceUnknown')) + '</span>') + '</div>' +
-      '</div>' + navLinks(st, true) +
+      '</div>' + payChips(st, true) + usualLine(st) + navLinks(st, true) +
       '</article>';
 
     const more = ranked.slice(1, 4);
@@ -567,7 +651,7 @@
         const kw = p.kw ? ' ' + Math.round(p.kw) + ' ' + (lang === 'ru' ? 'кВт' : 'kW') : '';
         const price = p.p != null ? fmtEur(p.p) + ' ' + t('perKwh') : '';
         return '<li><span class="pt-dot pt-' + esc(p.s) + '"></span><span class="pt-name">' + esc(name + kw) + '</span>' +
-          '<span class="pt-state">' + esc(t(key[p.s] || 'ptUnk')) + '</span><span class="pt-price">' + esc(price) + '</span></li>';
+          '<span class="pt-state">' + esc(sinceText(p) || t(key[p.s] || 'ptUnk')) + '</span><span class="pt-price">' + esc(price) + '</span></li>';
       }).join('') +
       '</ul>'
     );
@@ -584,6 +668,8 @@
     rows.push([t('dtSockets'), socketsText(st)]);
     if (st.points) rows.push([t('dtPoints'), String(st.points)]);
     rows.push([t('dtPrice'), price ? fmtRange(price) + ' ' + t('perKwh') + ' (' + t(livePrice ? 'priceLive' : 'priceNote') + ')' : t('priceUnknown')]);
+    const payHtml = payChips(st, false);
+    if (payHtml) rows.push([t('payTitle'), payHtml, true]);
     if (st.fee) rows.push([t('dtFee'), st.fee === 'yes' ? t('feeYes') : st.fee === 'no' ? t('feeNo') : st.fee]);
     if (st.hours) rows.push([t('dtHours'), st.hours]);
     if (st.address) rows.push([t('dtAddress'), st.address]);
@@ -593,9 +679,10 @@
       '<button class="link-btn back" id="btn-back">' + esc(t('back')) + '</button>' +
       '<div class="detail"><div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">' +
       '<div><h2>' + esc(stationTitle(st)) + '</h2><div class="sub">' + esc(st.operatorName || t('otherNet')) + '</div></div>' + gauge(st, true) + '</div>' +
-      '<dl>' + rows.map(([k, v]) => '<dt>' + esc(k) + '</dt><dd>' + esc(v) + '</dd>').join('') +
+      '<dl>' + rows.map(([k, v, raw]) => '<dt>' + esc(k) + '</dt><dd>' + (raw ? v : esc(v)) + '</dd>').join('') +
       '<dt>' + esc(t('dtBusy')) + '</dt><dd>' + busyHtml + '</dd></dl>' +
       (st.live ? livePoints(st) + (liveNote() ? '<p class="note">' + esc(liveNote()) + '</p>' : '') : '') +
+      usualChart(st) +
       navLinks(st) +
       (osm ? '<p class="note" style="margin-top:14px"><a href="' + osm + '" target="_blank" rel="noopener" style="color:var(--muted)">' + esc(t('fixOsm')) + '</a></p>' : '') +
       (st.live ? '<p class="note">' + esc(t('liveSource')) + '</p>' : '') + '</div>';
@@ -840,6 +927,7 @@
   renderAll();
   loadStations(false);
   loadLive(false);
+  loadPatterns();
 
   locateOnOpen();
 
