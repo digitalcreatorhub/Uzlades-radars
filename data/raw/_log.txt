@@ -1,0 +1,8 @@
+2026-10-27T09:40:17Z metadata 978835ee-f55b-481c-9791-ba0395d3619a -> HTTP 500 (61 bytes)
+2026-10-27T09:40:18Z metadata a377a160-baa1-4b67-b4e8-6612cd289e22 -> HTTP 500 (61 bytes)
+2026-10-27T09:40:18Z ev file list -> HTTP 200
+2026-10-27T09:40:19Z ev download file_id=1 format=geojson -> HTTP 403 (59 bytes)
+2026-10-27T09:40:20Z ev download file_id=1 format=xml -> HTTP 403 (59 bytes)
+2026-10-27T09:40:22Z ev download file_id=146848 format=geojson -> HTTP 200 (1926832 bytes)
+2026-10-27T09:40:24Z ev download file_id=146848 format=xml -> HTTP 200 (1926832 bytes)
+2026-10-27T09:40:24Z prices: ключ не задан, пропускаю
