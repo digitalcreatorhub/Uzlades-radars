@@ -118,6 +118,10 @@ button:focus-visible, select:focus-visible, a:focus-visible {
 main { position: relative; flex: 1; min-height: 0; }
 #map { position: absolute; inset: 0; background: var(--bg); }
 .leaflet-container { font-family: inherit; background: var(--bg); }
+/* тёмная карта из светлых тайлов OSM: инверсия и приглушённые цвета */
+.dark-tiles .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.88) contrast(0.92) saturate(0.55);
+}
 .leaflet-control-attribution {
   font-size: 10px;
   background: color-mix(in srgb, var(--bg) 80%, transparent) !important;

@@ -165,11 +165,13 @@
     } catch (e) { return null; }
   }
 
+  // Спрашиваем все зеркала Overpass одновременно, берём первый хороший ответ.
   async function fetchElements() {
-    let lastErr = new Error('no endpoints');
-    for (const url of ENDPOINTS) {
+    const controllers = [];
+    const attempt = async (url) => {
       const ctl = new AbortController();
-      const timer = setTimeout(() => ctl.abort(), 30000);
+      controllers.push(ctl);
+      const timer = setTimeout(() => ctl.abort(), 20000);
       try {
         const res = await fetch(url, {
           method: 'POST',
@@ -181,13 +183,15 @@
         const json = await res.json();
         if (!json || !Array.isArray(json.elements)) throw new Error('bad response');
         return json.elements;
-      } catch (e) {
-        lastErr = e;
       } finally {
         clearTimeout(timer);
       }
+    };
+    try {
+      return await Promise.any(ENDPOINTS.map(attempt));
+    } finally {
+      controllers.forEach((c) => { try { c.abort(); } catch (e) { /* уже завершён */ } });
     }
-    throw lastErr;
   }
 
   async function loadStations(force) {
@@ -225,14 +229,14 @@
     setTiles();
   }
 
+  // Стандартные тайлы OpenStreetMap (ключ не нужен). Тёмная тема: CSS-фильтр на слое тайлов.
   function setTiles() {
     if (tiles) tiles.remove();
-    const flavor = state.theme === 'dark' ? 'dark_all' : 'light_all';
-    tiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/' + flavor + '/{z}/{x}/{y}{r}.png', {
-      subdomains: 'abcd',
+    tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>',
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     }).addTo(map);
+    $('map').classList.toggle('dark-tiles', state.theme === 'dark');
   }
 
   function renderMarkers(list) {
