@@ -78,6 +78,7 @@
       usualTitle: 'Обычно здесь занято', usualWeekday: 'будни', usualWeekend: 'выходные',
       usualNow: 'Сейчас обычно занято ≈ {n}%', usualSince: 'по данным с {date}',
       usualLine: 'В это время обычно занято ≈ {n}%',
+      dtEta: 'Прогноз', etaIn: 'Освободится примерно через {min} мин (обычно зарядка здесь ≈ {typ} мин)', etaSoon: 'Скоро может освободиться (обычно зарядка здесь ≈ {typ} мин)', etaOver: 'Занято дольше обычного ({typ} мин): может освободиться в любой момент',
       liveSource: 'Статус и цены: Eco-Movement через национальную точку доступа Латвии (CC0).',
       updAvail: 'Доступна новая версия приложения', updGo: 'Обновить', verLine: 'Версия {v}',
       pricesLiveIntro: 'Цены в €/кВт·ч с НДС по данным самих станций на {time}. Где данных нет, ориентир от {date}.',
@@ -220,6 +221,7 @@
       usualTitle: 'Usually busy here', usualWeekday: 'weekdays', usualWeekend: 'weekends',
       usualNow: 'Usually ≈ {n}% busy right now', usualSince: 'data since {date}',
       usualLine: 'Usually ≈ {n}% busy at this time',
+      dtEta: 'Forecast', etaIn: 'Should free up in about {min} min (charging here usually takes ≈ {typ} min)', etaSoon: 'May free up soon (charging here usually takes ≈ {typ} min)', etaOver: 'Busy longer than usual ({typ} min): may free up any minute',
       liveSource: 'Availability and prices: Eco-Movement via the Latvian national access point (CC0).',
       updAvail: 'A new version of the app is available', updGo: 'Update', verLine: 'Version {v}',
       pricesLiveIntro: 'Prices in €/kWh incl. VAT as reported by the stations at {time}. Where there is no data: indicative as of {date}.',
@@ -1018,6 +1020,17 @@
     return !!(state.live && UR.isLiveFresh(state.live) && ranked.length && ranked[0].live);
   }
 
+  // Когда освободится занятая станция: по тому, сколько такие зарядки на этой площадке обычно длятся (patterns.dur). Только если заняты все точки.
+  function etaText(st) {
+    const sum = UR.liveSummary(st, state.filters);
+    if (!sum || sum.level !== 'busy') return '';
+    const e = UR.freeEta(st, state.patterns);
+    if (!e) return '';
+    if (e.over) return t('etaOver', { typ: e.typical });
+    if (e.min < 5) return t('etaSoon', { typ: e.typical });
+    return t('etaIn', { min: Math.round(e.min / 5) * 5, typ: e.typical });
+  }
+
   function usualLine(st) {
     const pat = UR.patternFor(st, state.patterns);
     return pat && pat.now >= 0 ? '<div class="usual-line">' + esc(t('usualLine', { n: pat.now })) + '</div>' : '';
@@ -1145,7 +1158,7 @@
       '<div>' + (best.price
         ? '<b>' + fmtRange(best.price) + ' ' + esc(t('perKwh')) + '</b><span>' + esc(priceCaption(best)) + '</span>'
         : '<b>' + esc(t('priceUnknown')) + '</b>') + '</div>' +
-      '</div>' + payChips(st, true) + usualLine(st) + navLinks(st, true) +
+      '</div>' + payChips(st, true) + (etaText(st) ? '<div class="usual-line eta-line">' + esc(etaText(st)) + '</div>' : '') + usualLine(st) + navLinks(st, true) +
       '</article>';
 
     const more = ranked.slice(1, 4);
@@ -1471,7 +1484,7 @@
       '<div><h2>' + esc(stationTitle(st)) + '</h2><div class="sub">' + esc(st.operatorName || t('otherNet')) + '</div></div>' + gauge(st, true) + '</div>' +
       toolsHtml(st) +
       '<dl>' + rows.map(([k, v, raw]) => '<dt>' + esc(k) + '</dt><dd>' + (raw ? v : esc(v)) + '</dd>').join('') +
-      '<dt>' + esc(t('dtBusy')) + '</dt><dd>' + busyHtml + '</dd></dl>' +
+      '<dt>' + esc(t('dtBusy')) + '</dt><dd>' + busyHtml + '</dd>' + (etaText(st) ? '<dt>' + esc(t('dtEta')) + '</dt><dd>' + esc(etaText(st)) + '</dd>' : '') + '</dl>' +
       insightsHtml(st) +
       carBlock(st, price) +
       compareBlock(price) +

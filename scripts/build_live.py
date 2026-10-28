@@ -246,6 +246,11 @@ MIN_SAMPLES = 12   # меньше замеров в корзине (это ~3 д
 REL_MIN = 192      # столько снимков (~2 суток) нужно, чтобы говорить о надёжности площадки
 PX_KEEP = 12       # сколько последних смен цены хранить по площадке
 PX_RECENT_DAYS = 14  # «подорожала/подешевела» показываем, если смена была не раньше
+DUR_KEEP = 24      # сколько последних длительностей занятости хранить по площадке
+DUR_MAX_MIN = 24 * 60  # дольше суток занятость считаем ночёвкой у розетки и не берём
+DUR_MIN_N = 4      # меньше стольких зарядок медиану не показываем
+DUR_GAP_MIN = 60   # если между снимками прошло больше, момент освобождения неизвестен
+DUR_FAST_KW = 43   # быстрые (DC/мощные) и медленные точки заряжаются по-разному
 
 
 def site_price(site):
@@ -281,6 +286,18 @@ def update_history(state, live, now=None):
         return False  # устаревший поток в статистику не берём
     b = bucket_of(now)
     today = now.astimezone(RIGA).strftime('%Y-%m-%d')
+    cur_ts = datetime.fromisoformat(st_time.replace('Z', '+00:00')).timestamp()
+    prev_busy = state.get('busy') or {}
+    mid_min = None
+    if state.get('lastStatusTime'):
+        try:
+            prev_ts = datetime.fromisoformat(state['lastStatusTime'].replace('Z', '+00:00')).timestamp()
+            if 0 < cur_ts - prev_ts <= DUR_GAP_MIN * 60:
+                mid_min = (prev_ts + cur_ts) / 2 // 60  # занятая точка освободилась где-то между снимками: берём середину
+        except ValueError:
+            pass
+    new_busy = {}
+    dur = state.setdefault('dur', {})
     rel = state.setdefault('rel', {})
     px = state.setdefault('px', {})
     for site in live['sites']:
@@ -291,6 +308,19 @@ def update_history(state, live, now=None):
             r = rel.setdefault(site['id'], [0.0, 0])
             r[0] = round(r[0] + out / known, 3)
             r[1] += 1
+        # длительность занятости: точка была занята, стала свободной, значит, зарядка закончилась
+        for p in site['pts']:
+            e = p.get('e')
+            if not e:
+                continue
+            if p.get('s') == 'busy' and isinstance(p.get('u'), int):
+                new_busy[e] = p['u']
+            elif p.get('s') == 'free' and e in prev_busy and mid_min is not None:
+                d = int(mid_min - prev_busy[e])
+                if 1 <= d <= DUR_MAX_MIN:
+                    rows = dur.setdefault(site['id'], [])
+                    rows.append([d, int(round(p.get('kw') or 0))])
+                    del rows[:-DUR_KEEP]
         # цена: пишем только смены, чтобы файл не рос
         price = site_price(site)
         if price is not None:
@@ -305,6 +335,7 @@ def update_history(state, live, now=None):
         rec = state['sites'].setdefault(site['id'], {'s': [0.0] * HIST_BUCKETS, 'n': [0] * HIST_BUCKETS})
         rec['s'][b] = round(rec['s'][b] + busy / (free + busy), 3)
         rec['n'][b] += 1
+    state['busy'] = new_busy
     state['lastStatusTime'] = st_time
     return True
 
@@ -331,6 +362,16 @@ def render_patterns(state, now=None):
             continue
         if (today - changed).days <= PX_RECENT_DAYS:
             px[sid] = [hist[-1][1], hist[-2][1], hist[-1][0]]
+    # длительность зарядки: медиана по быстрым и по медленным точкам площадки [минуты, число зарядок]
+    dur = {}
+    for sid, rows in state.get('dur', {}).items():
+        out = {}
+        for key, pick in (('f', lambda kw: kw >= DUR_FAST_KW), ('s', lambda kw: kw < DUR_FAST_KW)):
+            vals = sorted(d for d, kw in rows if pick(kw))
+            if len(vals) >= DUR_MIN_N:
+                out[key] = [vals[len(vals) // 2] if len(vals) % 2 else (vals[len(vals) // 2 - 1] + vals[len(vals) // 2]) // 2, len(vals)]
+        if out:
+            dur[sid] = out
     return {
         'v': 1,
         'since': state.get('since'),
@@ -340,6 +381,8 @@ def render_patterns(state, now=None):
         'sites': sites,
         'rel': rel,
         'px': px,
+        'dur': dur,
+        'durMin': DUR_MIN_N,
     }
 
 

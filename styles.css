@@ -971,3 +971,5 @@ input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); ou
 }
 .upd .btn { white-space: nowrap; }
 .note.ver { margin-top: 14px; text-align: center; opacity: 0.7; }
+
+.eta-line { color: var(--busy); font-weight: 700; }
