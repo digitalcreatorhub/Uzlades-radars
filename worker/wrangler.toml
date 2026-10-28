@@ -1,0 +1,11 @@
+# Worker «uzlades-push»: хранит подписки телефонов на пуши «освободилась зарядка».
+# Выкладывается из GitHub Actions (.github/workflows/deploy-worker.yml).
+# VAPID_PUBLIC передаётся при выкладке (--var), ADMIN_TOKEN кладётся как секрет.
+name = "uzlades-push"
+main = "index.js"
+compatibility_date = "2026-10-28"
+workers_dev = true
+
+[[kv_namespaces]]
+binding = "SUBS"
+id = "1789b6272f3144e9899b4b4a1b58954d"

@@ -511,6 +511,63 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
     await cD.close();
   }
 
+  // пуши при закрытом приложении: подписка уходит на сервер при слежении и снимается при отмене
+  {
+    const SUB_ENDPOINT = 'https://fcm.googleapis.com/fcm/send/smoke-test';
+    const cK = await browser.newContext({ viewport: { width: 390, height: 780 }, serviceWorkers: 'block' });
+    const pk = await cK.newPage();
+    const errK = [];
+    pk.on('pageerror', (e) => errK.push('pageerror: ' + e.message));
+    pk.on('dialog', (d) => { errK.push('dialog: ' + d.message()); d.dismiss(); });
+    // настоящих push-сервисов в безголовом Chromium нет: подставляем сервис-воркер и подписку, остальное работает как есть
+    await pk.addInitScript((endpoint) => {
+      window.Notification = class { static get permission() { return 'granted'; } static requestPermission() { return Promise.resolve('granted'); } };
+      window.PushManager = function PushManager() {};
+      let sub = null;
+      const mk = (key) => ({ endpoint, options: { applicationServerKey: key }, toJSON: () => ({ endpoint, keys: { p256dh: 'B'.repeat(87), auth: 'a'.repeat(22) } }), unsubscribe: async () => { sub = null; window.__unsubscribed = (window.__unsubscribed || 0) + 1; return true; } });
+      const reg = { pushManager: { getSubscription: async () => sub, subscribe: async (o) => { window.__subscribeOpts = { userVisibleOnly: o.userVisibleOnly, keyLen: o.applicationServerKey.length }; sub = mk(o.applicationServerKey.buffer); return sub; } }, showNotification: async () => {} };
+      Object.defineProperty(navigator, 'serviceWorker', { get: () => ({ ready: Promise.resolve(reg), register: async () => reg, addEventListener() {} }) });
+    }, SUB_ENDPOINT);
+    await routeFor(pk, liveDoc(minsAgo(3)), null);
+    const pushCalls = [];
+    await pk.route('**/push-config.json', (r) => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ api: 'https://push.test' }) }));
+    await pk.route('https://push.test/**', async (route) => {
+      const u = new URL(route.request().url());
+      const h = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'Content-Type', 'content-type': 'application/json' };
+      if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers: h });
+      pushCalls.push({ path: u.pathname, body: route.request().postData() ? JSON.parse(route.request().postData()) : null });
+      if (u.pathname === '/vapid') return route.fulfill({ headers: h, body: JSON.stringify({ key: 'B'.repeat(87) }) });
+      return route.fulfill({ headers: h, body: JSON.stringify({ ok: true }) });
+    });
+    await pk.goto(base + '/?st=a2');
+    await pk.waitForSelector('.detail', { timeout: 8000 });
+    await pk.click('[data-watch]');
+    await pk.waitForFunction(() => !!window.__subscribeOpts, null, { timeout: 8000 }).catch(() => {});
+    await pk.waitForTimeout(400);
+    const sync = pushCalls.find((c) => c.path === '/sync');
+    check('пуши: при слежении телефон подписался на сервере push', (await pk.evaluate(() => window.__subscribeOpts && window.__subscribeOpts.userVisibleOnly)) === true && (await pk.evaluate(() => window.__subscribeOpts.keyLen)) > 60);
+    check('пуши: на сервер ушла подписка и станция под слежением', !!sync && sync.body.sub.endpoint === SUB_ENDPOINT && sync.body.lang === 'ru' && sync.body.watch.length === 1 && sync.body.watch[0].napId === 'a2' && sync.body.watch[0].free === 0, JSON.stringify(sync && sync.body));
+    await pk.click('[data-watch]');
+    await pk.waitForTimeout(500);
+    const un = pushCalls.find((c) => c.path === '/unsubscribe');
+    check('пуши: при отмене слежения подписка снимается и на сервере, и в браузере', !!un && un.body.endpoint === SUB_ENDPOINT && (await pk.evaluate(() => window.__unsubscribed)) === 1);
+    check('пуши: нет JS-ошибок', errK.length === 0, errK.join(' || '));
+    await cK.close();
+
+    // без адреса сервера в push-config.json приложение не делает никаких запросов к серверу
+    const cK2 = await browser.newContext({ viewport: { width: 390, height: 780 }, serviceWorkers: 'block' });
+    const pk2 = await cK2.newPage();
+    await routeFor(pk2, liveDoc(minsAgo(3)), null);
+    let leaked = 0;
+    await pk2.route('https://push.test/**', (r) => { leaked++; r.abort(); });
+    await pk2.goto(base + '/?st=a2');
+    await pk2.waitForSelector('.detail', { timeout: 8000 });
+    await pk2.click('[data-watch]');
+    await pk2.waitForTimeout(500);
+    check('пуши: без адреса сервера слежение работает и ничего не отправляется', leaked === 0 && (await pk2.evaluate(() => JSON.parse(localStorage.getItem('ur_watch_v1') || '[]').length)) === 1);
+    await cK2.close();
+  }
+
   // журнал зарядок и удобства рядом
   {
     const AMEN = { elements: [

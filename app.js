@@ -133,6 +133,7 @@
       watchNoLive: 'Для этой станции нет статуса в реальном времени.',
       watchFreeNow: 'Свободная зарядка уже есть.',
       watchFreed: 'Освободилась: {name}',
+      pushIos: 'На iPhone уведомления при закрытом приложении работают, только если добавить его на экран «Домой».',
       watchOff: 'Больше не слежу',
       searchPh: 'Название, адрес или сеть', searchClear: 'Сбросить поиск',
       routeFrom: 'Откуда', routeTo: 'Куда', routeFromMine: 'Моё место', routeToPh: 'Город или адрес',
@@ -269,6 +270,7 @@
       watchNoLive: 'This station has no live status.',
       watchFreeNow: 'A free charger is already available.',
       watchFreed: 'Now free: {name}',
+      pushIos: 'On iPhone, notifications while the app is closed only work if you add it to the Home Screen.',
       watchOff: 'Stopped watching',
       searchPh: 'Name, address or network', searchClear: 'Clear search',
       routeFrom: 'From', routeTo: 'To', routeFromMine: 'My location', routeToPh: 'City or address',
@@ -572,6 +574,7 @@
       state.watch.splice(i, 1);
       writeJson('ur_watch_v1', state.watch);
       toast(t('watchOff'));
+      pushSync();
       return;
     }
     const sum = UR.liveSummary(st, null);
@@ -580,6 +583,58 @@
     state.watch.push(Object.assign(r, { free: sum.free }));
     writeJson('ur_watch_v1', state.watch);
     toast(sum.free > 0 ? t('watchFreeNow') : t('watchOn'));
+    pushSync();
+    if (PUSH.api && isIosBrowserTab()) setTimeout(() => toast(t('pushIos')), 2600);
+  }
+
+  /* ---------- пуши при закрытом приложении ---------- */
+  // Адрес Worker лежит в push-config.json (пусто, пока сервер не выложен: тогда работают только уведомления при открытом приложении)
+  const PUSH = { api: null };
+  const pushSupported = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  const isIosBrowserTab = () => /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window.navigator.standalone || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches));
+
+  async function loadPushConfig() {
+    try {
+      const res = await fetch('push-config.json', { cache: 'no-store' });
+      if (!res.ok) return;
+      const j = await res.json();
+      if (j && typeof j.api === 'string' && /^https:\/\/[^\s]+$/.test(j.api)) PUSH.api = j.api.replace(/\/+$/, '');
+    } catch (e) { /* без конфига пуши просто выключены */ }
+  }
+
+  const b64urlToBytes = (b64) => {
+    const pad = '='.repeat((4 - (b64.length % 4)) % 4);
+    const raw = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/'));
+    return Uint8Array.from(raw, (c) => c.charCodeAt(0));
+  };
+  const bytesToB64url = (buf) => btoa(String.fromCharCode.apply(null, new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+  async function pushPost(path, body) {
+    const res = await fetch(PUSH.api + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+  }
+
+  // Приводит сервер в соответствие со списком слежения на телефоне. Лучшее усилие: при любой ошибке остаются уведомления при открытом приложении.
+  async function pushSync() {
+    try {
+      if (!PUSH.api || !pushSupported() || Notification.permission !== 'granted') return;
+      const reg = await navigator.serviceWorker.ready;
+      const items = state.watch.filter((w) => w.napId).map((w) => ({ napId: w.napId, name: w.name, free: Number.isInteger(w.free) ? w.free : null }));
+      let sub = await reg.pushManager.getSubscription();
+      if (!items.length) {
+        if (sub) { try { await pushPost('/unsubscribe', { endpoint: sub.endpoint }); } catch (e) { /* сервер сам забудет через 60 дней */ } await sub.unsubscribe(); }
+        return;
+      }
+      const vres = await fetch(PUSH.api + '/vapid');
+      if (!vres.ok) return;
+      const key = (await vres.json()).key;
+      if (!key) return;
+      // ключи сервера сменились: старая подписка не подойдёт
+      if (sub && sub.options && sub.options.applicationServerKey && bytesToB64url(sub.options.applicationServerKey) !== key) { await sub.unsubscribe(); sub = null; }
+      if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64urlToBytes(key) });
+      const j = sub.toJSON();
+      await pushPost('/sync', { sub: { endpoint: j.endpoint, keys: j.keys }, lang, watch: items });
+    } catch (e) { /* не получилось: повторим при следующем изменении или открытии */ }
   }
 
   // После каждого обновления статуса: была ли занята вся станция, а теперь есть свободная
@@ -1900,6 +1955,7 @@
   state.amen = (() => { const a = readJson('ur_amen_v1', {}); return a && typeof a === 'object' && !Array.isArray(a) ? a : {}; })();
   state.favs = readJson('ur_favs_v1', []).filter((f) => f && f.k && isFinite(f.lat) && isFinite(f.lon));
   state.watch = readJson('ur_watch_v1', []).filter((w) => w && w.k && isFinite(w.lat) && isFinite(w.lon));
+  loadPushConfig().then(() => { if (state.watch.length) pushSync(); }); // обновляет подписку и срок её жизни на сервере
   initMap();
   applyShortcut();
   renderAll();
