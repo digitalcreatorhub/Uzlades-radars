@@ -661,6 +661,27 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
     await cP.close();
   }
 
+  // Баннер обновления: сервер отдаёт другую версию sw.js
+  {
+    const cU = await browser.newContext({ viewport: { width: 390, height: 780 }, serviceWorkers: 'block' });
+    const pu = await cU.newPage();
+    await pu.route('**/*', async (route) => {
+      const url = route.request().url();
+      if (url.startsWith(base + '/sw.js')) return route.fulfill({ contentType: 'text/javascript', body: "const VERSION = 'ur-v999';" });
+      if (url.startsWith(base)) return route.continue();
+      if (url.includes('leaflet.min.js')) return route.fulfill({ contentType: 'text/javascript', body: LEAFLET_STUB });
+      if (url.includes('overpass')) return route.fulfill({ contentType: 'application/json', body: JSON.stringify(MOCK) });
+      if (url.includes('fonts.googleapis') || url.includes('leaflet.min.css')) return route.fulfill({ contentType: 'text/css', body: '' });
+      return route.abort();
+    });
+    await pu.goto(base + '/');
+    await pu.waitForSelector('.upd', { timeout: 9000 }).catch(() => {});
+    check('обновление: при другой версии на сервере появляется баннер с кнопкой', (await pu.locator('.upd #upd-go').count()) === 1);
+    await pu.click('[data-tab="prices"]');
+    check('версия: номер виден во вкладке «Цены»', /Версия v\d+/.test(await pu.locator('.note.ver').innerText()));
+    await cU.close();
+  }
+
   check('нет ошибок в консоли', errors.length === 0, errors.join(' || '));
 
   await browser.close();

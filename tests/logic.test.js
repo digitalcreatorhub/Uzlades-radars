@@ -642,4 +642,15 @@ test('busyIds: только станции, где заняты все рабо�
   assert.equal(UR.busyIds(null, null).size, 0);
 });
 
+test('версия приложения: APP_VERSION в app.js совпадает с VERSION в sw.js', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const app = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+  const sw = fs.readFileSync(path.join(__dirname, '..', 'sw.js'), 'utf8');
+  const a = /APP_VERSION = 'ur-?(v\d+)'|APP_VERSION = '(v\d+)'/.exec(app);
+  const s = /VERSION = 'ur-(v\d+)'/.exec(sw);
+  assert.ok(a && s, 'обе версии найдены');
+  assert.equal(a[1] || a[2], s[1]);
+});
+
 console.log('\n' + passed + ' tests passed');
