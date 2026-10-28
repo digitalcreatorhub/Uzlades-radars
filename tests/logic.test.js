@@ -513,7 +513,6 @@ test('planStops: без остановок, с остановками и ког�
   assert.equal(UR.planStops(c, weak, 400, 100, 20).ok, false);
 });
 
-console.log('\n' + passed + ' tests passed');
 
 test('thinAlong: одна лучшая станция на каждые 10 км, по порядку', () => {
   const mk = (id, along, off, sc) => ({ st: { id }, along, off, sc });
@@ -521,3 +520,78 @@ test('thinAlong: одна лучшая станция на каждые 10 км,
   const got = UR.thinAlong(list, 10, (c) => c.sc);
   assert.deepEqual(got.map((c) => c.st.id), ['b', 'd', 'e']); // b лучше a; b и c равны по баллам, b ближе к трассе
 });
+
+test('normalizeCharge: числа, запятая, мусор и границы', () => {
+  const now = Date.UTC(2026, 9, 28, 6, 0);
+  const e = UR.normalizeCharge({ kwh: '32,5', eur: '11.4', name: '  Galleria  ' }, now);
+  assert.equal(e.kwh, 32.5);
+  assert.equal(e.eur, 11.4);
+  assert.equal(e.name, 'Galleria');
+  assert.equal(e.ts, now);
+  assert.ok(e.id);
+  assert.equal(UR.normalizeCharge({ kwh: 'abc', eur: 5 }, now), null);
+  assert.equal(UR.normalizeCharge({ kwh: 0, eur: 5 }, now), null);
+  assert.equal(UR.normalizeCharge({ kwh: 400, eur: 5 }, now), null);
+  assert.equal(UR.normalizeCharge({ kwh: 10, eur: -1 }, now), null);
+  assert.equal(UR.normalizeCharge(null, now), null);
+  assert.equal(UR.normalizeCharge({ kwh: 10, eur: 0 }, now).eur, 0); // бесплатная зарядка допустима
+  assert.equal(UR.normalizeCharge({ kwh: 10, eur: 3, ts: now + 7 * 86400000 }, now).ts, now); // дата из будущего не принимается
+  assert.equal(UR.normalizeCharge({ kwh: 10, eur: 3, name: 'x'.repeat(200) }, now).name.length, 80);
+});
+
+test('addCharge: новые сверху, без дублей, предел длины', () => {
+  const a = { id: 'a', ts: 1000, kwh: 1, eur: 1, name: '' };
+  const b = { id: 'b', ts: 2000, kwh: 1, eur: 1, name: '' };
+  let list = UR.addCharge([], a);
+  list = UR.addCharge(list, b);
+  assert.deepEqual(list.map((x) => x.id), ['b', 'a']);
+  list = UR.addCharge(list, Object.assign({}, a, { kwh: 5 }));
+  assert.equal(list.length, 2);
+  assert.equal(list.find((x) => x.id === 'a').kwh, 5);
+  let big = [];
+  for (let i = 0; i < UR.CHARGE_LIMIT + 20; i++) big = UR.addCharge(big, { id: 'i' + i, ts: i + 1, kwh: 1, eur: 1, name: '' });
+  assert.equal(big.length, UR.CHARGE_LIMIT);
+  assert.equal(big[0].id, 'i' + (UR.CHARGE_LIMIT + 19)); // остаются самые свежие
+  assert.deepEqual(UR.addCharge(null, a).map((x) => x.id), ['a']);
+});
+
+test('chargeSummary: месяц по времени Риги, прошлый месяц, граница полуночи', () => {
+  const at = (y, m, d, h, mi) => Date.UTC(y, m - 1, d, h, mi);
+  const now = at(2026, 10, 28, 6, 0);
+  const list = [
+    { id: '1', ts: at(2026, 10, 3, 12, 0), kwh: 30, eur: 12 },
+    { id: '2', ts: at(2026, 10, 20, 12, 0), kwh: 10, eur: 4 },
+    { id: '3', ts: at(2026, 9, 15, 12, 0), kwh: 40, eur: 20 },
+    { id: '4', ts: at(2026, 8, 15, 12, 0), kwh: 99, eur: 99 },
+  ];
+  const s = UR.chargeSummary(list, now);
+  assert.equal(s.key, '2026-10');
+  assert.deepEqual(s.cur, { count: 2, kwh: 40, eur: 16, perKwh: 0.4 });
+  assert.deepEqual(s.prev, { count: 1, kwh: 40, eur: 20, perKwh: 0.5 });
+  // 30 сентября 22:30 UTC уже 1 октября 01:30 в Риге (летнее время закончилось 25 октября, до этого UTC+3)
+  assert.equal(UR.rigaMonth(at(2026, 9, 30, 22, 30)), '2026-10');
+  assert.equal(UR.chargeSummary([], now).cur.perKwh, null);
+  assert.equal(UR.chargeSummary(undefined, now).cur.count, 0);
+  assert.equal(UR.chargeSummary([], at(2027, 1, 5, 12, 0)).key, '2027-01');
+});
+
+test('amenityQuery и parseAmenities: запрос и подсчёт без повторов', () => {
+  const q = UR.amenityQuery(56.9496, 24.1052);
+  assert.ok(q.includes('around:100,56.94960,24.10520'));
+  assert.ok(q.includes('toilets') && q.includes('internet_access') && q.includes('supermarket'));
+  const els = [
+    { type: 'node', id: 1, tags: { amenity: 'toilets' } },
+    { type: 'node', id: 2, tags: { amenity: 'cafe', internet_access: 'wlan' } },
+    { type: 'way', id: 3, tags: { amenity: 'fast_food' } },
+    { type: 'node', id: 3, tags: { shop: 'convenience' } }, // тот же номер, но другой тип: это другой объект
+    { type: 'node', id: 2, tags: { amenity: 'cafe', internet_access: 'wlan' } }, // повтор
+    { type: 'node', id: 9, tags: { amenity: 'charging_station', internet_access: 'yes' } }, // сама станция
+    { type: 'node', id: 10, tags: { shop: 'bakery' } }, // не из списка
+    { type: 'node', id: 11 },
+    null,
+  ];
+  assert.deepEqual(UR.parseAmenities(els), { toilets: 1, food: 2, shop: 1, wifi: 1 });
+  assert.deepEqual(UR.parseAmenities(undefined), { toilets: 0, food: 0, shop: 0, wifi: 0 });
+});
+
+console.log('\n' + passed + ' tests passed');

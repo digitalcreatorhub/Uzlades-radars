@@ -857,3 +857,23 @@ input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); ou
   .live-line { margin-top: 6px; }
 }
 .car-card .modal-actions { position: sticky; bottom: -20px; margin: 6px -22px -20px; padding: 12px 22px 20px; background: linear-gradient(180deg, transparent, var(--surface) 28%); }
+
+/* журнал зарядок и удобства рядом */
+.btn-block { width: 100%; }
+.charge-sect { margin-top: 22px; }
+.charge-form { margin: 10px 0 4px; padding: 12px; border-radius: 16px; background: var(--surface-2); border: 1px solid var(--line); }
+.charge-form .fld input { width: 100%; height: 44px; font-size: 15px; }
+.charge-err { margin: 0 0 10px; color: var(--busy); font-size: 13px; font-weight: 600; }
+.charge-sum { display: grid; gap: 2px; margin: 12px 0 4px; padding: 12px 14px; border-radius: 14px; background: var(--accent-soft); border: 1px solid var(--line); font-size: 14px; }
+.charge-sum span { color: var(--text-soft); font-size: 12.5px; }
+.charge-prev { margin: 0 0 8px; padding: 0 4px; color: var(--muted); font-size: 12.5px; }
+.charge-list { list-style: none; margin: 6px 0 0; padding: 0; }
+.charge-list li { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto 44px; align-items: center; gap: 8px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 13.5px; }
+.charge-list .ch-date { color: var(--muted); font-variant-numeric: tabular-nums; }
+.charge-list .ch-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.charge-list .ch-val { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ch-del { min-width: 44px; height: 44px; border: 0; background: none; color: var(--muted); font-size: 18px; border-radius: 12px; }
+.ch-del.armed { color: var(--busy); font-size: 12.5px; font-weight: 700; }
+.charge-note { margin-top: 10px; }
+.amen { margin: 14px 0 6px; }
+.amen[hidden] { display: none; }

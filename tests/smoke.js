@@ -6,7 +6,7 @@ const http = require('http');
 let chromium;
 try { ({ chromium } = require('playwright')); } catch (e) { ({ chromium } = require(require.resolve('playwright', { paths: ['/usr/local/lib/node_modules_global'] }))); }
 
-const root = process.argv[2];
+const root = path.resolve(process.argv[2]); // относительный путь («.») раньше давал 404 на все файлы
 const shots = process.argv[3];
 
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.png': 'image/png', '.svg': 'image/svg+xml' };
@@ -509,6 +509,58 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
     check('ссылка ?st= открывает карточку станции', /Galleria/.test(await pd.locator('body').innerText()));
     check('ссылки: нет JS-ошибок', errD.length === 0, errD.join(' || '));
     await cD.close();
+  }
+
+  // журнал зарядок и удобства рядом
+  {
+    const AMEN = { elements: [
+      { type: 'node', id: 101, tags: { amenity: 'toilets' } },
+      { type: 'node', id: 102, tags: { amenity: 'cafe', internet_access: 'wlan' } },
+    ] };
+    const cJ = await browser.newContext({ viewport: { width: 390, height: 780 }, deviceScaleFactor: 2, serviceWorkers: 'block' });
+    const pj = await cJ.newPage();
+    const errJ = [];
+    pj.on('pageerror', (e) => errJ.push('pageerror: ' + e.message));
+    pj.on('dialog', (d) => { errJ.push('dialog: ' + d.message()); d.dismiss(); });
+    await pj.route('**/*', async (route) => {
+      const url = route.request().url();
+      if (url.startsWith(base)) return route.continue();
+      if (url.includes('leaflet.min.js')) return route.fulfill({ contentType: 'text/javascript', body: LEAFLET_STUB });
+      if (url.includes('overpass')) {
+        const body = route.request().postData() || '';
+        return route.fulfill({ contentType: 'application/json', body: JSON.stringify(/around%3A/.test(body) ? AMEN : MOCK) });
+      }
+      if (url.includes('fonts.googleapis') || url.includes('leaflet.min.css')) return route.fulfill({ contentType: 'text/css', body: '' });
+      return route.abort();
+    });
+    await pj.goto(base + '/?st=node/1');
+    await pj.waitForSelector('.detail', { timeout: 8000 });
+    await pj.waitForFunction(() => /Туалет/.test((document.getElementById('amen') || {}).innerText || ''), null, { timeout: 8000 }).catch(() => {});
+    const amenTxt = await pj.locator('#amen').innerText();
+    check('рядом: найдены туалет, еда и Wi-Fi', /Туалет/.test(amenTxt) && /Кафе/.test(amenTxt) && /Wi-Fi/.test(amenTxt) && !/Магазин/.test(amenTxt), amenTxt.replace(/\n/g, ' | '));
+    await pj.screenshot({ path: path.join(shots, '18-amenities.png') });
+
+    await pj.click('[data-charge]');
+    check('журнал: форма открылась на вкладке «Мои», название станции подставлено', (await pj.locator('#charge-form').count()) === 1 && /Galleria/.test(await pj.inputValue('#ch-name')));
+    await pj.click('#charge-form button[type="submit"]');
+    check('журнал: пустая форма не сохраняется, видна подсказка', (await pj.locator('.charge-err').count()) === 1 && (await pj.locator('.charge-list li').count()) === 0);
+    await pj.fill('#ch-kwh', '32,5');
+    await pj.fill('#ch-eur', '11,4');
+    await pj.click('#charge-form button[type="submit"]');
+    check('журнал: запись появилась, форма закрылась', (await pj.locator('.charge-list li').count()) === 1 && (await pj.locator('#charge-form').count()) === 0);
+    const sumTxt = await pj.locator('.charge-sum').innerText();
+    check('журнал: итог за месяц и средняя цена', /32,5 кВт·ч/.test(sumTxt) && /11,40 €/.test(sumTxt) && /0,351/.test(sumTxt), sumTxt.replace(/\n/g, ' | '));
+    await pj.screenshot({ path: path.join(shots, '19-charge-log.png') });
+    await pj.reload();
+    await pj.waitForSelector('.tab', { timeout: 8000 });
+    await pj.click('[data-tab="fav"]');
+    check('журнал: запись пережила перезагрузку', (await pj.locator('.charge-list li').count()) === 1);
+    await pj.click('.ch-del');
+    check('журнал: первое нажатие только просит подтверждение', (await pj.locator('.charge-list li').count()) === 1 && /Удалить\?/.test(await pj.locator('.ch-del').innerText()));
+    await pj.click('.ch-del');
+    check('журнал: второе нажатие удаляет', (await pj.locator('.charge-list li').count()) === 0 && (await pj.locator('.charge-sum').count()) === 0);
+    check('журнал: нет JS-ошибок', errJ.length === 0, errJ.join(' || '));
+    await cJ.close();
   }
 
   check('нет ошибок в консоли', errors.length === 0, errors.join(' || '));

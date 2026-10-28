@@ -744,6 +744,101 @@
     return out;
   }
 
+  /* ---------- журнал зарядок ---------- */
+  const CHARGE_LIMIT = 500;
+
+  const num = (v) => {
+    const n = typeof v === 'number' ? v : parseFloat(String(v == null ? '' : v).replace(',', '.'));
+    return isFinite(n) ? n : null;
+  };
+
+  // Запись журнала из формы: кВт·ч и сумма обязательны, остальное по возможности.
+  // -> { id, ts, kwh, eur, name } или null, если числа не годятся
+  function normalizeCharge(raw, nowMs) {
+    if (!raw) return null;
+    const kwh = num(raw.kwh);
+    const eur = num(raw.eur);
+    if (kwh == null || eur == null || kwh <= 0 || kwh > 300 || eur < 0 || eur > 1000) return null;
+    const now = nowMs == null ? Date.now() : nowMs;
+    let ts = num(raw.ts);
+    if (ts == null || ts <= 0 || ts > now + 3600 * 1000) ts = now;
+    const name = String(raw.name == null ? '' : raw.name).replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, 80);
+    return {
+      id: String(raw.id || ts.toString(36) + Math.floor((now % 997) * 7).toString(36)),
+      ts: Math.round(ts),
+      kwh: Math.round(kwh * 100) / 100,
+      eur: Math.round(eur * 100) / 100,
+      name,
+    };
+  }
+
+  // Добавляет запись в начало, новые выше; хранит не больше CHARGE_LIMIT, без дублей по id.
+  function addCharge(list, entry) {
+    const rest = (Array.isArray(list) ? list : []).filter((e) => e && e.id !== entry.id);
+    return [entry].concat(rest).sort((a, b) => b.ts - a.ts).slice(0, CHARGE_LIMIT);
+  }
+
+  // Месяц по времени Риги, вида «2026-10».
+  function rigaMonth(ms) {
+    const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Riga', year: 'numeric', month: '2-digit' }).formatToParts(ms);
+    const get = (type) => (parts.find((x) => x.type === type) || {}).value;
+    return get('year') + '-' + get('month');
+  }
+
+  function prevMonth(key) {
+    const [y, m] = key.split('-').map(Number);
+    return m === 1 ? (y - 1) + '-12' : y + '-' + String(m - 1).padStart(2, '0');
+  }
+
+  // Итоги за месяц: { count, kwh, eur, perKwh } (perKwh = null, если энергии нет).
+  function monthTotals(list, key) {
+    let count = 0, kwh = 0, eur = 0;
+    for (const e of Array.isArray(list) ? list : []) {
+      if (!e || rigaMonth(e.ts) !== key) continue;
+      count++; kwh += e.kwh; eur += e.eur;
+    }
+    return { count, kwh: Math.round(kwh * 100) / 100, eur: Math.round(eur * 100) / 100, perKwh: kwh > 0 ? Math.round((eur / kwh) * 1000) / 1000 : null };
+  }
+
+  // -> { cur: итоги этого месяца, prev: итоги прошлого, key }
+  function chargeSummary(list, nowMs) {
+    const key = rigaMonth(nowMs == null ? Date.now() : nowMs);
+    return { key, cur: monthTotals(list, key), prev: monthTotals(list, prevMonth(key)) };
+  }
+
+  /* ---------- удобства рядом со станцией (OpenStreetMap) ---------- */
+  const AMENITY_RADIUS_M = 100;
+
+  // Запрос Overpass: туалеты, еда, магазины и Wi-Fi вокруг точки.
+  function amenityQuery(lat, lon, radius) {
+    const r = Math.round(radius || AMENITY_RADIUS_M);
+    const a = '(around:' + r + ',' + Number(lat).toFixed(5) + ',' + Number(lon).toFixed(5) + ')';
+    return '[out:json][timeout:25];(' +
+      'nwr["amenity"~"^(toilets|cafe|restaurant|fast_food)$"]' + a + ';' +
+      'nwr["shop"~"^(convenience|supermarket|kiosk)$"]' + a + ';' +
+      'nwr["internet_access"~"^(wlan|wifi|yes)$"]' + a + ';' +
+      ');out tags;';
+  }
+
+  // Элементы Overpass -> { toilets, food, shop, wifi } (числа, без повторов по id).
+  function parseAmenities(elements) {
+    const out = { toilets: 0, food: 0, shop: 0, wifi: 0 };
+    const seen = new Set();
+    for (const el of Array.isArray(elements) ? elements : []) {
+      if (!el || !el.tags || typeof el.tags !== 'object') continue;
+      const key = el.type + '/' + el.id;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const tg = el.tags;
+      if (tg.amenity === 'charging_station') continue; // сама станция не удобство
+      if (tg.amenity === 'toilets') out.toilets++;
+      if (/^(cafe|restaurant|fast_food)$/.test(tg.amenity || '')) out.food++;
+      if (/^(convenience|supermarket|kiosk)$/.test(tg.shop || '')) out.shop++;
+      if (/^(wlan|wifi|yes)$/.test(tg.internet_access || '')) out.wifi++;
+    }
+    return out;
+  }
+
   return {
     OPERATORS,
     PRICES,
@@ -798,5 +893,14 @@
     matchesSpeed,
     applyFilters,
     rank,
+    CHARGE_LIMIT,
+    normalizeCharge,
+    addCharge,
+    rigaMonth,
+    monthTotals,
+    chargeSummary,
+    AMENITY_RADIUS_M,
+    amenityQuery,
+    parseAmenities,
   };
 });
