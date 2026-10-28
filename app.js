@@ -668,7 +668,7 @@
   state.pending = { st: params.get('st'), go: params.get('go'), tab: params.get('tab') };
   // Метки с мощностью (как в Chargemap): включаются ссылкой ?pills=1, выключаются ?pills=0, дальше запоминается
   if (params.get('pills') === '1' || params.get('pills') === '0') writeJson('ur_pills_v1', params.get('pills') === '1');
-  state.pills = readJson('ur_pills_v1', false) === true;
+  state.pills = readJson('ur_pills_v1', true) !== false;
   function stationUrl(st) {
     return location.origin + location.pathname + '?st=' + encodeURIComponent(st.napId || st.id);
   }
@@ -812,7 +812,7 @@
     const out = new Set();
     if (!state.pills || !map || !map.getZoom) return out;
     const z = map.getZoom();
-    if (z < 12) return out;
+    if (z < 11) return out;
     let cand = list;
     if (map.getBounds) {
       const b = map.getBounds();
@@ -823,15 +823,17 @@
       const d2 = (st) => (st.lat - c.lat) * (st.lat - c.lat) + ((st.lon - c.lng) * Math.cos((c.lat * Math.PI) / 180)) ** 2;
       cand = cand.slice().sort((a, b) => (a.id === state.detailId ? -1 : b.id === state.detailId ? 1 : d2(a) - d2(b)));
     }
-    const max = z >= 15 ? 90 : z >= 13 ? 60 : 35;
+    const max = z >= 15 ? 140 : z >= 13 ? 90 : 50;
     for (const st of cand.slice(0, max)) out.add(st.id);
     return out;
   }
 
+  const PLUG_SVG = '<svg viewBox="0 0 16 16" aria-hidden="true"><rect width="16" height="16" rx="4" fill="#123a63"/><circle cx="8" cy="8" r="3.4" fill="none" stroke="#cfe8ff" stroke-width="1.5"/><circle cx="8" cy="8" r="1" fill="#cfe8ff"/></svg>';
   function pillHtml(st, sum, level, selected) {
     const kw = st.kw ? String(Math.round(st.kw)) : '?';
-    const avail = sum && sum.total ? '<i>' + (level === 'out' ? '–' : sum.free) + '/' + sum.total + '</i>' : '';
-    return '<span class="pl pl-' + esc(st.cls) + ' lv-' + level + (selected ? ' sel' : '') + '"><b>' + kw + '</b>' + avail + '</span>';
+    const unit = lang === 'ru' ? 'кВт' : 'kW';
+    const cnt = sum && sum.total ? '<div class="pc"><b>' + (level === 'out' ? '–' : sum.free) + '</b>/' + sum.total + '</div>' : '';
+    return '<span class="pl lv-' + level + (selected ? ' sel' : '') + '"><span class="pw"><span><b>' + kw + '</b> <em>' + unit + '</em></span>' + PLUG_SVG + '</span>' + cnt + '</span>';
   }
 
   function renderMarkers(list) {
