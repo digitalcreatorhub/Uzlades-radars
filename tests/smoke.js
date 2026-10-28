@@ -450,6 +450,20 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
     check('машина: в карточке время и цена зарядки 20→80%', /20→80|20 → 80/.test(await pf.locator('.best').innerText()) || /мин/.test(await pf.locator('.best').innerText()));
     await pf.screenshot({ path: path.join(shots, '16-car-go.png') });
 
+    // гараж: вторая машина
+    await pf.click('#btn-car');
+    check('гараж: после первой машины в окне есть выбор «+ Ещё машина»', (await pf.locator('[data-garage="new"]').count()) === 1);
+    await pf.click('[data-garage="new"]');
+    await pf.fill('#car-name', 'Жена');
+    await pf.click('#car-save');
+    const garage = await pf.evaluate(() => JSON.parse(localStorage.getItem('ur_garage_v1')));
+    check('гараж: две машины, активна вторая', garage.list.length === 2 && garage.idx === 1 && garage.list[1].name === 'Жена');
+    check('гараж: строка с авто показывает название «Жена»', /Жена/.test(await pf.locator('.car-line').innerText()));
+    await pf.click('#btn-car');
+    await pf.click('[data-garage="0"]');
+    await pf.click('#car-save');
+    check('гараж: выбор первой машины делает её активной', (await pf.evaluate(() => JSON.parse(localStorage.getItem('ur_garage_v1')).idx)) === 0 && !/Жена/.test(await pf.locator('.car-line').innerText()));
+
     // поиск и фильтры в списке
     await pf.click('[data-tab="list"]');
     const rowsAll = await pf.locator('.row').count();
@@ -485,8 +499,20 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
     check('маршрут: статус места виден на вкладке', (await pf.locator('.origin-line').count()) === 1);
     check('маршрут: линия нарисована', (await pf.evaluate(() => window.__polylines || 0)) >= 1);
     await pf.screenshot({ path: path.join(shots, '18-route.png') });
+    await pf.click('[data-act="routeSave"]');
+    check('маршрут: «Сохранить» кладёт маршрут в список и в localStorage', (await pf.locator('.saved-route [data-route-load]').count()) === 1 && (await pf.evaluate(() => JSON.parse(localStorage.getItem('ur_routes_v1')).length)) === 1);
+    check('маршрут: есть кнопка «Поделиться»', (await pf.locator('[data-act="routeShare"]').count()) === 1);
     await pf.click('[data-act="routeClear"]');
     check('маршрут: сброс убирает сводку', (await pf.locator('.route-sum').count()) === 0);
+    await pf.click('[data-route-load]');
+    await pf.waitForSelector('.route-sum', { timeout: 8000 });
+    check('маршрут: сохранённый строится заново одним нажатием', /105 км/.test(await pf.locator('.route-sum').innerText()));
+    await pf.click('[data-route-del]');
+    check('маршрут: удаление убирает из списка', (await pf.locator('.saved-route').count()) === 0);
+    await pf.goto(base + '/?rt=Valmiera&rs=70');
+    await pf.waitForSelector('.route-sum', { timeout: 9000 });
+    check('ссылка на маршрут: форма заполнена и маршрут построен', (await pf.inputValue('#route-to')) === 'Valmiera' && (await pf.inputValue('#route-soc')) === '70');
+    await pf.click('[data-act="routeClear"]');
 
     // язык
     await pf.click('#btn-lang');
@@ -715,6 +741,39 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
     await pm.screenshot({ path: path.join(shots, '21-my-price.png') });
     check('моя цена: нет JS-ошибок', errM.length === 0, errM.join(' || '));
     await cM.close();
+  }
+
+  // Маршрут с остановкой: время прибытия и прогноз занятости к этому часу
+  {
+    const cS = await browser.newContext({ viewport: { width: 390, height: 780 }, deviceScaleFactor: 2, serviceWorkers: 'block' });
+    const ps = await cS.newPage();
+    const errS = [];
+    ps.on('pageerror', (e) => errS.push('pageerror: ' + e.message));
+    const MOCK2 = { elements: MOCK.elements.concat([el('node', 77, 57.1, 24.5, { name: 'Stop77', operator: 'Ignitis ON', 'socket:type2_combo': '4', 'socket:type2_combo:output': '150 kW' })]) };
+    const line2 = [[56.95, 24.11], [57.1, 24.5], [57.54, 25.42]].map((q) => [q[1], q[0]]);
+    const hours = Array.from({ length: 48 }, () => 42);
+    await ps.route('**/*', async (route) => {
+      const url = route.request().url();
+      if (url.startsWith(base)) return route.continue();
+      if (url.includes('leaflet.min.js')) return route.fulfill({ contentType: 'text/javascript', body: LEAFLET_STUB });
+      if (url.includes('overpass')) return route.fulfill({ contentType: 'application/json', body: JSON.stringify(MOCK2) });
+      if (url.includes('nominatim')) return route.fulfill({ contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify([{ lat: '57.54', lon: '25.42', display_name: 'Valmiera, Latvija' }]) });
+      if (url.includes('router.project-osrm.org')) return route.fulfill({ contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify({ routes: [{ distance: 600000, duration: 21600, geometry: { coordinates: line2 } }] }) });
+      if (url.includes('fonts.googleapis') || url.includes('leaflet.min.css')) return route.fulfill({ contentType: 'text/css', body: '' });
+      return route.abort();
+    });
+    await ps.addInitScript(() => localStorage.setItem('ur_car_v1', JSON.stringify({ id: 'tesla-3-lr' })));
+    await ps.goto(base + '/?tab=route');
+    await ps.waitForSelector('#route-to', { timeout: 8000 });
+    await ps.fill('#route-to', 'Valmiera');
+    await ps.fill('#route-soc', '25');
+    await ps.click('#route-go');
+    await ps.waitForSelector('.route-sum', { timeout: 9000 });
+    const stopTxt = await ps.locator('#panel').innerText();
+    check('маршрут с остановкой: время прибытия «прибытие ≈ ЧЧ:ММ»', /прибытие ≈ \d{1,2}:\d{2}/.test(stopTxt), stopTxt.replace(/\n/g, ' | ').slice(0, 400));
+    check('маршрут с остановкой: время зарядки «→80%: ≈ N мин»', /→80%: ≈ \d+ мин/.test(stopTxt));
+    check('маршрут с остановкой: нет JS-ошибок', errS.length === 0, errS.join(' || '));
+    await cS.close();
   }
 
   check('нет ошибок в консоли', errors.length === 0, errors.join(' || '));

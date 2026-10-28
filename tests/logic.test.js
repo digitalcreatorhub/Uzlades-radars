@@ -722,4 +722,19 @@ test('фильтры экономии: цена до, бесплатные, со
   assert.equal(ids({ maxPrice: 0.39, mine: { virsi: true } }), 'abd'); // Virši со скидкой 0,38
 });
 
+test('stopTimes: прибытие растёт с путём и временем зарядок на прошлых остановках', () => {
+  const car = UR.CARS[0];
+  const st = { sockets: { ccs: 1 }, kw: 100, cls: 'hpc' };
+  const plan = { stops: [{ st, along: 100, arriveSoc: 20 }, { st, along: 300, arriveSoc: 25 }] };
+  const t0 = Date.UTC(2026, 10, 10, 8, 0);
+  const r = UR.stopTimes(plan, car, 240, 400, t0);
+  assert.equal(r.length, 2);
+  assert.equal(r[0].arriveMs, t0 + 60 * 60000); // 100 из 400 км, 240 мин езды
+  assert.ok(r[0].chargeMin >= 5 && r[0].chargeMin <= 90);
+  assert.equal(r[1].arriveMs, t0 + (180 + r[0].chargeMin) * 60000);
+  assert.deepEqual(UR.stopTimes(null, car, 240, 400, t0), []);
+  assert.deepEqual(UR.stopTimes(plan, null, 240, 400, t0), []);
+  assert.deepEqual(UR.stopTimes(plan, car, 0, 400, t0), []);
+});
+
 console.log('\n' + passed + ' tests passed');
