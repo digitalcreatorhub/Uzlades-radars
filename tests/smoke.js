@@ -218,6 +218,7 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
   await p3.waitForSelector('.live', { timeout: 8000 });
   // OSM даёт 6 станций (приватная скрыта); node 1 сливается с a1; a2, a3 и far (Валмиера, теперь это Латвия) добавляются
   check('live: 9 маркеров (6 из OSM + 3 только из NAP)', (await p3.evaluate(() => window.__markers)) === 9, 'markers=' + (await p3.evaluate(() => window.__markers)));
+  check('live: переливающийся ободок только у самых дешёвых (не у всех)', await p3.evaluate(() => { const h = window.__pillHtml || []; const n = h.filter((x) => / cheap/.test(x)).length; return n >= 1 && n < h.length; }));
   check('live: время обновления статуса рядом с бейджем', /обновлено \d\d:\d\d/.test(await p3.locator('.best .live-time').innerText()));
   const bestTxt = await p3.locator('.best').innerText();
   check('live: в карточке лучшей станции бейдж «Свободно 2 из 3»', bestTxt.includes('Свободно 2 из 3'), bestTxt.replace(/\n/g, ' | ').slice(0, 160));
