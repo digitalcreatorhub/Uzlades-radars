@@ -92,7 +92,8 @@
       note_ionity: 'Цена без подписки. С подпиской дешевле.',
       tabRoute: 'Маршрут', tabFav: 'Мои',
       estShort: '{from}→{to}%: {min} мин · {cost} €', estShortNoCost: '{from}→{to}%: {min} мин', estNoneShort: 'нет вашего разъёма',
-      fFree: 'Свободно', fOpen: '24/7', fCard: 'Картой', fCar: 'Для моей',
+      fFree: 'Свободно', fOpen: '24/7', fCard: 'Картой', fCar: 'Для моей', fPills: 'Мощность на карте',
+      discTitle: 'Скидки сети', discNote: 'Сверено {date}. Условия меняются: точные уточняйте в приложении сети.', discSrc: 'источник', discPricesTitle: 'Скидки по сетям',
       carBtn: 'Моя машина', carTitle: 'Моя машина',
       carLead: 'Выберите модель. Значения ориентировочные, любое можно поправить под свою машину.',
       carModel: 'Модель', carKwh: 'Батарея (полезная), кВт·ч', carDc: 'Макс. быстрая (DC), кВт', carAc: 'Макс. AC, кВт', carCons: 'Расход, кВт·ч/100 км',
@@ -232,7 +233,8 @@
       note_ionity: 'Price without subscription. Cheaper with one.',
       tabRoute: 'Route', tabFav: 'Saved',
       estShort: '{from}→{to}%: {min} min · {cost} €', estShortNoCost: '{from}→{to}%: {min} min', estNoneShort: 'no connector for your car',
-      fFree: 'Free now', fOpen: '24/7', fCard: 'Card', fCar: 'My car',
+      fFree: 'Free now', fOpen: '24/7', fCard: 'Card', fCar: 'My car', fPills: 'Power on map',
+      discTitle: 'Network discounts', discNote: 'Checked {date}. Terms change: confirm the exact ones in the network app.', discSrc: 'source', discPricesTitle: 'Discounts by network',
       carBtn: 'My car', carTitle: 'My car',
       carLead: 'Pick a model. Values are approximate, edit any of them to match your car.',
       carModel: 'Model', carKwh: 'Battery (usable), kWh', carDc: 'Max fast (DC), kW', carAc: 'Max AC, kW', carCons: 'Consumption, kWh/100 km',
@@ -664,6 +666,9 @@
   /* ---------- ссылки: станция, вкладка, ярлыки ---------- */
   const params = new URLSearchParams(location.search);
   state.pending = { st: params.get('st'), go: params.get('go'), tab: params.get('tab') };
+  // Метки с мощностью (как в Chargemap): включаются ссылкой ?pills=1, выключаются ?pills=0, дальше запоминается
+  if (params.get('pills') === '1' || params.get('pills') === '0') writeJson('ur_pills_v1', params.get('pills') === '1');
+  state.pills = readJson('ur_pills_v1', false) === true;
   function stationUrl(st) {
     return location.origin + location.pathname + '?st=' + encodeURIComponent(st.napId || st.id);
   }
@@ -780,6 +785,13 @@
     markerLayer = L.layerGroup().addTo(map);
     if (map.on) map.on('moveend', onMapMoved);
     if (map.on) map.on('zoomend', () => { if (lastMarkerList.length) renderMarkers(lastMarkerList); });
+    // «Таблетки» зависят от того, что сейчас в кадре: после сдвига карты пересчитываем (не чаще раза в 250 мс)
+    let pillTimer = null;
+    if (map.on) map.on('moveend', () => {
+      if (!state.pills || !lastMarkerList.length) return;
+      clearTimeout(pillTimer);
+      pillTimer = setTimeout(() => renderMarkers(lastMarkerList), 250);
+    });
     setTiles();
   }
 
@@ -794,6 +806,34 @@
   }
 
   let lastMarkerList = [];
+  // Какие станции рисуем «таблетками»: только при достаточном приближении и не больше N ближайших к центру карты
+  // (иначе в плотном центре города они закроют друг друга). Остальные остаются точками.
+  function pillSet(list) {
+    const out = new Set();
+    if (!state.pills || !map || !map.getZoom) return out;
+    const z = map.getZoom();
+    if (z < 12) return out;
+    let cand = list;
+    if (map.getBounds) {
+      const b = map.getBounds();
+      if (b && b.contains) cand = list.filter((st) => b.contains([st.lat, st.lon]) || st.id === state.detailId);
+    }
+    const c = map.getCenter ? map.getCenter() : null;
+    if (c) {
+      const d2 = (st) => (st.lat - c.lat) * (st.lat - c.lat) + ((st.lon - c.lng) * Math.cos((c.lat * Math.PI) / 180)) ** 2;
+      cand = cand.slice().sort((a, b) => (a.id === state.detailId ? -1 : b.id === state.detailId ? 1 : d2(a) - d2(b)));
+    }
+    const max = z >= 15 ? 90 : z >= 13 ? 60 : 35;
+    for (const st of cand.slice(0, max)) out.add(st.id);
+    return out;
+  }
+
+  function pillHtml(st, sum, level, selected) {
+    const kw = st.kw ? String(Math.round(st.kw)) : '?';
+    const avail = sum && sum.total ? '<i>' + (level === 'out' ? '–' : sum.free) + '/' + sum.total + '</i>' : '';
+    return '<span class="pl pl-' + esc(st.cls) + ' lv-' + level + (selected ? ' sel' : '') + '"><b>' + kw + '</b>' + avail + '</span>';
+  }
+
   function renderMarkers(list) {
     lastMarkerList = list;
     markerLayer.clearLayers();
@@ -801,10 +841,23 @@
     const stroke = cssVar('--bg');
     const okColor = cssVar('--ok');
     const textColor = cssVar('--text');
+    const pillIds = pillSet(list);
     for (const st of list) {
       const selected = st.id === state.detailId;
       const sum = UR.liveSummary(st, state.filters);
       const level = sum ? sum.level : 'unknown';
+      if (pillIds.has(st.id)) {
+        const pm = L.marker([st.lat, st.lon], {
+          icon: L.divIcon({ className: 'ppill', html: pillHtml(st, sum, level, selected), iconSize: [0, 0] }),
+          zIndexOffset: selected ? 1000 : level === 'free' ? 500 : 0,
+          title: stationTitle(st),
+          keyboard: true,
+        });
+        pm.on('click', () => openDetail(st.id, false));
+        pm.addTo(markerLayer);
+        markers.set(st.id, pm);
+        continue;
+      }
       // свободно: зелёная рамка и мягкое свечение; все заняты: тусклая метка; не работает: ещё бледнее
       const ring = level === 'free' ? okColor : stroke;
       const zoomed = !map || !map.getZoom || map.getZoom() >= 12;
@@ -1211,6 +1264,28 @@
     }
   }
 
+  /* ---------- скидки сетей ---------- */
+  const discDate = () => UR.DISCOUNTS_DATE.split('-').reverse().join('.');
+  function discItems(list) {
+    return '<ul class="disc-list">' + list.map((d) =>
+      '<li>' + esc(d[lang] || d.ru) + ' <a href="' + esc(d.src) + '" target="_blank" rel="noopener">' + esc(t('discSrc')) + '</a></li>').join('') + '</ul>';
+  }
+  function discountBlock(st) {
+    const list = UR.stationDiscounts(st);
+    if (!list.length) return '';
+    return '<div class="disc"><h3 class="sect">' + esc(t('discTitle')) + '</h3>' + discItems(list) +
+      '<p class="note">' + esc(t('discNote', { date: discDate() })) + '</p></div>';
+  }
+  function discountsPrices() {
+    const blocks = UR.OPERATORS.map((op) => {
+      const list = UR.activeDiscounts(op.id);
+      return list.length ? '<h4 class="disc-op">' + esc(op.name) + '</h4>' + discItems(list) : '';
+    }).join('');
+    if (!blocks) return '';
+    return '<div class="disc"><h3 class="sect">' + esc(t('discPricesTitle')) + '</h3>' + blocks +
+      '<p class="note">' + esc(t('discNote', { date: discDate() })) + '</p></div>';
+  }
+
   function renderPrices() {
     const cell = (op, cls) => {
       const p = UR.priceFor(op.id, cls);
@@ -1237,7 +1312,8 @@
       '<th><span class="dot" style="background:var(--c-ac)"></span>' + esc(t('thAc')) + '</th>' +
       '<th><span class="dot" style="background:var(--c-dc)"></span>' + esc(t('thDc')) + '</th>' +
       '<th><span class="dot" style="background:var(--c-hpc)"></span>' + esc(t('thHpc')) + '</th></tr></thead><tbody>' + rows + '</tbody></table>' +
-      (state.live ? '<p class="note" style="margin-top:12px">' + esc(t('liveSource')) + '</p>' : '');
+      (state.live ? '<p class="note" style="margin-top:12px">' + esc(t('liveSource')) + '</p>' : '') +
+      discountsPrices();
   }
 
   const PT_NAMES = { type2: 'sockType2', ccs: 'sockCcs', chademo: 'sockChademo', tesla: 'sockTesla' };
@@ -1346,6 +1422,7 @@
       insightsHtml(st) +
       carBlock(st, price) +
       compareBlock(price) +
+      discountBlock(st) +
       (st.live ? livePoints(st) + (liveNote() ? '<p class="note">' + esc(liveNote()) + '</p>' : '') : '') +
       usualChart(st) +
       amenBlock(st) +
@@ -1568,7 +1645,8 @@
       '<span class="chip-gap"></span>' +
       pwr.map(([id, label]) => '<button class="chip" data-pwr="' + id + '" aria-pressed="' + (state.filters.power === id) + '">' + esc(label) + '</button>').join('') +
       '<span class="chip-gap"></span>' +
-      extra.map(([id, label]) => '<button class="chip" data-flt="' + id + '" aria-pressed="' + !!state.filters[id] + '">' + esc(label) + '</button>').join('');
+      extra.map(([id, label]) => '<button class="chip" data-flt="' + id + '" aria-pressed="' + !!state.filters[id] + '">' + esc(label) + '</button>').join('') +
+      '<span class="chip-gap"></span><button class="chip" data-act="pills" aria-pressed="' + !!state.pills + '">' + esc(t('fPills')) + '</button>';
   }
 
   function renderTop() {
@@ -1776,6 +1854,7 @@
       if (st) toggleWatch(st).then(() => renderPanel());
     }
     else if (d.charge) { const st = stationById(d.charge); if (st) { openChargeForm(stationTitle(st)); setSheetOpen(true); } }
+    else if (d.act === 'pills') { state.pills = !state.pills; writeJson('ur_pills_v1', state.pills); renderFilters(); renderMarkers(lastMarkerList); }
     else if (d.act === 'chargeAdd') openChargeForm('');
     else if (d.act === 'chargeCancel') { state.chargeForm = null; renderPanel(); }
     else if (d.chdel) deleteCharge(d.chdel);
