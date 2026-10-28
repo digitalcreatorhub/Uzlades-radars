@@ -218,6 +218,7 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
   await p3.waitForSelector('.live', { timeout: 8000 });
   // OSM даёт 6 станций (приватная скрыта); node 1 сливается с a1; a2, a3 и far (Валмиера, теперь это Латвия) добавляются
   check('live: 9 маркеров (6 из OSM + 3 только из NAP)', (await p3.evaluate(() => window.__markers)) === 9, 'markers=' + (await p3.evaluate(() => window.__markers)));
+  check('live: у станции, где все заняты, красный ярлык «Все заняты»; у дешёвой кВт сменяются ценой в €', await p3.evaluate(() => { const h = (window.__pillHtml || []).join('\n'); return /cd-dc lv-busy bz"><i class="cd-a">50 кВт<\/i><i class="cd-b">Все заняты/.test(h) && /<i class="cd-b">\d,\d\d €<\/i>/.test(h); }));
   check('live: переливающийся ободок только у самых дешёвых точек (не у всех)', await p3.evaluate(() => { const h = window.__pillHtml || []; const n = new Set(h.filter((x) => /class="cd /.test(x))).size; return n >= 1 && n <= 6 && n < window.__markers; }));
   check('live: время обновления статуса рядом с бейджем', /обновлено \d\d:\d\d/.test(await p3.locator('.best .live-time').innerText()));
   const bestTxt = await p3.locator('.best').innerText();

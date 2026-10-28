@@ -92,7 +92,7 @@
       note_ionity: 'Цена без подписки. С подпиской дешевле.',
       tabRoute: 'Маршрут', tabFav: 'Мои',
       estShort: '{from}→{to}%: {min} мин · {cost} €', estShortNoCost: '{from}→{to}%: {min} мин', estNoneShort: 'нет вашего разъёма',
-      fFree: 'Свободно', fOpen: '24/7', fCard: 'Картой', fCar: 'Для моей', cheapTip: 'самая низкая цена рядом',
+      fFree: 'Свободно', fOpen: '24/7', fCard: 'Картой', fCar: 'Для моей', cheapTip: 'самая низкая цена рядом', allBusy: 'Все заняты', allBusyTip: 'все точки заняты',
       discTitle: 'Скидки сети', discNote: 'Сверено {date}. Условия меняются: точные уточняйте в приложении сети.', discSrc: 'источник', discPricesTitle: 'Скидки по сетям',
       carBtn: 'Моя машина', carTitle: 'Моя машина',
       carLead: 'Выберите модель. Значения ориентировочные, любое можно поправить под свою машину.',
@@ -233,7 +233,7 @@
       note_ionity: 'Price without subscription. Cheaper with one.',
       tabRoute: 'Route', tabFav: 'Saved',
       estShort: '{from}→{to}%: {min} min · {cost} €', estShortNoCost: '{from}→{to}%: {min} min', estNoneShort: 'no connector for your car',
-      fFree: 'Free now', fOpen: '24/7', fCard: 'Card', fCar: 'My car', cheapTip: 'lowest price nearby',
+      fFree: 'Free now', fOpen: '24/7', fCard: 'Card', fCar: 'My car', cheapTip: 'lowest price nearby', allBusy: 'All busy', allBusyTip: 'all points busy',
       discTitle: 'Network discounts', discNote: 'Checked {date}. Terms change: confirm the exact ones in the network app.', discSrc: 'source', discPricesTitle: 'Discounts by network',
       carBtn: 'My car', carTitle: 'My car',
       carLead: 'Pick a model. Values are approximate, edit any of them to match your car.',
@@ -791,7 +791,7 @@
       if (!lastMarkerList.length) return;
       clearTimeout(moveTimer);
       moveTimer = setTimeout(() => {
-        const key = [...cheapSet(lastMarkerList, pillSet(lastMarkerList))].sort().join(',');
+        const key = alertKey(lastMarkerList, pillSet(lastMarkerList));
         if (state.pills || key !== lastCheapKey) renderMarkers(lastMarkerList);
       }, 250);
     });
@@ -834,18 +834,29 @@
 
   // Самые дешёвые станции среди тех, что в кадре (от масштаба 11): у них переливающийся зелёный ободок
   let lastCheapKey = '';
+  const alertKey = (list, pillIds) => [...cheapSet(list, pillIds)].sort().join(',') + '|' + [...busySet(list, pillIds)].sort().join(',');
+  // Станции, где заняты все точки: красный ободок, «все заняты» вместо кВт (от масштаба 11, не больше 30 ближайших)
+  function busySet(list, pillIds) {
+    if (!map || !map.getZoom || map.getZoom() < 11) return new Set();
+    const cand = pillIds && pillIds.size ? list.filter((st) => pillIds.has(st.id)) : viewCandidates(list, 150);
+    return UR.busyIds(cand, state.filters, 30);
+  }
   function cheapSet(list, pillIds) {
     if (!map || !map.getZoom || map.getZoom() < 11) return new Set();
     const cand = pillIds && pillIds.size ? list.filter((st) => pillIds.has(st.id)) : viewCandidates(list, 150);
     return UR.cheapestIds(cand, state.filters, 6);
   }
 
-  // Метка самой дешёвой станции: цветной «круглый» ярлык, где кВт и цена по очереди сменяют друг друга
-  function cheapDotHtml(st, level, selected) {
-    const p = UR.priceOf(st, state.filters);
+  // Ярлык вместо точки: у самой дешёвой станции (kind 'cheap') кВт сменяются ценой, у станции, где заняты все точки (kind 'busy'), надписью «Все заняты»
+  function cheapDotHtml(st, level, selected, kind) {
     const kw = (st.kw ? Math.round(st.kw) : '?') + ' ' + (lang === 'ru' ? 'кВт' : 'kW');
-    const price = p && isFinite(p.mid) ? fmtEur(p.mid) + ' €' : '';
-    return '<span class="cd cd-' + esc(st.cls) + ' lv-' + level + (selected ? ' sel' : '') + '"><i class="cd-a">' + esc(kw) + '</i>' + (price ? '<i class="cd-b">' + esc(price) + '</i>' : '') + '</span>';
+    let alt = '';
+    if (kind === 'busy') alt = t('allBusy');
+    else {
+      const p = UR.priceOf(st, state.filters);
+      alt = p && isFinite(p.mid) ? fmtEur(p.mid) + ' €' : '';
+    }
+    return '<span class="cd cd-' + esc(st.cls) + ' lv-' + level + (kind === 'busy' ? ' bz' : '') + (selected ? ' sel' : '') + '"><i class="cd-a">' + esc(kw) + '</i>' + (alt ? '<i class="cd-b">' + esc(alt) + '</i>' : '') + '</span>';
   }
 
   const PLUG_SVG = '<svg viewBox="0 0 16 16" aria-hidden="true"><rect width="16" height="16" rx="4" fill="#123a63"/><circle cx="8" cy="8" r="3.4" fill="none" stroke="#cfe8ff" stroke-width="1.5"/><circle cx="8" cy="8" r="1" fill="#cfe8ff"/></svg>';
@@ -865,7 +876,8 @@
     const textColor = cssVar('--text');
     const pillIds = pillSet(list);
     const cheapIds = cheapSet(list, pillIds);
-    lastCheapKey = [...cheapIds].sort().join(',');
+    const busyIds = busySet(list, pillIds);
+    lastCheapKey = alertKey(list, pillIds);
     for (const st of list) {
       const selected = st.id === state.detailId;
       const sum = UR.liveSummary(st, state.filters);
@@ -896,11 +908,12 @@
           halo: true,
         }).addTo(markerLayer);
       }
-      if (cheapIds.has(st.id)) {
+      const alertKind = busyIds.has(st.id) ? 'busy' : cheapIds.has(st.id) ? 'cheap' : null;
+      if (alertKind) {
         const cm = L.marker([st.lat, st.lon], {
-          icon: L.divIcon({ className: 'cdot', html: cheapDotHtml(st, level, selected), iconSize: [0, 0] }),
-          zIndexOffset: 400,
-          title: stationTitle(st) + ' · ' + t('cheapTip'),
+          icon: L.divIcon({ className: 'cdot', html: cheapDotHtml(st, level, selected, alertKind), iconSize: [0, 0] }),
+          zIndexOffset: alertKind === 'cheap' ? 400 : 200,
+          title: stationTitle(st) + ' · ' + t(alertKind === 'busy' ? 'allBusyTip' : 'cheapTip'),
           keyboard: true,
         });
         cm.on('click', () => openDetail(st.id, false));

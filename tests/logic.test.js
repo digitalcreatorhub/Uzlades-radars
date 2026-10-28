@@ -625,12 +625,21 @@ test('cheapestIds: дешёвые среди переданных, без нер
   const mk = (id, price, state) => ({ id, operatorId: 'x', cls: 'dc', kw: 50, live: { pts: [{ s: state || 'free', kw: 50, p: price }] } });
   const list = [mk('a', 0.30), mk('b', 0.305), mk('c', 0.45), mk('d', 0.55), mk('z', 0.10, 'out')];
   assert.deepEqual([...UR.cheapestIds(list, null)].sort(), ['a', 'b']); // z не работает, его цена не в счёт
+  assert.deepEqual([...UR.cheapestIds(list.concat([mk('y', 0.05, 'busy')]), null)].sort(), ['a', 'b']); // полностью занятую не выделяем
   assert.equal(UR.cheapestIds([mk('a', 0.4), mk('b', 0.4), mk('c', 0.41)], null).size, 0); // цены почти равны
   assert.equal(UR.cheapestIds([mk('a', 0.3), mk('b', 0.5)], null).size, 0); // меньше трёх станций с ценой
   assert.equal(UR.cheapestIds([], null).size, 0);
   assert.equal(UR.cheapestIds(null, null).size, 0);
   const many = Array.from({ length: 10 }, (_, i) => mk('m' + i, 0.3)).concat([mk('hi', 0.6)]);
   assert.equal(UR.cheapestIds(many, null, 4).size, 4);
+});
+
+test('busyIds: только станции, где заняты все рабочие точки, и предел', () => {
+  const mk = (id, ...states) => ({ id, live: { pts: states.map((s) => ({ s, kw: 50 })) } });
+  const list = [mk('a', 'busy', 'busy'), mk('b', 'busy', 'free'), mk('c', 'out'), mk('d', 'busy', 'out'), { id: 'e' }];
+  assert.deepEqual([...UR.busyIds(list, null)].sort(), ['a', 'd']);
+  assert.equal(UR.busyIds(Array.from({ length: 50 }, (_, i) => mk('s' + i, 'busy')), null, 7).size, 7);
+  assert.equal(UR.busyIds(null, null).size, 0);
 });
 
 console.log('\n' + passed + ' tests passed');
