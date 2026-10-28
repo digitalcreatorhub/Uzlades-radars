@@ -908,6 +908,19 @@ input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); ou
 .ppill .sel { --pl-bg: #1f6fd6; z-index: 2; box-shadow: 0 0 0 2px #fff, 0 4px 14px rgba(0, 0, 0, 0.5); }
 .ppill .sel::after { filter: drop-shadow(0 1px 0 #fff); }
 
+/* самая низкая цена среди станций на экране: переливающийся зелёный ободок (градиентная рамка вокруг выноски) */
+.ppill .pl.cheap {
+  border: 3px solid transparent; padding: 0;
+  background: linear-gradient(var(--pl-bg), var(--pl-bg)) padding-box,
+    linear-gradient(110deg, #19d6a4 0%, #c9ffe9 25%, #35f58f 50%, #c9ffe9 75%, #19d6a4 100%) border-box;
+  background-size: 100% 100%, 250% 100%;
+  animation: plshine 2.4s linear infinite;
+  box-shadow: 0 0 12px rgba(53, 245, 143, 0.55);
+}
+.ppill .pl.cheap::after { bottom: -10px; border-top-color: #2bf0a0; }
+@keyframes plshine { from { background-position: 0 0, 0% 0; } to { background-position: 0 0, -250% 0; } }
+@media (prefers-reduced-motion: reduce) { .ppill .pl.cheap { animation: none; } }
+
 /* ---------- скидки сетей ---------- */
 .disc { margin: 14px 0 6px; }
 .disc-list { margin: 0 0 8px; padding: 0; list-style: none; display: grid; gap: 8px; }

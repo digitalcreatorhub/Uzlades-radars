@@ -245,6 +245,23 @@
     return livePriceOf(st, filters) || priceFor(st.operatorId, st.cls);
   }
 
+  // Самые дешёвые станции среди переданных (те, что сейчас на карте): цена в пределах 1,5 цента от минимума, не больше max.
+  // Не работающие не берём. Если станций с ценой меньше трёх или цены почти одинаковые, выделять нечего: пустой набор.
+  function cheapestIds(list, filters, max) {
+    const priced = [];
+    for (const st of list || []) {
+      const sum = liveSummary(st, filters);
+      if (sum && sum.level === 'out') continue;
+      const p = priceOf(st, filters);
+      if (p && isFinite(p.mid)) priced.push([st.id, p.mid]);
+    }
+    if (priced.length < 3) return new Set();
+    const lo = Math.min.apply(null, priced.map((x) => x[1]));
+    const hi = Math.max.apply(null, priced.map((x) => x[1]));
+    if (hi - lo < 0.03) return new Set();
+    return new Set(priced.filter((x) => x[1] <= lo + 0.015).sort((a, b) => a[1] - b[1]).slice(0, max || 6).map((x) => x[0]));
+  }
+
   // Сводные цены по сетям и классам из всех точек с ценой: 10–90 перцентиль (отсекает редкие выбросы).
   function buildPriceTable(live) {
     const buckets = {};
@@ -920,6 +937,7 @@
     liveSummary,
     livePriceOf,
     priceOf,
+    cheapestIds,
     buildPriceTable,
     prettyName,
     napStation,

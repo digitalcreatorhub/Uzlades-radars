@@ -92,7 +92,7 @@
       note_ionity: 'Цена без подписки. С подпиской дешевле.',
       tabRoute: 'Маршрут', tabFav: 'Мои',
       estShort: '{from}→{to}%: {min} мин · {cost} €', estShortNoCost: '{from}→{to}%: {min} мин', estNoneShort: 'нет вашего разъёма',
-      fFree: 'Свободно', fOpen: '24/7', fCard: 'Картой', fCar: 'Для моей', fPills: 'Мощность на карте',
+      fFree: 'Свободно', fOpen: '24/7', fCard: 'Картой', fCar: 'Для моей', fPills: 'Мощность на карте', cheapTip: 'самая низкая цена рядом',
       discTitle: 'Скидки сети', discNote: 'Сверено {date}. Условия меняются: точные уточняйте в приложении сети.', discSrc: 'источник', discPricesTitle: 'Скидки по сетям',
       carBtn: 'Моя машина', carTitle: 'Моя машина',
       carLead: 'Выберите модель. Значения ориентировочные, любое можно поправить под свою машину.',
@@ -233,7 +233,7 @@
       note_ionity: 'Price without subscription. Cheaper with one.',
       tabRoute: 'Route', tabFav: 'Saved',
       estShort: '{from}→{to}%: {min} min · {cost} €', estShortNoCost: '{from}→{to}%: {min} min', estNoneShort: 'no connector for your car',
-      fFree: 'Free now', fOpen: '24/7', fCard: 'Card', fCar: 'My car', fPills: 'Power on map',
+      fFree: 'Free now', fOpen: '24/7', fCard: 'Card', fCar: 'My car', fPills: 'Power on map', cheapTip: 'lowest price nearby',
       discTitle: 'Network discounts', discNote: 'Checked {date}. Terms change: confirm the exact ones in the network app.', discSrc: 'source', discPricesTitle: 'Discounts by network',
       carBtn: 'My car', carTitle: 'My car',
       carLead: 'Pick a model. Values are approximate, edit any of them to match your car.',
@@ -829,11 +829,11 @@
   }
 
   const PLUG_SVG = '<svg viewBox="0 0 16 16" aria-hidden="true"><rect width="16" height="16" rx="4" fill="#123a63"/><circle cx="8" cy="8" r="3.4" fill="none" stroke="#cfe8ff" stroke-width="1.5"/><circle cx="8" cy="8" r="1" fill="#cfe8ff"/></svg>';
-  function pillHtml(st, sum, level, selected) {
+  function pillHtml(st, sum, level, selected, cheap) {
     const kw = st.kw ? String(Math.round(st.kw)) : '?';
     const unit = lang === 'ru' ? 'кВт' : 'kW';
     const cnt = sum && sum.total ? '<div class="pc"><b>' + (level === 'out' ? '–' : sum.free) + '</b>/' + sum.total + '</div>' : '';
-    return '<span class="pl lv-' + level + (selected ? ' sel' : '') + '"><span class="pw"><span><b>' + kw + '</b> <em>' + unit + '</em></span>' + PLUG_SVG + '</span>' + cnt + '</span>';
+    return '<span class="pl lv-' + level + (selected ? ' sel' : '') + (cheap ? ' cheap' : '') + '"><span class="pw"><span><b>' + kw + '</b> <em>' + unit + '</em></span>' + PLUG_SVG + '</span>' + cnt + '</span>';
   }
 
   function renderMarkers(list) {
@@ -844,15 +844,16 @@
     const okColor = cssVar('--ok');
     const textColor = cssVar('--text');
     const pillIds = pillSet(list);
+    const cheapIds = pillIds.size ? UR.cheapestIds(list.filter((x) => pillIds.has(x.id)), state.filters, 6) : new Set();
     for (const st of list) {
       const selected = st.id === state.detailId;
       const sum = UR.liveSummary(st, state.filters);
       const level = sum ? sum.level : 'unknown';
       if (pillIds.has(st.id)) {
         const pm = L.marker([st.lat, st.lon], {
-          icon: L.divIcon({ className: 'ppill', html: pillHtml(st, sum, level, selected), iconSize: [0, 0] }),
+          icon: L.divIcon({ className: 'ppill', html: pillHtml(st, sum, level, selected, cheapIds.has(st.id)), iconSize: [0, 0] }),
           zIndexOffset: selected ? 1000 : level === 'free' ? 500 : 0,
-          title: stationTitle(st),
+          title: stationTitle(st) + (cheapIds.has(st.id) ? ' · ' + t('cheapTip') : ''),
           keyboard: true,
         });
         pm.on('click', () => openDetail(st.id, false));
