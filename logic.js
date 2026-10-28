@@ -786,6 +786,20 @@
     return out;
   }
 
+  // Когда приедете на каждую остановку и сколько там заряжаться: езда пропорциональна пройденному пути, плюс зарядки на прошлых остановках.
+  // -> [{ arriveMs, chargeMin }] в порядке остановок.
+  function stopTimes(plan, car, routeMin, totalKm, startMs) {
+    if (!plan || !plan.stops || !car || !(totalKm > 0) || !(routeMin > 0)) return [];
+    let waited = 0;
+    return plan.stops.map((s) => {
+      const arriveMs = startMs + ((s.along / totalKm) * routeMin + waited) * 60000;
+      const e = chargeEstimate(car, carPowerKw(car, s.st), null, s.arriveSoc, 80);
+      const chargeMin = e ? e.minutes : 0;
+      waited += chargeMin;
+      return { arriveMs: Math.round(arriveMs), chargeMin };
+    });
+  }
+
   /* ---------- журнал зарядок ---------- */
   const CHARGE_LIMIT = 500;
 
@@ -1089,6 +1103,7 @@
     amenityQuery,
     parseAmenities,
     freeEta,
+    stopTimes,
     rigaMinutes,
     touInfo,
     personalPrice,

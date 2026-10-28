@@ -977,3 +977,9 @@ input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); ou
 .mine { margin: 4px 0 14px; }
 .mine-chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .tou-line { margin: 0 0 8px; padding: 10px 12px; border-radius: 14px; background: color-mix(in srgb, var(--c-dc) 16%, transparent); border: 1px solid color-mix(in srgb, var(--c-dc) 40%, transparent); font-size: 13.5px; font-weight: 700; }
+
+.garage { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+.route-acts { display: flex; gap: 8px; margin: 0 0 12px; }
+.saved-routes { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+.saved-route { display: inline-flex; gap: 4px; }
+.chip-x { padding-left: 10px; padding-right: 10px; }

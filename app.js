@@ -5,7 +5,7 @@
   'use strict';
 
   const UR = window.UR;
-  const APP_VERSION = 'v13'; // совпадает с VERSION в sw.js (проверяет тест); меняется с каждым выпуском
+  const APP_VERSION = 'v14'; // совпадает с VERSION в sw.js (проверяет тест); меняется с каждым выпуском
 
   /* ---------- хранилище ---------- */
   const store = {
@@ -82,6 +82,9 @@
       liveSource: 'Статус и цены: Eco-Movement через национальную точку доступа Латвии (CC0).',
       updAvail: 'Доступна новая версия приложения', updGo: 'Обновить', verLine: 'Версия {v}',
       fMax: 'Цена до…', fMaxN: 'до {p} €', fGratis: 'Бесплатные', fDisc: 'Со скидкой', fIndoor: 'В помещении',
+      routeEta: 'прибытие ≈ {time}', routeOcc: 'к этому часу обычно занято ≈ {n}%', routeCharge: '{from}→80%: ≈ {min} мин',
+      routeSave: 'Сохранить маршрут', routeShare: 'Поделиться', routeSaved: 'Сохранённые маршруты', routeSavedDone: 'Маршрут сохранён', routeDel: 'Удалить', routeShareText: 'Маршрут {from} → {to} с остановками на зарядку', routeSavedNone: '',
+      garageNew: '+ Ещё машина', carName: 'Название (необязательно)', garageFull: 'Можно сохранить до 5 машин',
       mineTitle: 'Мои скидки', mineNote: 'Отметьте, что у вас есть: цены на карте, в списках и в карточках станут с вашей скидкой.',
       priceMine: 'с вашей скидкой, без неё {p}', priceTou: 'ночной тариф', dtMaxh: 'Высота въезда', dtIndoor: 'Расположение', indoorYes: 'в помещении или паркинге',
       touNow: 'Ночной тариф {price} € с {from}:00 до {to}:00 действует сейчас, ещё {left}.', touSoon: 'Ночной тариф {price} € с {from}:00 до {to}:00 начнётся через {left}.',
@@ -229,6 +232,9 @@
       liveSource: 'Availability and prices: Eco-Movement via the Latvian national access point (CC0).',
       updAvail: 'A new version of the app is available', updGo: 'Update', verLine: 'Version {v}',
       fMax: 'Price up to…', fMaxN: 'up to {p} €', fGratis: 'Free', fDisc: 'Discounted', fIndoor: 'Indoor',
+      routeEta: 'arrive ≈ {time}', routeOcc: 'usually ≈ {n}% busy by then', routeCharge: '{from}→80%: ≈ {min} min',
+      routeSave: 'Save route', routeShare: 'Share', routeSaved: 'Saved routes', routeSavedDone: 'Route saved', routeDel: 'Delete', routeShareText: 'Route {from} → {to} with charging stops', routeSavedNone: '',
+      garageNew: '+ Another car', carName: 'Name (optional)', garageFull: 'Up to 5 cars can be saved',
       mineTitle: 'My discounts', mineNote: 'Tick what you have: prices on the map, in lists and on station cards will include your discount.',
       priceMine: 'with your discount, {p} without', priceTou: 'night rate', dtMaxh: 'Entry height', dtIndoor: 'Location', indoorYes: 'indoors or in a car park',
       touNow: 'Night rate {price} € from {from}:00 to {to}:00 is on now, {left} left.', touSoon: 'Night rate {price} € from {from}:00 to {to}:00 starts in {left}.',
@@ -489,14 +495,28 @@
     state.mine = {};
     for (const id of UR.mineOptions()) if (mine && mine[id] === true) state.mine[id] = true;
     state.filters.mine = state.mine;
-    state.car = UR.normalizeCar(readJson('ur_car_v1', null));
+    // Гараж: до пяти машин, одна активная. Старый ur_car_v1 с одной машиной подхватывается сам.
+    const g = readJson('ur_garage_v1', null);
+    let list = [];
+    let idx = -1;
+    if (g && Array.isArray(g.list)) {
+      list = g.list.map((c) => UR.normalizeCar(c)).filter(Boolean).slice(0, 5);
+      idx = Number.isInteger(g.idx) ? g.idx : 0;
+    } else {
+      const one = UR.normalizeCar(readJson('ur_car_v1', null));
+      if (one) { list = [one]; idx = 0; }
+    }
+    if (idx >= list.length) idx = list.length - 1;
+    state.garage = { list, idx };
+    state.car = list[idx] || null;
     const p = readJson('ur_prefs_v1', {});
     const num = (v, lo, hi) => { const n = parseFloat(String(v).replace(',', '.')); return isFinite(n) && n >= lo && n <= hi ? n : null; };
     state.prefs = { petrol: num(p.petrol, 0.5, 5), petrolCons: num(p.petrolCons, 2, 25) || 7, home: num(p.home, 0.01, 2) };
     state.filters.car = state.car;
   }
   function saveProfile() {
-    writeJson('ur_car_v1', state.car);
+    writeJson('ur_garage_v1', { list: state.garage.list, idx: state.garage.idx });
+    writeJson('ur_car_v1', state.car); // дублируем активную: старые версии читают её
     writeJson('ur_prefs_v1', state.prefs);
     state.filters.car = state.car;
   }
@@ -682,7 +702,7 @@
 
   /* ---------- ссылки: станция, вкладка, ярлыки ---------- */
   const params = new URLSearchParams(location.search);
-  state.pending = { st: params.get('st'), go: params.get('go'), tab: params.get('tab') };
+  state.pending = { st: params.get('st'), go: params.get('go'), tab: params.get('tab'), rf: params.get('rf'), rt: params.get('rt'), rs: params.get('rs') };
   // Метки с мощностью (как в Chargemap): включаются ссылкой ?pills=1, выключаются ?pills=0, дальше запоминается
   if (params.get('pills') === '1' || params.get('pills') === '0') writeJson('ur_pills_v1', params.get('pills') === '1');
   state.pills = readJson('ur_pills_v1', false) === true;
@@ -1527,6 +1547,7 @@
 
   /* ---------- маршрут A→B ---------- */
   state.routeForm = { from: '', to: '', soc: 90 };
+  state.routes = (readJson('ur_routes_v1', []) || []).filter((x) => x && typeof x.id === 'string' && typeof x.to === 'string').slice(0, 10);
 
   async function geocode(q) {
     // только Балтия, ближайшее к вам выше: иначе «Airport» находит Хельсинки
@@ -1634,10 +1655,62 @@
       '<button class="row" data-detail="' + esc(st.id) + '">' + gauge(st, false) +
       '<span class="main"><span class="title" style="display:block">' + esc(title || stationTitle(st)) + '</span>' +
       '<span class="meta" style="display:block">' + esc((title ? stationTitle(st) + ' · ' : '') + stationSub(st)) + '</span>' +
-      (extra ? '<span class="meta" style="display:block">' + esc(extra) + '</span>' : '') +
+      (extra ? [].concat(extra).filter(Boolean).map((x) => '<span class="meta" style="display:block">' + esc(x) + '</span>').join('') : '') +
       (UR.liveSummary(st, state.filters) ? '<span class="live-line" style="display:block">' + livePill(UR.liveSummary(st, state.filters)) + '</span>' : '') + '</span>' +
       '<span class="side">' + esc(t('routeKm', { n: c.along < 10 ? fmtKm(c.along) : Math.round(c.along) })) + '<small>' + esc(fmtOff(c.off)) + '</small></span></button>'
     );
+  }
+
+  /* ---------- сохранённые маршруты и ссылка на маршрут ---------- */
+  const saveRoutes = () => writeJson('ur_routes_v1', state.routes);
+  function savedRoutesHtml() {
+    if (!state.routes.length) return '';
+    return '<h3 class="sect">' + esc(t('routeSaved')) + '</h3><div class="saved-routes">' +
+      state.routes.map((x) => '<span class="saved-route"><button type="button" class="chip" data-route-load="' + esc(x.id) + '">' + esc((x.from || t('routeFromMine')) + ' → ' + x.to) + '</button>' +
+        '<button type="button" class="chip chip-x" data-route-del="' + esc(x.id) + '" aria-label="' + esc(t('routeDel')) + '">×</button></span>').join('') + '</div>';
+  }
+  function currentRouteRef() {
+    const r = state.route;
+    if (!r || r.status !== 'ok') return null;
+    const f = state.routeForm;
+    const mine = !f.from.trim() || f.from.trim().toLowerCase() === t('routeFromMine').toLowerCase();
+    return { from: mine ? '' : f.from.trim().slice(0, 80), to: f.to.trim().slice(0, 80), soc: Math.max(15, Math.min(100, parseInt(f.soc, 10) || 90)) };
+  }
+  function routeUrl(ref) {
+    const q = new URLSearchParams();
+    if (ref.from) q.set('rf', ref.from);
+    q.set('rt', ref.to);
+    q.set('rs', String(ref.soc));
+    return location.origin + location.pathname + '?' + q.toString();
+  }
+  function saveCurrentRoute() {
+    const ref = currentRouteRef();
+    if (!ref) return;
+    const id = (ref.from + '|' + ref.to).toLowerCase();
+    state.routes = [Object.assign({ id }, ref)].concat(state.routes.filter((x) => x.id !== id)).slice(0, 10);
+    saveRoutes();
+    toast(t('routeSavedDone'));
+    renderPanel();
+  }
+  async function shareRoute() {
+    const ref = currentRouteRef();
+    if (!ref) return;
+    const url = routeUrl(ref);
+    const text = t('routeShareText', { from: ref.from || t('routeFromMine'), to: ref.to });
+    try {
+      if (navigator.share) { await navigator.share({ title: 'Uzlādes Radars', text, url }); return; }
+    } catch (e) {
+      if (e && e.name === 'AbortError') return;
+    }
+    try { await navigator.clipboard.writeText(url); toast(t('shareCopied')); } catch (e) { toast(url); }
+  }
+  function loadSavedRoute(id) {
+    const x = state.routes.find((r) => r.id === id);
+    if (!x) return;
+    state.routeForm.from = x.from;
+    state.routeForm.to = x.to;
+    state.routeForm.soc = x.soc;
+    findRoute();
   }
 
   function renderRoute() {
@@ -1651,6 +1724,7 @@
       (state.car ? '<label class="soc"><span>' + esc(t('routeSoc')) + '</span><input id="route-soc" type="number" inputmode="numeric" min="15" max="100" value="' + esc(f.soc) + '"></label>' : '') +
       '<button class="btn btn-primary" type="submit" id="route-go">' + esc(t('routeGo')) + '</button></form>';
 
+    html += savedRoutesHtml();
     if (!r) {
       if (!state.car) html += '<p class="note">' + esc(t('routeNoCar')) + '</p>';
     } else if (r.status === 'wait') {
@@ -1662,20 +1736,26 @@
     } else if (r.status === 'ok') {
       const calc = routeCalc();
       html += '<div class="route-sum"><span>' + esc(t('routeLen', { km: Math.round(r.km), h: fmtDur(r.min) })) + '</span><button class="link-btn" data-act="routeClear">' + esc(t('routeClear')) + '</button></div>';
-      html += '<p class="note">A: ' + esc(r.from.label) + '<br>B: ' + esc(r.to.label) + '</p>';
+      html += '<p class="note">A: ' + esc(r.from.label) + '<br>B: ' + esc(r.to.label) + '</p>' +
+        '<div class="route-acts"><button class="chip" data-act="routeSave">' + esc(t('routeSave')) + '</button><button class="chip" data-act="routeShare">' + esc(t('routeShare')) + '</button></div>';
       if (!state.car) html += '<p class="note">' + esc(t('routeNoCar')) + '</p>';
       if (calc.plan) {
         const plan = calc.plan;
         if (plan.ok && !plan.stops.length) {
           html += '<div class="route-ok">' + esc(t('routeNoNeed', { km: UR.rangeKm(state.car, Math.max(15, Math.min(100, f.soc)), state.tempC) })) + '</div>';
         }
+        const nowMs = Date.now();
+        const times = UR.stopTimes(plan, state.car, r.min, r.km, nowMs);
         if (plan.stops.length) {
           html += '<h3 class="sect">' + esc(t('routeStops')) + '</h3><div class="rows">' +
             plan.stops.map((s, i) => {
               const kw = UR.carPowerKw(state.car, s.st);
               const e = UR.chargeEstimate(state.car, kw, UR.priceOf(s.st, state.filters), s.arriveSoc, 80);
-              const extra = t('routeArrive', { n: s.arriveSoc }) + (e ? ' · ' + s.arriveSoc + '→80%: ≈ ' + e.minutes + (lang === 'ru' ? ' мин' : ' min') : '');
-              return routeRow(s, t('routeStop', { n: i + 1 }), extra);
+              const tm = times[i];
+              const fc = tm ? UR.forecastFor(s.st, state.patterns, nowMs, (tm.arriveMs - nowMs) / 60000) : null;
+              const line1 = t('routeArrive', { n: s.arriveSoc }) + (e ? ' · ' + t('routeCharge', { from: s.arriveSoc, min: e.minutes }) : '');
+              const line2 = tm ? t('routeEta', { time: fmtTime(tm.arriveMs) }) + (fc ? ' · ' + t('routeOcc', { n: fc.pct }) : '') : '';
+              return routeRow(s, t('routeStop', { n: i + 1 }), [line1, line2]);
             }).join('') + '</div>';
         }
         if (!plan.ok) html += '<div class="route-warn">' + esc(t(plan.reason === 'noStart' ? 'routeNoStart' : plan.reason === 'tooMany' ? 'routeTooMany' : 'routeNoNext')) + '</div>';
@@ -1960,6 +2040,10 @@
       writeJson('ur_mine_v1', state.mine);
       renderAll();
     }
+    else if (d.act === 'routeSave') saveCurrentRoute();
+    else if (d.act === 'routeShare') shareRoute();
+    else if (d.routeLoad) loadSavedRoute(d.routeLoad);
+    else if (d.routeDel) { state.routes = state.routes.filter((x) => x.id !== d.routeDel); saveRoutes(); renderPanel(); }
     else if (d.act === 'chargeAdd') openChargeForm('');
     else if (d.act === 'chargeCancel') { state.chargeForm = null; renderPanel(); }
     else if (d.chdel) deleteCharge(d.chdel);
@@ -2018,15 +2102,25 @@
   });
 
   /* ---------- окно «Моя машина» ---------- */
-  function openCarDialog() {
-    const c = state.car || Object.assign({}, UR.CARS[0], { onlyCompatible: true });
+  let carDlgIdx = 0; // какая машина из гаража открыта в окне (равна длине списка: новая)
+  function openCarDialog(sel) {
+    const g = state.garage;
+    carDlgIdx = sel != null ? sel : Math.max(0, g.idx);
+    if (carDlgIdx > g.list.length) carDlgIdx = g.list.length;
+    const c = g.list[carDlgIdx] || Object.assign({}, UR.CARS[0], { onlyCompatible: true });
     const pr = state.prefs;
     const field = (id, label, val, hint, step) =>
       '<label class="fld"><span>' + esc(label) + '</span><input id="' + id + '" type="text" inputmode="decimal" value="' + esc(val == null ? '' : String(val).replace('.', ',')) + '"' + (hint ? ' placeholder="' + esc(hint) + '"' : '') + '></label>';
     const conns = [['ccs', 'CCS'], ['type2', 'Type 2'], ['chademo', 'CHAdeMO']];
+    const modelName = (UR.CARS.find((m) => m.id === c.id) || {}).name;
+    const garage = '<div class="garage">' +
+      g.list.map((x, i) => '<button type="button" class="chip" data-garage="' + i + '" aria-pressed="' + (i === carDlgIdx) + '">' + esc(x.name) + '</button>').join('') +
+      (g.list.length < 5 ? '<button type="button" class="chip" data-garage="new" aria-pressed="' + (carDlgIdx >= g.list.length) + '">' + esc(t('garageNew')) + '</button>' : '') + '</div>';
     $('car-body').innerHTML =
+      (g.list.length ? garage : '') +
       '<label class="fld"><span>' + esc(t('carModel')) + '</span><select id="car-model">' +
       UR.CARS.map((m) => '<option value="' + m.id + '"' + (m.id === c.id ? ' selected' : '') + '>' + esc(m.name) + '</option>').join('') + '</select></label>' +
+      '<label class="fld"><span>' + esc(t('carName')) + '</span><input id="car-name" type="text" maxlength="40" value="' + esc(c.name && c.name !== modelName ? c.name : '') + '"></label>' +
       '<div class="fld-grid">' + field('car-kwh', t('carKwh'), c.kwh) + field('car-cons', t('carCons'), c.cons) + field('car-dc', t('carDc'), c.dc) + field('car-ac', t('carAc'), c.ac) + '</div>' +
       '<div class="fld"><span>' + esc(t('carConn')) + '</span><div class="checks">' +
       conns.map(([id, label]) => '<label class="check"><input type="checkbox" data-conn-box="' + id + '"' + (c.conn.includes(id) ? ' checked' : '') + '><span>' + label + '</span></label>').join('') + '</div></div>' +
@@ -2036,7 +2130,7 @@
     $('car-lead').textContent = t('carLead');
     $('car-save').textContent = t('carSave');
     $('car-clear').textContent = t('carClear');
-    $('car-clear').hidden = !state.car;
+    $('car-clear').hidden = carDlgIdx >= g.list.length;
     $('car-close').setAttribute('aria-label', t('carClose'));
     $('car-dialog').hidden = false;
     $('car-model').focus();
@@ -2045,12 +2139,15 @@
   function readCarForm() {
     const val = (id) => $(id).value.trim();
     const conn = Array.from(document.querySelectorAll('[data-conn-box]')).filter((b) => b.checked).map((b) => b.dataset.connBox);
-    const car = UR.normalizeCar({ id: val('car-model'), kwh: val('car-kwh'), cons: val('car-cons'), dc: val('car-dc'), ac: val('car-ac'), conn, onlyCompatible: $('car-only').checked });
+    const car = UR.normalizeCar({ id: val('car-model'), name: val('car-name'), kwh: val('car-kwh'), cons: val('car-cons'), dc: val('car-dc'), ac: val('car-ac'), conn, onlyCompatible: $('car-only').checked });
     const num = (id, lo, hi) => { const n = parseFloat(val(id).replace(',', '.')); return isFinite(n) && n >= lo && n <= hi ? n : null; };
     return { car, prefs: { petrol: num('car-petrol', 0.5, 5), petrolCons: num('car-pcons', 2, 25) || 7, home: num('car-home', 0.01, 2) } };
   }
   function saveCarDialog() {
     const r = readCarForm();
+    const g = state.garage;
+    if (carDlgIdx >= g.list.length) { g.list.push(r.car); carDlgIdx = g.list.length - 1; } else g.list[carDlgIdx] = r.car;
+    g.idx = carDlgIdx;
     state.car = r.car;
     state.prefs = r.prefs;
     saveProfile();
@@ -2062,13 +2159,20 @@
   $('car-save').addEventListener('click', saveCarDialog);
   $('car-close').addEventListener('click', closeCarDialog);
   $('car-clear').addEventListener('click', () => {
-    state.car = null;
-    state.tempC = null;
+    const g = state.garage;
+    if (carDlgIdx < g.list.length) g.list.splice(carDlgIdx, 1);
+    g.idx = Math.min(g.idx, g.list.length - 1);
+    state.car = g.list[g.idx] || null;
+    if (!state.car) state.tempC = null;
     saveProfile();
     closeCarDialog();
     renderAll();
   });
-  $('car-dialog').addEventListener('click', (e) => { if (e.target === $('car-dialog')) closeCarDialog(); });
+  $('car-dialog').addEventListener('click', (e) => {
+    if (e.target === $('car-dialog')) { closeCarDialog(); return; }
+    const b = e.target.closest('[data-garage]');
+    if (b) openCarDialog(b.dataset.garage === 'new' ? state.garage.list.length : parseInt(b.dataset.garage, 10));
+  });
   // выбор модели подставляет её данные в поля; правки руками сохраняются до следующей смены модели
   $('car-dialog').addEventListener('change', (e) => {
     if (e.target.id !== 'car-model') return;
@@ -2089,6 +2193,16 @@
       p.tab = null;
       renderTabs();
       renderPanel();
+    }
+    if (p.rt) {
+      // ссылка на маршрут: заполняем форму и сразу считаем
+      state.routeForm.from = String(p.rf || '').slice(0, 80);
+      state.routeForm.to = String(p.rt).slice(0, 80);
+      state.routeForm.soc = Math.max(15, Math.min(100, parseInt(p.rs, 10) || 90));
+      p.rt = null;
+      state.tab = 'route';
+      renderTabs();
+      findRoute();
     }
     if (p.go === 'free' && state.live && UR.isLiveFresh(state.live)) {
       p.go = null;
