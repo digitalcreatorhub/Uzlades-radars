@@ -653,4 +653,24 @@ test('версия приложения: APP_VERSION в app.js совпадае�
   assert.equal(a[1] || a[2], s[1]);
 });
 
+test('freeEta: ближайшая освобождающаяся точка, «дольше обычного», нет данных', () => {
+  const now = Date.UTC(2026, 9, 28, 12, 0);
+  const u = (minAgo) => Math.floor((now - minAgo * 60000) / 60000);
+  const pat = { dur: { S1: { f: [40, 9], s: [120, 5] } } };
+  const st = (pts) => ({ napId: 'S1', live: { pts } });
+  const a = UR.freeEta(st([{ s: 'busy', kw: 50, u: u(10) }, { s: 'busy', kw: 22, u: u(10) }]), pat, now);
+  assert.equal(a.min, 30); assert.equal(a.typical, 40); assert.equal(a.over, false); assert.equal(a.n, 9); assert.equal(a.fast, true);
+  const b = UR.freeEta(st([{ s: 'busy', kw: 50, u: u(10) }, { s: 'busy', kw: 50, u: u(35) }]), pat, now);
+  assert.equal(b.min, 5); // из двух выбирается та, что уже дольше занята
+  const c = UR.freeEta(st([{ s: 'busy', kw: 50, u: u(55) }]), pat, now);
+  assert.equal(c.over, true); assert.equal(c.min, 0);
+  assert.equal(UR.freeEta(st([{ s: 'free', kw: 50 }]), pat, now), null);
+  assert.equal(UR.freeEta(st([{ s: 'busy', kw: 50 }]), pat, now), null); // нет времени начала
+  assert.equal(UR.freeEta(st([{ s: 'busy', kw: 50, u: u(10) }]), { dur: { S2: pat.dur.S1 } }, now), null);
+  assert.equal(UR.freeEta(st([{ s: 'busy', kw: 11, u: u(10) }]), { dur: { S1: { f: [40, 9] } } }, now), null); // для медленных данных нет
+  assert.equal(UR.freeEta(st([{ s: 'busy', kw: 50, u: u(3000) }]), pat, now), null); // больше суток: не считаем
+  assert.equal(UR.freeEta(null, pat, now), null);
+  assert.equal(UR.freeEta(st([]), null, now), null);
+});
+
 console.log('\n' + passed + ' tests passed');

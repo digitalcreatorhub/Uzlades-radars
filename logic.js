@@ -866,6 +866,28 @@
     return out;
   }
 
+  /* ---------- «освободится через N минут» (patterns.dur) ---------- */
+  // Для занятой точки: сколько уже идёт зарядка и сколько такие зарядки на этой площадке длятся обычно (медиана по быстрым или медленным точкам).
+  // Возвращает данные по точке, которая освободится раньше всех, или null (нет данных, нет занятых точек).
+  const FAST_KW = 43;
+  function freeEta(st, patterns, nowMs) {
+    if (!st || !st.live || !st.napId || !patterns || !patterns.dur) return null;
+    const d = patterns.dur[st.napId];
+    if (!d) return null;
+    const now = nowMs == null ? Date.now() : nowMs;
+    let best = null;
+    for (const p of st.live.pts) {
+      if (p.s !== 'busy' || !p.u) continue;
+      const row = d[(p.kw || 0) >= FAST_KW ? 'f' : 's'];
+      if (!row) continue;
+      const elapsed = (now - p.u * 60000) / 60000;
+      if (elapsed < 0 || elapsed > 24 * 60) continue;
+      const left = row[0] - elapsed;
+      if (!best || left < best.left) best = { left, min: Math.max(0, Math.round(left)), typical: row[0], n: row[1], over: left <= 0, fast: (p.kw || 0) >= FAST_KW };
+    }
+    return best;
+  }
+
   /* ---------- скидки сетей ---------- */
   // Только то, что написано на страницах самих сетей (или, где так сказано, в сводке Cenotava.lv). Сверено 28.10.2026.
   // Условия меняются, поэтому в интерфейсе всегда показываем дату сверки и ссылку на источник. Править здесь.
@@ -991,6 +1013,7 @@
     AMENITY_RADIUS_M,
     amenityQuery,
     parseAmenities,
+    freeEta,
     DISCOUNTS_DATE,
     DISCOUNTS,
     activeDiscounts,

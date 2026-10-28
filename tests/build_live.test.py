@@ -203,5 +203,57 @@ class History(unittest.TestCase):
         self.assertNotIn('S1', build_live.render_patterns(st, self.utc('2026-11-20T12:00:00'))['px'])
 
 
+def pt(e, s, u=None, kw=50):
+    d = {'e': e, 's': s, 'kw': kw}
+    if u is not None:
+        d['u'] = u
+    return d
+
+
+def live_pts(status_time, pts):
+    return {'statusTime': status_time, 'sites': [{'id': 'S1', 'pts': pts}]}
+
+
+class Durations(unittest.TestCase):
+    def utc(self, s):
+        return datetime.fromisoformat(s).replace(tzinfo=timezone.utc)
+
+    def minutes(self, s):
+        return int(self.utc(s).timestamp() // 60)
+
+    def test_session_length_is_measured_from_busy_start_to_midpoint_between_snapshots(self):
+        st = build_live.empty_history(self.utc('2026-10-27T10:00:00'))
+        start = self.minutes('2026-10-27T09:00:00')
+        self.assertTrue(build_live.update_history(st, live_pts('2026-10-27T10:00:00+00:00', [pt('E1', 'busy', start)]), self.utc('2026-10-27T10:01:00')))
+        self.assertEqual(st['busy'], {'E1': start})
+        self.assertFalse(st.get('dur'))
+        # через 15 минут точка свободна: зарядка кончилась между 10:00 и 10:15, середина 10:07:30, значит ≈ 67 минут
+        self.assertTrue(build_live.update_history(st, live_pts('2026-10-27T10:15:00+00:00', [pt('E1', 'free')]), self.utc('2026-10-27T10:16:00')))
+        self.assertEqual(st['dur']['S1'], [[67, 50]])
+        self.assertEqual(st['busy'], {})
+
+    def test_gap_between_snapshots_and_absurd_lengths_are_ignored(self):
+        st = build_live.empty_history(self.utc('2026-10-27T10:00:00'))
+        build_live.update_history(st, live_pts('2026-10-27T10:00:00+00:00', [pt('E1', 'busy', self.minutes('2026-10-27T09:00:00')), pt('E2', 'busy', self.minutes('2026-10-25T09:00:00'))]), self.utc('2026-10-27T10:01:00'))
+        # следующий снимок через 3 часа: когда освободились, неизвестно
+        build_live.update_history(st, live_pts('2026-10-27T13:00:00+00:00', [pt('E1', 'free'), pt('E2', 'free')]), self.utc('2026-10-27T13:01:00'))
+        self.assertFalse(st.get('dur'))
+        # а вот двое суток занятости при нормальном интервале отбрасываются как ночёвка
+        build_live.update_history(st, live_pts('2026-10-27T13:15:00+00:00', [pt('E2', 'busy', self.minutes('2026-10-25T09:00:00'))]), self.utc('2026-10-27T13:16:00'))
+        build_live.update_history(st, live_pts('2026-10-27T13:30:00+00:00', [pt('E2', 'free')]), self.utc('2026-10-27T13:31:00'))
+        self.assertFalse(st.get('dur'))
+
+    def test_points_without_id_do_not_break_and_median_needs_enough_sessions(self):
+        st = build_live.empty_history(self.utc('2026-10-27T10:00:00'))
+        self.assertTrue(build_live.update_history(st, fake_live('2026-10-27T10:00:00+00:00', ['busy', 'free']), self.utc('2026-10-27T10:01:00')))
+        st['dur'] = {'S1': [[30, 50], [50, 50], [40, 50], [20, 7], [25, 7]], 'S2': [[10, 22]]}
+        pat = build_live.render_patterns(st, self.utc('2026-10-27T10:30:00'))
+        self.assertNotIn('s', pat['dur'].get('S1', {}))  # медленных всего 2 из 4 нужных
+        self.assertNotIn('S2', pat['dur'])
+        st['dur']['S1'] += [[60, 50], [35, 50]]
+        pat = build_live.render_patterns(st, self.utc('2026-10-27T10:30:00'))
+        self.assertEqual(pat['dur']['S1']['f'], [40, 5])  # 30, 35, 40, 50, 60
+
+
 if __name__ == '__main__':
     unittest.main()

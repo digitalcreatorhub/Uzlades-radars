@@ -180,7 +180,7 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
         pts: [P('ccs', 150, 'free', 0.41), Object.assign(P('ccs', 150, 'busy', 0.41), { u: Math.floor((Date.now() - 25 * 60000) / 60000) }), P('type2', 22, 'free', 0.34)] },
       // только в NAP, все заняты
       { id: 'a2', n: 'Elektrum, DC 50kW', op: 'Elektrum Drive', lat: 56.94, lon: 24.1, a: 'Lāčplēša iela 10', c: 'Rīga', h: '24/7', u: statusTime,
-        pts: [P('ccs', 50, 'busy', 0.44), P('chademo', 50, 'busy', 0.44)] },
+        pts: [Object.assign(P('ccs', 50, 'busy', 0.44), { u: Math.floor((Date.now() - 12 * 60000) / 60000) }), Object.assign(P('chademo', 50, 'busy', 0.44), { u: Math.floor((Date.now() - 20 * 60000) / 60000) })] },
       // только в NAP, не работает
       { id: 'a3', n: 'OUT_3', op: 'Ignitis ON', lat: 56.945, lon: 24.106, a: 'Čaka iela 5', c: 'Rīga', h: '24/7', u: statusTime,
         pts: [P('ccs', 60, 'out', 0.35)] },
@@ -212,7 +212,7 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
   p3.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) errors3.push('console: ' + m.text()); });
   const nowH = Number(new Intl.DateTimeFormat('en-GB', { hour: '2-digit', hour12: false, timeZone: 'Europe/Riga' }).format(new Date())) % 24;
   const hoursRow = Array.from({ length: 24 }, (_, h) => (((h - nowH + 24) % 24) >= 12 && ((h - nowH + 24) % 24) < 18 ? -1 : 10 + h * 3)); // данных нет в 6 часах, не включая текущий
-  const patternsDoc = { v: 1, since: '2026-10-27', minSamples: 12, sites: { a1: hoursRow.concat(hoursRow) } };
+  const patternsDoc = { v: 1, since: '2026-10-27', minSamples: 12, sites: { a1: hoursRow.concat(hoursRow) }, dur: { a2: { f: [45, 8] } }, durMin: 4 };
   await routeFor(p3, liveDoc(minsAgo(5)), patternsDoc);
   await p3.goto(base + '/');
   await p3.waitForSelector('.live', { timeout: 8000 });
@@ -249,6 +249,11 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
   await p3.click('[data-tab="list"]');
   const rowsTxt = await p3.locator('.rows').innerText();
   check('live: в списке есть «Все заняты» и «Не работает»', rowsTxt.includes('Все заняты') && rowsTxt.includes('Не работает'));
+  await p3.locator('.row', { hasText: 'Lāčplēša' }).first().click();
+  const etaTxt = await p3.locator('.detail').innerText();
+  check('прогноз: у станции, где все заняты, «освободится примерно через 25 мин (обычно ≈ 45 мин)»', /Освободится примерно через 25 мин \(обычно зарядка здесь ≈ 45 мин\)/.test(etaTxt), etaTxt.replace(/\n/g, ' | ').slice(0, 300));
+  await p3.click('#btn-back');
+  await p3.click('[data-tab="list"]');
   check('live: в списке 9 строк', (await p3.locator('.row').count()) === 9, 'rows=' + (await p3.locator('.row').count()));
   check('live: станция только из OSM (Virši) без бейджа статуса', (await p3.locator('.row', { hasText: 'Virši' }).first().locator('.live').count()) === 0);
   await p3.screenshot({ path: path.join(shots, '8-live-list.png') });
