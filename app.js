@@ -5,7 +5,7 @@
   'use strict';
 
   const UR = window.UR;
-  const APP_VERSION = 'v14'; // совпадает с VERSION в sw.js (проверяет тест); меняется с каждым выпуском
+  const APP_VERSION = 'v15'; // совпадает с VERSION в sw.js (проверяет тест); меняется с каждым выпуском
 
   /* ---------- хранилище ---------- */
   const store = {
@@ -149,6 +149,17 @@
       watchFreed: 'Освободилась: {name}',
       pushIos: 'На iPhone уведомления при закрытом приложении работают, только если добавить его на экран «Домой».',
       watchOff: 'Больше не слежу',
+      whenBest: 'Свободнее всего около {h}:00 (обычно занято ≈ {n}%), сейчас ≈ {now}%',
+      whenGood: 'Сейчас хороший момент: обычно занято ≈ {n}%',
+      nearFree: 'Рядом свободно:', unitM: 'м',
+      timerTitle: 'Таймер: напомнить про 80%', timerHint: 'Заряд сейчас:', timerBtn: '{soc}% · {min} мин',
+      timerSet: 'Таймер на {min} мин. Напомню, когда будет 80%.', timerSetPush: 'Таймер на {min} мин. Напомню, когда будет 80%, и при закрытом приложении.',
+      timerActive: 'Таймер: через {min} мин', timerSoon: 'Таймер: почти готово', timerCancel: 'Отменить', timerOff: 'Таймер отменён',
+      timerDone: 'Зарядка до 80% почти готова: {name}',
+      digestBtn: 'Вечерняя сводка', digestOff: 'выкл', digestOn: 'Пришлю сводку по избранным в {h}:00.', digestStopped: 'Сводка выключена.',
+      digestNoFav: 'Сначала добавьте станции в избранное (★): сводка будет про них.',
+      digestNoPush: 'Сводка приходит уведомлением, а на этом устройстве они недоступны.',
+      digestHint: 'Раз в день: что свободно на избранных и когда там спокойнее.',
       searchPh: 'Название, адрес или сеть', searchClear: 'Сбросить поиск',
       routeFrom: 'Откуда', routeTo: 'Куда', routeFromMine: 'Моё место', routeToPh: 'Город или адрес',
       routeGo: 'Найти станции', routeSoc: 'Заряд на старте, %',
@@ -299,6 +310,17 @@
       watchFreed: 'Now free: {name}',
       pushIos: 'On iPhone, notifications while the app is closed only work if you add it to the Home Screen.',
       watchOff: 'Stopped watching',
+      whenBest: 'Quietest around {h}:00 (usually ≈ {n}% busy), now ≈ {now}%',
+      whenGood: 'Good moment to go: usually ≈ {n}% busy now',
+      nearFree: 'Free nearby:', unitM: 'm',
+      timerTitle: 'Timer: remind me at 80%', timerHint: 'Charge now:', timerBtn: '{soc}% · {min} min',
+      timerSet: 'Timer set for {min} min. I will remind you at 80%.', timerSetPush: 'Timer set for {min} min. I will remind you at 80%, even when the app is closed.',
+      timerActive: 'Timer: in {min} min', timerSoon: 'Timer: almost ready', timerCancel: 'Cancel', timerOff: 'Timer cancelled',
+      timerDone: 'Charge to 80% is almost ready: {name}',
+      digestBtn: 'Evening digest', digestOff: 'off', digestOn: 'I will send a digest of your saved stations at {h}:00.', digestStopped: 'Digest is off.',
+      digestNoFav: 'Save some stations first (★): the digest covers them.',
+      digestNoPush: 'The digest arrives as a notification, which is not available on this device.',
+      digestHint: 'Once a day: what is free at your saved stations and when it is quieter.',
       searchPh: 'Name, address or network', searchClear: 'Clear search',
       routeFrom: 'From', routeTo: 'To', routeFromMine: 'My location', routeToPh: 'City or address',
       routeGo: 'Find stations', routeSoc: 'Charge at start, %',
@@ -592,6 +614,7 @@
     const i = state.favs.findIndex((f) => f.k === r.k);
     if (i >= 0) state.favs.splice(i, 1); else state.favs.unshift(r);
     writeJson('ur_favs_v1', state.favs);
+    if (state.digest) pushSync(); // сводка идёт по избранным
   }
   const isWatched = (st) => state.watch.some((w) => w.k === refOf(st).k);
 
@@ -633,6 +656,62 @@
     toast(base);
   }
 
+  /* ---------- таймер «зарядка до 80%» и вечерняя сводка ---------- */
+  const saveTimers = () => writeJson('ur_timers_v1', state.timers);
+  const timerFor = (st) => state.timers.find((x) => x.k === refOf(st).k) || null;
+  const DIGEST_HOURS = [17, 19, 21];
+
+  async function startTimer(st, soc) {
+    const kw = state.car && UR.carPowerKw(state.car, st);
+    const e = kw ? UR.chargeEstimate(state.car, kw, null, soc, 80) : null;
+    if (!e || !e.minutes) return;
+    await askNotifyPermission();
+    const r = refOf(st);
+    state.timers = state.timers.filter((x) => x.k !== r.k);
+    state.timers.push({ id: 't' + Date.now().toString(36) + Math.floor(Math.random() * 1296).toString(36), at: Date.now() + e.minutes * 60000, name: stationTitle(st), k: r.k });
+    state.timers = state.timers.slice(-5);
+    saveTimers();
+    const res = await pushSync();
+    toast(t(res === 'on' ? 'timerSetPush' : 'timerSet', { min: e.minutes }));
+  }
+  function cancelTimer(st) {
+    const r = refOf(st);
+    state.timers = state.timers.filter((x) => x.k !== r.k);
+    saveTimers();
+    toast(t('timerOff'));
+    pushSync();
+  }
+  // Приложение открыто: напоминаем сами (пуш придёт и при закрытом, а метка у них общая, поэтому не задвоится)
+  function checkTimers() {
+    const now = Date.now();
+    const due = state.timers.filter((x) => x.at <= now);
+    if (!due.length) return;
+    state.timers = state.timers.filter((x) => x.at > now);
+    saveTimers();
+    for (const x of due) if (now - x.at < 10 * 60000) notifyUser(t('timerDone', { name: x.name }), 'timer:' + x.id);
+    pushSync();
+    if (state.detailId) renderPanel();
+  }
+  setInterval(checkTimers, 20000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkTimers(); });
+
+  async function cycleDigest() {
+    const cur = state.digest ? DIGEST_HOURS.indexOf(state.digest.hour) : -1;
+    const next = cur + 1 < DIGEST_HOURS.length ? DIGEST_HOURS[cur + 1] : null;
+    if (next != null && !state.favs.some((f) => f.napId)) { toast(t('digestNoFav')); return; }
+    if (next != null && !pushSupported()) { toast(t('digestNoPush')); return; }
+    state.digest = next == null ? null : { hour: next };
+    writeJson('ur_digest_v1', state.digest);
+    if (next != null) {
+      if (isIosBrowserTab()) toast(t('pushIos')); else {
+        await askNotifyPermission();
+        const res = await pushSync();
+        toast(res === 'denied' ? t('pushDenied') : res === 'on' ? t('digestOn', { h: next }) : t('pushFail'));
+      }
+    } else { pushSync(); toast(t('digestStopped')); }
+    renderPanel();
+  }
+
   /* ---------- пуши при закрытом приложении ---------- */
   // Адрес Worker лежит в push-config.json (пусто, пока сервер не выложен: тогда работают только уведомления при открытом приложении)
   const PUSH = { api: null };
@@ -668,8 +747,11 @@
       if (Notification.permission !== 'granted') return Notification.permission === 'denied' ? 'denied' : 'off';
       const reg = await navigator.serviceWorker.ready;
       const items = state.watch.filter((w) => w.napId).map((w) => ({ napId: w.napId, name: w.name, free: Number.isInteger(w.free) ? w.free : null }));
+      const timers = state.timers.map((x) => ({ id: x.id, at: x.at, name: x.name }));
+      const favs = state.digest ? state.favs.filter((f) => f.napId).slice(0, 10).map((f) => ({ napId: f.napId, name: f.name })) : [];
+      const digest = favs.length ? { hour: state.digest.hour, favs } : null;
       let sub = await reg.pushManager.getSubscription();
-      if (!items.length) {
+      if (!items.length && !timers.length && !digest) {
         if (sub) { try { await pushPost('/unsubscribe', { endpoint: sub.endpoint }); } catch (e) { /* сервер сам забудет через 60 дней */ } await sub.unsubscribe(); }
         return 'none';
       }
@@ -681,7 +763,7 @@
       if (sub && sub.options && sub.options.applicationServerKey && bytesToB64url(sub.options.applicationServerKey) !== key) { await sub.unsubscribe(); sub = null; }
       if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64urlToBytes(key) });
       const j = sub.toJSON();
-      await pushPost('/sync', { sub: { endpoint: j.endpoint, keys: j.keys }, lang, watch: items });
+      await pushPost('/sync', { sub: { endpoint: j.endpoint, keys: j.keys }, lang, watch: items, timers, digest });
       return 'on';
     } catch (e) { return 'error'; /* повторим при следующем изменении или открытии */ }
   }
@@ -1247,6 +1329,9 @@
   function renderFav() {
     const refs = state.favs.map((f) => resolveRef(f)).filter(Boolean);
     let html = '<h3 class="sect">' + esc(t('favTitle')) + '</h3>';
+    if (PUSH.api && pushSupported()) {
+      html += '<button type="button" class="digest-btn" data-act="digest" aria-pressed="' + !!state.digest + '"><span>' + ICON.bell + esc(t('digestBtn')) + '</span><b>' + esc(state.digest ? state.digest.hour + ':00' : t('digestOff')) + '</b></button><p class="note digest-note">' + esc(t('digestHint')) + '</p>';
+    }
     if (!refs.length) {
       html += '<p class="empty">' + esc(t('favEmpty')) + '</p>';
     } else {
@@ -1453,12 +1538,36 @@
     }
     const fc = UR.forecastFor(st, state.patterns, Date.now(), 60);
     if (fc) out.push('<div class="insight"><i></i><span>' + esc(t('fcLine', { n: fc.pct })) + '</span></div>');
+    const bw = UR.bestWindow(st, state.patterns, Date.now(), 12);
+    if (bw && bw.good && bw.now <= 35) out.push('<div class="insight rel-good"><i></i><span>' + esc(t('whenGood', { n: bw.now })) + '</span></div>');
+    else if (bw && !bw.good && bw.best.pct + 15 <= bw.now) out.push('<div class="insight"><i></i><span>' + esc(t('whenBest', { h: String(bw.best.hour).padStart(2, '0'), n: bw.best.pct, now: bw.now })) + '</span></div>');
+    const sumNow = UR.liveSummary(st, null);
+    if (sumNow && sumNow.level === 'busy' && UR.isLiveFresh(state.live)) {
+      const nb = UR.nearbyFree(st, state.stations, null, 2);
+      if (nb) {
+        const dist = nb.km < 1 ? Math.max(50, Math.round(nb.km * 20) * 50) + ' ' + t('unitM') : fmtKm(nb.km) + ' ' + t('unitKm');
+        out.push('<div class="insight rel-good"><i></i><span>' + esc(t('nearFree')) + ' <button type="button" class="inl" data-goto="' + esc(nb.st.id) + '">' + esc(stationTitle(nb.st)) + '</button>, ' + esc(dist) + '</span></div>');
+      }
+    }
     const pc = UR.priceChangeOf(st, state.patterns);
     if (pc) {
       const d = pc.date.split('-').reverse().slice(0, 2).join('.');
       out.push('<div class="insight ' + (pc.delta > 0 ? 'px-up' : 'px-down') + '"><i></i><span>' + esc(t(pc.delta > 0 ? 'priceUp' : 'priceDown', { d: fmtEur(Math.abs(pc.delta)), date: d })) + '</span></div>');
     }
     return out.length ? '<div class="insights">' + out.join('') + '</div>' : '';
+  }
+
+  function timerHtml(st, kw) {
+    const tm = timerFor(st);
+    if (tm) {
+      const left = Math.ceil((tm.at - Date.now()) / 60000);
+      return '<div class="timer"><b>' + esc(left > 1 ? t('timerActive', { min: left }) : t('timerSoon')) + '</b><button type="button" class="inl" data-timer-off="' + esc(st.id) + '">' + esc(t('timerCancel')) + '</button></div>';
+    }
+    const btns = [10, 20, 40, 60].map((soc) => {
+      const e = UR.chargeEstimate(state.car, kw, null, soc, 80);
+      return e && e.minutes ? '<button type="button" class="chip-btn" data-timer="' + esc(st.id) + '" data-soc="' + soc + '">' + esc(t('timerBtn', { soc, min: e.minutes })) + '</button>' : '';
+    }).join('');
+    return btns ? '<div class="timer"><b>' + esc(t('timerTitle')) + '</b><small>' + esc(t('timerHint')) + '</small><div class="timer-btns">' + btns + '</div></div>' : '';
   }
 
   function carBlock(st, price) {
@@ -1470,6 +1579,7 @@
       '<div class="est"><div class="est-head">' + ICON.car + '<b>' + esc(t('estTitle')) + '</b><span>' + esc(state.car.name) + '</span></div>' +
       '<p><b>' + esc(t('estSpeed', { kw: Math.round(kw) })) + '</b></p>' +
       (e ? '<p>' + esc(e.cost != null ? t('estLine', { from: 20, to: 80, min: e.minutes, cost: fmtEur(e.cost) }) : t('estLineNoCost', { from: 20, to: 80, min: e.minutes })) + '</p>' : '') +
+      timerHtml(st, kw) +
       '<small>' + esc(t('estNote')) + '</small></div>'
     );
   }
@@ -2028,6 +2138,10 @@
       const st = stationById(d.watch);
       if (st) toggleWatch(st).then(() => renderPanel());
     }
+    else if (d.timer) { const st = stationById(d.timer); if (st) startTimer(st, parseInt(d.soc, 10)).then(() => renderPanel()); }
+    else if (d.timerOff) { const st = stationById(d.timerOff); if (st) { cancelTimer(st); renderPanel(); } }
+    else if (d.goto) { const st = stationById(d.goto); if (st) openDetail(st.id, true); }
+    else if (d.act === 'digest') cycleDigest();
     else if (d.charge) { const st = stationById(d.charge); if (st) { openChargeForm(stationTitle(st)); setSheetOpen(true); } }
     else if (d.act === 'maxPrice') {
       const steps = [0.3, 0.35, 0.4, 0.5];
@@ -2263,7 +2377,13 @@
   state.amen = (() => { const a = readJson('ur_amen_v1', {}); return a && typeof a === 'object' && !Array.isArray(a) ? a : {}; })();
   state.favs = readJson('ur_favs_v1', []).filter((f) => f && f.k && isFinite(f.lat) && isFinite(f.lon));
   state.watch = readJson('ur_watch_v1', []).filter((w) => w && w.k && isFinite(w.lat) && isFinite(w.lon));
-  loadPushConfig().then(() => { if (state.watch.length) pushSync(); }); // обновляет подписку и срок её жизни на сервере
+  state.timers = (readJson('ur_timers_v1', []) || []).filter((x) => x && typeof x.id === 'string' && Number.isInteger(x.at) && x.at > Date.now() - 3600000).slice(0, 5);
+  state.digest = (() => { const d = readJson('ur_digest_v1', null); return d && Number.isInteger(d.hour) && d.hour >= 0 && d.hour <= 23 ? { hour: d.hour } : null; })();
+  loadPushConfig().then(() => {
+    if (state.watch.length || state.timers.length || state.digest) pushSync(); // обновляет подписку и срок её жизни на сервере
+    if (state.tab === 'fav' && !state.detailId) renderPanel(); // кнопка сводки появляется, когда известен адрес Worker
+  });
+  checkTimers();
   initMap();
   applyShortcut();
   renderAll();

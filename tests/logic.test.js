@@ -737,4 +737,41 @@ test('stopTimes: прибытие растёт с путём и временем
   assert.deepEqual(UR.stopTimes(plan, car, 0, 400, t0), []);
 });
 
+test('bestWindow: лучший час в ближайшие часы, «сейчас уже хорошо», нет данных', () => {
+  const row = new Array(48).fill(60);
+  row[20] = 10; // будни 20:00 — самое свободное
+  row[17] = 80; // будни 17:00 — пик
+  const patterns = { sites: { a1: row } };
+  const st = { napId: 'a1' };
+  // вторник 27.10.2026 17:10 в Риге = 15:10 UTC
+  const w = UR.bestWindow(st, patterns, Date.parse('2026-10-27T15:10:00Z'), 12);
+  assert.equal(w.now, 80);
+  assert.deepEqual(w.best, { hour: 20, pct: 10, inMin: 180 });
+  assert.equal(w.good, false);
+  // 20:10 по Риге: сейчас и есть лучший час
+  const w2 = UR.bestWindow(st, patterns, Date.parse('2026-10-27T18:10:00Z'), 12);
+  assert.equal(w2.good, true);
+  assert.equal(w2.best.inMin, 0);
+  assert.equal(UR.bestWindow({ napId: 'zz' }, patterns), null);
+  assert.equal(UR.bestWindow(st, null), null);
+  // у станции нет данных на текущий час: null, а не догадка
+  const holes = new Array(48).fill(-1); holes[20] = 5;
+  assert.equal(UR.bestWindow(st, { sites: { a1: holes } }, Date.parse('2026-10-27T15:10:00Z')), null);
+});
+
+test('nearbyFree: ближайшая рядом со свободными точками, того же класса, не сама станция', () => {
+  const mk = (id, lat, lon, cls, states) => ({ id, napId: id, lat, lon, cls, live: { pts: states.map((s) => ({ s, kw: 50 })) } });
+  const me = mk('me', 56.95, 24.1, 'dc', ['busy']);
+  const far = mk('far', 56.99, 24.1, 'dc', ['free']);        // ~4.4 км
+  const ac = mk('ac', 56.951, 24.1, 'ac', ['free']);         // близко, но AC
+  const busy = mk('busy', 56.952, 24.1, 'dc', ['busy']);
+  const near2 = mk('n2', 56.96, 24.1, 'hpc', ['free']);       // ~1.1 км, hpc подходит к dc
+  const near1 = mk('n1', 56.955, 24.1, 'dc', ['free', 'busy']); // ~0.55 км
+  const r = UR.nearbyFree(me, [me, far, ac, busy, near2, near1], {}, 2);
+  assert.equal(r.st.id, 'n1');
+  assert.ok(r.km > 0.4 && r.km < 0.7);
+  assert.equal(UR.nearbyFree(me, [me, far, ac, busy], {}, 2), null);
+  assert.equal(UR.nearbyFree(null, [me]), null);
+});
+
 console.log('\n' + passed + ' tests passed');
