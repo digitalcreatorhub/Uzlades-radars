@@ -27,7 +27,7 @@ window.L = {
   control:{ zoom(){ return new Layer(); } },
   layerGroup(){ const g=new Layer(); g.n=0; window.__groups.push(g); g.clearLayers=function(){ g.n=0; }; g.addTo=function(){return g}; return g; },
   polyline(l){ const m=new Layer(); m.addTo=function(){ window.__polylines=(window.__polylines||0)+1; return m; }; return m; },
-  marker(ll,o){ const m=new Layer(); const pill=o&&o.icon&&/ppill/.test(o.icon.className||''); m.addTo=function(g){ if(pill){ if(g&&g.n!==undefined) g.n++; window.__pillHtml=(window.__pillHtml||[]).concat(o.icon.html); } else window.__pins=(window.__pins||0)+1; return m; }; return m; },
+  marker(ll,o){ const m=new Layer(); const pill=o&&o.icon&&/ppill|cdot/.test(o.icon.className||''); m.addTo=function(g){ if(pill){ if(g&&g.n!==undefined) g.n++; window.__pillHtml=(window.__pillHtml||[]).concat(o.icon.html); } else window.__pins=(window.__pins||0)+1; return m; }; return m; },
   divIcon(o){ return o; },
   latLngBounds(l){ return l; },
   tileLayer(u){ window.__tileUrl = u; return new Layer(); },
@@ -218,7 +218,7 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
   await p3.waitForSelector('.live', { timeout: 8000 });
   // OSM даёт 6 станций (приватная скрыта); node 1 сливается с a1; a2, a3 и far (Валмиера, теперь это Латвия) добавляются
   check('live: 9 маркеров (6 из OSM + 3 только из NAP)', (await p3.evaluate(() => window.__markers)) === 9, 'markers=' + (await p3.evaluate(() => window.__markers)));
-  check('live: переливающийся ободок только у самых дешёвых (не у всех)', await p3.evaluate(() => { const h = window.__pillHtml || []; const n = h.filter((x) => / cheap/.test(x)).length; return n >= 1 && n < h.length; }));
+  check('live: переливающийся ободок только у самых дешёвых точек (не у всех)', await p3.evaluate(() => { const h = window.__pillHtml || []; const n = new Set(h.filter((x) => /class="cd /.test(x))).size; return n >= 1 && n <= 6 && n < window.__markers; }));
   check('live: время обновления статуса рядом с бейджем', /обновлено \d\d:\d\d/.test(await p3.locator('.best .live-time').innerText()));
   const bestTxt = await p3.locator('.best').innerText();
   check('live: в карточке лучшей станции бейдж «Свободно 2 из 3»', bestTxt.includes('Свободно 2 из 3'), bestTxt.replace(/\n/g, ' | ').slice(0, 160));
@@ -640,22 +640,16 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
     });
     await pp.goto(base + '/');
     await pp.waitForSelector('.best', { timeout: 8000 });
-    check('метки: по умолчанию включены, 6 «выносок» вместо точек', (await pp.evaluate(() => new Set(window.__pillHtml || []).size)) === 6 && (await pp.evaluate(() => window.__markers)) === 6, 'pills=' + (await pp.evaluate(() => new Set(window.__pillHtml || []).size)));
-    const html = await pp.evaluate(() => window.__pillHtml.join('\n'));
-    check('метки: мощность в кВт на «выноске» (150 и 22)', /<b>150<\/b> <em>кВт<\/em>/.test(html) && /<b>22<\/b>/.test(html), html.slice(0, 200));
-    check('метки: станция без данных о мощности показывает «?», без доступности', /<b>\?<\/b> <em>кВт<\/em><\/span>.*<\/span><\/span>/.test(html) && /lv-unknown/.test(html));
-    check('метки: в названии нет сырого HTML', !/<img|<script/.test(html));
-    await pp.click('[data-act="pills"]');
-    check('метки: чип выключает — остаются обычные точки', (await pp.locator('[data-act="pills"]').getAttribute('aria-pressed')) === 'false' && (await pp.evaluate(() => localStorage.getItem('ur_pills_v1'))) === 'false' && (await pp.evaluate(() => window.__markers)) === 6);
-    await pp.reload();
-    await pp.waitForSelector('.best', { timeout: 8000 });
-    check('метки: выбор «выключено» пережил перезагрузку', (await pp.evaluate(() => (window.__pillHtml || []).length)) === 0);
+    check('метки: по умолчанию обычные точки, без выносок и без чипа переключения', (await pp.locator('[data-act="pills"]').count()) === 0 && (await pp.evaluate(() => (window.__pillHtml || []).filter((h) => /class="pl /.test(h)).length)) === 0 && (await pp.evaluate(() => window.__markers)) === 6);
     await pp.goto(base + '/?pills=1');
     await pp.waitForSelector('.best', { timeout: 8000 });
-    check('метки: ссылка ?pills=1 включает обратно', (await pp.evaluate(() => new Set(window.__pillHtml || []).size)) === 6 && (await pp.evaluate(() => localStorage.getItem('ur_pills_v1'))) === 'true');
+    const html = await pp.evaluate(() => (window.__pillHtml || []).join('\n'));
+    check('метки: скрытый режим ?pills=1 рисует выноски с кВт', new Set(await pp.evaluate(() => window.__pillHtml || [])).size === 6 && /<b>150<\/b> <em>кВт<\/em>/.test(html) && /<b>22<\/b>/.test(html), html.slice(0, 200));
+    check('метки: выноска без данных показывает «?», без доступности', /<b>\?<\/b> <em>кВт<\/em>/.test(html) && /lv-unknown/.test(html));
+    check('метки: в названии нет сырого HTML', !/<img|<script/.test(html));
     await pp.goto(base + '/?pills=0');
     await pp.waitForSelector('.best', { timeout: 8000 });
-    check('метки: ссылка ?pills=0 выключает', (await pp.evaluate(() => (window.__pillHtml || []).length)) === 0 && (await pp.evaluate(() => localStorage.getItem('ur_pills_v1'))) === 'false');
+    check('метки: ?pills=0 возвращает точки и запоминается', (await pp.evaluate(() => (window.__pillHtml || []).filter((h) => /class="pl /.test(h)).length)) === 0 && (await pp.evaluate(() => localStorage.getItem('ur_pills_v1'))) === 'false');
     // скидки
     await pp.click('[data-tab="prices"]');
     const pr = await pp.locator('#panel, .panel').first().innerText().catch(() => '');
