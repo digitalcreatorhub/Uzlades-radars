@@ -774,4 +774,46 @@ test('nearbyFree: ближайшая рядом со свободными точ
   assert.equal(UR.nearbyFree(null, [me]), null);
 });
 
+test('savingsStats: экономия против бензина за месяц/год, без цены бензина null', () => {
+  const now = Date.parse('2026-10-28T10:00:00Z');
+  const list = [
+    { id: 'a', ts: Date.parse('2026-10-20T10:00:00Z'), kwh: 30, eur: 12, name: '' },
+    { id: 'b', ts: Date.parse('2026-10-02T10:00:00Z'), kwh: 20, eur: 9, name: '' },
+    { id: 'c', ts: Date.parse('2026-03-02T10:00:00Z'), kwh: 40, eur: 16, name: '' },
+    { id: 'd', ts: Date.parse('2025-12-02T10:00:00Z'), kwh: 50, eur: 20, name: '' },
+  ];
+  const s = UR.savingsStats(list, { cons: 18, petrolPrice: 1.8, petrolCons: 7 }, now);
+  assert.equal(s.month.count, 2);
+  assert.equal(s.month.kwh, 50);
+  assert.equal(s.month.eur, 21);
+  // 50 кВт·ч * 0.93 / 18 * 100 = 258 км; бензин 258/100*7*1.8 = 32.55 €
+  assert.equal(s.month.km, 258);
+  assert.ok(Math.abs(s.month.petrol - 32.55) < 0.05, 'petrol=' + s.month.petrol);
+  assert.ok(Math.abs(s.month.saved - (s.month.petrol - 21)) < 0.011);
+  assert.equal(s.year.count, 3);
+  assert.equal(s.all.count, 4);
+  assert.equal(UR.savingsStats(list, { petrolPrice: null }, now), null);
+  assert.equal(UR.savingsStats([], { petrolPrice: 1.8 }, now).month.saved, 0);
+  // дорогая зарядка: экономия может быть отрицательной
+  const bad = UR.savingsStats([{ id: 'x', ts: now, kwh: 10, eur: 8, name: '' }], { cons: 18, petrolPrice: 1.8, petrolCons: 7 }, now);
+  assert.ok(bad.month.saved < 0);
+});
+
+test('chargesCsv: шапка, порядок по времени, кавычки и защита от формул', () => {
+  const list = [
+    { id: 'b', ts: Date.parse('2026-10-21T08:30:00Z'), kwh: 12.5, eur: 5, name: '=HYPERLINK("x")' },
+    { id: 'a', ts: Date.parse('2026-10-20T10:05:00Z'), kwh: 30, eur: 12, name: 'Galleria, Riga' },
+    { id: 'c', ts: Date.parse('2026-10-22T10:00:00Z'), kwh: 8, eur: 0, name: '' },
+  ];
+  const csv = UR.chargesCsv(list);
+  assert.equal(csv.charCodeAt(0), 0xfeff);
+  const lines = csv.slice(1).split('\r\n');
+  assert.equal(lines[0], 'date,time,kWh,EUR,EUR_per_kWh,place');
+  assert.equal(lines[1], '2026-10-20,13:05,30,12,0.4,"Galleria, Riga"'); // зима в Риге UTC+2 после 25.10, но 20.10 ещё UTC+3
+  assert.equal(lines[2], "2026-10-21,11:30,12.5,5,0.4,\"'=HYPERLINK(\"\"x\"\")\"");
+  assert.equal(lines[3], '2026-10-22,13:00,8,0,0,');
+  assert.equal(lines[4], '');
+  assert.equal(UR.chargesCsv([]).slice(1), 'date,time,kWh,EUR,EUR_per_kWh,place\r\n');
+});
+
 console.log('\n' + passed + ' tests passed');

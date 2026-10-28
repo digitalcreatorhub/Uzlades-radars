@@ -718,6 +718,11 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
     check('журнал: запись появилась, форма закрылась', (await pj.locator('.charge-list li').count()) === 1 && (await pj.locator('#charge-form').count()) === 0);
     const sumTxt = await pj.locator('.charge-sum').innerText();
     check('журнал: итог за месяц и средняя цена', /32,5 кВт·ч/.test(sumTxt) && /11,40 €/.test(sumTxt) && /0,351/.test(sumTxt), sumTxt.replace(/\n/g, ' | '));
+    const savTxt = await pj.locator('.sav').innerText();
+    check('журнал: блок «Экономия против бензина» за месяц и год, в плюсе', /Экономия против бензина/.test(savTxt) && (await pj.locator('.sav-cell.pos').count()) >= 2 && /проехали ≈ 178 км, заплатили 11,40 € вместо ≈ 23,0\d? €/.test(savTxt.replace(/\n/g, ' ')), savTxt.replace(/\n/g, ' | '));
+    const [dl] = await Promise.all([pj.waitForEvent('download', { timeout: 5000 }).catch(() => null), pj.click('[data-act="chargeCsv"]')]);
+    const csvText = dl ? require('node:fs').readFileSync(await dl.path(), 'utf8') : '';
+    check('журнал: кнопка «Скачать журнал (CSV)» отдаёт файл с шапкой и записью', !!dl && /^\ufeffdate,time,kWh,EUR,EUR_per_kWh,place\r\n\d{4}-\d{2}-\d{2},\d{2}:\d{2},32\.5,11\.4,0\.351,/.test(csvText) && /\.csv$/.test(dl.suggestedFilename()), csvText.slice(0, 120));
     await pj.screenshot({ path: path.join(shots, '19-charge-log.png') });
     await pj.reload();
     await pj.waitForSelector('.tab', { timeout: 8000 });
