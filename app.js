@@ -5,7 +5,7 @@
   'use strict';
 
   const UR = window.UR;
-  const APP_VERSION = 'v15'; // совпадает с VERSION в sw.js (проверяет тест); меняется с каждым выпуском
+  const APP_VERSION = 'v16'; // совпадает с VERSION в sw.js (проверяет тест); меняется с каждым выпуском
 
   /* ---------- хранилище ---------- */
   const store = {
@@ -149,6 +149,10 @@
       watchFreed: 'Освободилась: {name}',
       pushIos: 'На iPhone уведомления при закрытом приложении работают, только если добавить его на экран «Домой».',
       watchOff: 'Больше не слежу',
+      savTitle: 'Экономия против бензина', savMonth: 'Этот месяц', savYear: '{y} год', savAll: 'За всё время',
+      savSaved: 'экономия', savOver: 'дороже бензина', savLine: 'проехали ≈ {km} км, заплатили {paid} € вместо ≈ {petrol} €',
+      savNote: 'Считаю по расходу вашей машины ({cons} кВт·ч/100 км) и бензину {l} л/100 км по {price} €/л. Цена бензина сегодняшняя, поэтому цифра ориентировочная.',
+      csvBtn: 'Скачать журнал (CSV)', csvDone: 'Журнал сохранён в файл', csvFail: 'Не получилось сохранить файл.',
       whenBest: 'Свободнее всего около {h}:00 (обычно занято ≈ {n}%), сейчас ≈ {now}%',
       whenGood: 'Сейчас хороший момент: обычно занято ≈ {n}%',
       nearFree: 'Рядом свободно:', unitM: 'м',
@@ -310,6 +314,10 @@
       watchFreed: 'Now free: {name}',
       pushIos: 'On iPhone, notifications while the app is closed only work if you add it to the Home Screen.',
       watchOff: 'Stopped watching',
+      savTitle: 'Savings vs petrol', savMonth: 'This month', savYear: 'Year {y}', savAll: 'All time',
+      savSaved: 'saved', savOver: 'more than petrol', savLine: 'drove ≈ {km} km, paid {paid} € instead of ≈ {petrol} €',
+      savNote: 'Based on your car\'s consumption ({cons} kWh/100 km) and petrol at {l} l/100 km, {price} €/l. The petrol price is today\'s, so the figure is approximate.',
+      csvBtn: 'Download log (CSV)', csvDone: 'Log saved to a file', csvFail: 'Could not save the file.',
       whenBest: 'Quietest around {h}:00 (usually ≈ {n}% busy), now ≈ {now}%',
       whenGood: 'Good moment to go: usually ≈ {n}% busy now',
       nearFree: 'Free nearby:', unitM: 'm',
@@ -1347,6 +1355,43 @@
   const fmtNum = (n) => String(Math.round(n * 10) / 10).replace('.', ',');
   const fmtDay = (ts) => new Date(ts).toLocaleDateString(lang === 'ru' ? 'ru-RU' : 'en-GB', { timeZone: 'Europe/Riga', day: '2-digit', month: '2-digit' });
 
+  // Экономия против бензина: за месяц, год и всё время
+  function savingsHtml(list) {
+    const cons = state.car ? state.car.cons : 17;
+    const s = UR.savingsStats(list, { cons, petrolPrice: petrolPrice(), petrolCons: state.prefs.petrolCons });
+    if (!s || !s.all.count) return '';
+    const cell = (label, x) => {
+      if (!x.count) return '';
+      const pos = x.saved >= 0;
+      return '<div class="sav-cell ' + (pos ? 'pos' : 'neg') + '"><span>' + esc(label) + '</span><b>' + (pos ? '' : '−') + esc(fmtEur(Math.abs(x.saved))) + ' €</b><small>' + esc(t(pos ? 'savSaved' : 'savOver')) + '</small></div>';
+    };
+    const cells = cell(t('savMonth'), s.month) + cell(t('savYear', { y: s.y }), s.year) + (s.all.count > s.year.count ? cell(t('savAll'), s.all) : '');
+    return '<div class="sav"><div class="sav-head"><b>' + esc(t('savTitle')) + '</b></div><div class="sav-grid">' + cells + '</div>' +
+      '<p class="sav-line">' + esc(t('savLine', { km: s.year.count ? s.year.km : s.all.km, paid: fmtEur(s.year.count ? s.year.eur : s.all.eur), petrol: fmtEur(s.year.count ? s.year.petrol : s.all.petrol) })) + '</p>' +
+      '<small>' + esc(t('savNote', { cons: String(cons).replace('.', ','), l: String(state.prefs.petrolCons).replace('.', ','), price: fmtEur(petrolPrice()) })) + '</small></div>';
+  }
+
+  // Журнал в файл CSV: через «Поделиться» с файлом, где это есть (телефоны), иначе обычное скачивание
+  async function exportCharges() {
+    try {
+      const csv = UR.chargesCsv(state.charges);
+      const name = 'uzlades-radars-' + new Date().toISOString().slice(0, 10) + '.csv';
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const file = typeof File === 'function' ? new File([blob], name, { type: 'text/csv' }) : null;
+      if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try { await navigator.share({ files: [file], title: 'Uzlādes Radars' }); return; } catch (e) { if (e && e.name === 'AbortError') return; }
+      }
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      toast(t('csvDone'));
+    } catch (e) { toast(t('csvFail')); }
+  }
+
   function chargeLogHtml() {
     const list = state.charges;
     const cf = state.chargeForm;
@@ -1370,12 +1415,13 @@
         (sum.cur.perKwh != null ? '<span>' + esc(t('chargeAvg', { p: sum.cur.perKwh.toFixed(3).replace('.', ',') })) + '</span>' : '') + '</div>';
     }
     if (sum.prev.count) h += '<div class="charge-prev">' + esc(t('chargePrev', { kwh: fmtNum(sum.prev.kwh), eur: fmtEur(sum.prev.eur) })) + '</div>';
+    h += savingsHtml(list);
     h += '<ul class="charge-list">' + list.slice(0, 30).map((e) =>
       '<li><span class="ch-date">' + esc(fmtDay(e.ts)) + '</span><span class="ch-name">' + esc(e.name || '–') + '</span>' +
       '<span class="ch-val">' + esc(fmtNum(e.kwh)) + ' ' + esc(lang === 'ru' ? 'кВт·ч' : 'kWh') + ' · ' + esc(fmtEur(e.eur)) + ' €</span>' +
       '<button class="ch-del' + (state.chargeDelArm === e.id ? ' armed' : '') + '" data-chdel="' + esc(e.id) + '" aria-label="' + esc(t('chargeDel')) + '">' +
       (state.chargeDelArm === e.id ? esc(t('chargeDelSure')) : '×') + '</button></li>').join('') + '</ul>';
-    return h + '<p class="note charge-note">' + esc(t('chargeNote')) + '</p>';
+    return h + '<button class="link-btn" data-act="chargeCsv">' + esc(t('csvBtn')) + '</button><p class="note charge-note">' + esc(t('chargeNote')) + '</p>';
   }
 
   function openChargeForm(name) {
@@ -2159,6 +2205,7 @@
     else if (d.routeLoad) loadSavedRoute(d.routeLoad);
     else if (d.routeDel) { state.routes = state.routes.filter((x) => x.id !== d.routeDel); saveRoutes(); renderPanel(); }
     else if (d.act === 'chargeAdd') openChargeForm('');
+    else if (d.act === 'chargeCsv') exportCharges();
     else if (d.act === 'chargeCancel') { state.chargeForm = null; renderPanel(); }
     else if (d.chdel) deleteCharge(d.chdel);
     else if (d.act === 'car') openCarDialog();

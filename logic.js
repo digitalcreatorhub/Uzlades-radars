@@ -897,6 +897,46 @@
     return { key, cur: monthTotals(list, key), prev: monthTotals(list, prevMonth(key)) };
   }
 
+  // Что было бы, если бы те же километры проехали на бензине. Цена бензина текущая, поэтому это оценка.
+  // o: { cons: кВт·ч/100 км машины, petrolPrice, petrolCons }. -> { month, year, all } (каждое: { count, kwh, eur, km, petrol, saved }) или null без цены бензина
+  function savingsStats(list, o, nowMs) {
+    if (!o || o.petrolPrice == null || !(o.petrolPrice > 0)) return null;
+    const cons = o.cons > 0 ? o.cons : KWH_PER_100KM;
+    const pc = o.petrolCons > 0 ? o.petrolCons : 7;
+    const now = nowMs == null ? Date.now() : nowMs;
+    const key = rigaMonth(now);
+    const year = key.slice(0, 4);
+    const calc = (pred) => {
+      let count = 0, kwh = 0, eur = 0;
+      for (const e of Array.isArray(list) ? list : []) {
+        if (!e || !pred(rigaMonth(e.ts))) continue;
+        count++; kwh += e.kwh; eur += e.eur;
+      }
+      const km = (kwh * CHARGE_LOSS / cons) * 100;
+      const petrol = (km / 100) * pc * o.petrolPrice;
+      const r2 = (v) => Math.round(v * 100) / 100;
+      return { count, kwh: r2(kwh), eur: r2(eur), km: Math.round(km), petrol: r2(petrol), saved: r2(petrol - eur) };
+    };
+    return { month: calc((m) => m === key), year: calc((m) => m.slice(0, 4) === year), all: calc(() => true), key, y: year };
+  }
+
+  // Журнал в CSV: запятая-разделитель, точка в числах, UTF-8 с BOM (Excel открывает без «кракозябр»). Ячейки, начинающиеся с = + - @, экранируются.
+  function chargesCsv(list) {
+    const cell = (v) => {
+      let s = String(v == null ? '' : v);
+      if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+      return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    };
+    const fmt = (ms) => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Riga', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(ms); // «2026-10-28 14:05»
+    const rows = [['date', 'time', 'kWh', 'EUR', 'EUR_per_kWh', 'place']];
+    for (const e of (Array.isArray(list) ? list : []).slice().sort((a, b) => a.ts - b.ts)) {
+      if (!e) continue;
+      const [d, tm] = fmt(e.ts).split(' ');
+      rows.push([d, tm, e.kwh, e.eur, e.kwh > 0 ? Math.round((e.eur / e.kwh) * 1000) / 1000 : '', e.name || '']);
+    }
+    return '\ufeff' + rows.map((r) => r.map(cell).join(',')).join('\r\n') + '\r\n';
+  }
+
   /* ---------- удобства рядом со станцией (OpenStreetMap) ---------- */
   const AMENITY_RADIUS_M = 100;
 
@@ -1131,6 +1171,8 @@
     applyFilters,
     rank,
     CHARGE_LIMIT,
+    savingsStats,
+    chargesCsv,
     normalizeCharge,
     addCharge,
     rigaMonth,
