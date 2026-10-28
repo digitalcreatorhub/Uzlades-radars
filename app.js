@@ -92,7 +92,7 @@
       note_ionity: 'Цена без подписки. С подпиской дешевле.',
       tabRoute: 'Маршрут', tabFav: 'Мои',
       estShort: '{from}→{to}%: {min} мин · {cost} €', estShortNoCost: '{from}→{to}%: {min} мин', estNoneShort: 'нет вашего разъёма',
-      fFree: 'Свободно', fOpen: '24/7', fCard: 'Картой', fCar: 'Для моей', fPills: 'Мощность на карте', cheapTip: 'самая низкая цена рядом',
+      fFree: 'Свободно', fOpen: '24/7', fCard: 'Картой', fCar: 'Для моей', cheapTip: 'самая низкая цена рядом',
       discTitle: 'Скидки сети', discNote: 'Сверено {date}. Условия меняются: точные уточняйте в приложении сети.', discSrc: 'источник', discPricesTitle: 'Скидки по сетям',
       carBtn: 'Моя машина', carTitle: 'Моя машина',
       carLead: 'Выберите модель. Значения ориентировочные, любое можно поправить под свою машину.',
@@ -233,7 +233,7 @@
       note_ionity: 'Price without subscription. Cheaper with one.',
       tabRoute: 'Route', tabFav: 'Saved',
       estShort: '{from}→{to}%: {min} min · {cost} €', estShortNoCost: '{from}→{to}%: {min} min', estNoneShort: 'no connector for your car',
-      fFree: 'Free now', fOpen: '24/7', fCard: 'Card', fCar: 'My car', fPills: 'Power on map', cheapTip: 'lowest price nearby',
+      fFree: 'Free now', fOpen: '24/7', fCard: 'Card', fCar: 'My car', cheapTip: 'lowest price nearby',
       discTitle: 'Network discounts', discNote: 'Checked {date}. Terms change: confirm the exact ones in the network app.', discSrc: 'source', discPricesTitle: 'Discounts by network',
       carBtn: 'My car', carTitle: 'My car',
       carLead: 'Pick a model. Values are approximate, edit any of them to match your car.',
@@ -668,7 +668,7 @@
   state.pending = { st: params.get('st'), go: params.get('go'), tab: params.get('tab') };
   // Метки с мощностью (как в Chargemap): включаются ссылкой ?pills=1, выключаются ?pills=0, дальше запоминается
   if (params.get('pills') === '1' || params.get('pills') === '0') writeJson('ur_pills_v1', params.get('pills') === '1');
-  state.pills = readJson('ur_pills_v1', true) !== false;
+  state.pills = readJson('ur_pills_v1', false) === true;
   function stationUrl(st) {
     return location.origin + location.pathname + '?st=' + encodeURIComponent(st.napId || st.id);
   }
@@ -785,12 +785,15 @@
     markerLayer = L.layerGroup().addTo(map);
     if (map.on) map.on('moveend', onMapMoved);
     if (map.on) map.on('zoomend', () => { if (lastMarkerList.length) renderMarkers(lastMarkerList); });
-    // «Таблетки» зависят от того, что сейчас в кадре: после сдвига карты пересчитываем (не чаще раза в 250 мс)
-    let pillTimer = null;
+    // Что на экране, то и сравниваем: после сдвига карты пересчитываем самые дешёвые станции и перерисовываем, только если набор изменился
+    let moveTimer = null;
     if (map.on) map.on('moveend', () => {
-      if (!state.pills || !lastMarkerList.length) return;
-      clearTimeout(pillTimer);
-      pillTimer = setTimeout(() => renderMarkers(lastMarkerList), 250);
+      if (!lastMarkerList.length) return;
+      clearTimeout(moveTimer);
+      moveTimer = setTimeout(() => {
+        const key = [...cheapSet(lastMarkerList, pillSet(lastMarkerList))].sort().join(',');
+        if (state.pills || key !== lastCheapKey) renderMarkers(lastMarkerList);
+      }, 250);
     });
     setTiles();
   }
@@ -806,26 +809,43 @@
   }
 
   let lastMarkerList = [];
-  // Какие станции рисуем «таблетками»: только при достаточном приближении и не больше N ближайших к центру карты
-  // (иначе в плотном центре города они закроют друг друга). Остальные остаются точками.
-  function pillSet(list) {
-    const out = new Set();
-    if (!state.pills || !map || !map.getZoom) return out;
-    const z = map.getZoom();
-    if (z < 11) return out;
+  // Станции, что сейчас в кадре, ближайшие к центру карты (не больше max)
+  function viewCandidates(list, max) {
     let cand = list;
-    if (map.getBounds) {
+    if (map && map.getBounds) {
       const b = map.getBounds();
       if (b && b.contains) cand = list.filter((st) => b.contains([st.lat, st.lon]) || st.id === state.detailId);
     }
-    const c = map.getCenter ? map.getCenter() : null;
+    const c = map && map.getCenter ? map.getCenter() : null;
     if (c) {
       const d2 = (st) => (st.lat - c.lat) * (st.lat - c.lat) + ((st.lon - c.lng) * Math.cos((c.lat * Math.PI) / 180)) ** 2;
       cand = cand.slice().sort((a, b) => (a.id === state.detailId ? -1 : b.id === state.detailId ? 1 : d2(a) - d2(b)));
     }
-    const max = z >= 15 ? 140 : z >= 13 ? 90 : 50;
-    for (const st of cand.slice(0, max)) out.add(st.id);
-    return out;
+    return cand.slice(0, max);
+  }
+
+  // Какие станции рисуем «выносками» (скрытый режим ?pills=1): только при достаточном приближении, не больше N ближайших к центру
+  function pillSet(list) {
+    if (!state.pills || !map || !map.getZoom) return new Set();
+    const z = map.getZoom();
+    if (z < 11) return new Set();
+    return new Set(viewCandidates(list, z >= 15 ? 140 : z >= 13 ? 90 : 50).map((st) => st.id));
+  }
+
+  // Самые дешёвые станции среди тех, что в кадре (от масштаба 11): у них переливающийся зелёный ободок
+  let lastCheapKey = '';
+  function cheapSet(list, pillIds) {
+    if (!map || !map.getZoom || map.getZoom() < 11) return new Set();
+    const cand = pillIds && pillIds.size ? list.filter((st) => pillIds.has(st.id)) : viewCandidates(list, 150);
+    return UR.cheapestIds(cand, state.filters, 6);
+  }
+
+  // Метка самой дешёвой станции: цветной «круглый» ярлык, где кВт и цена по очереди сменяют друг друга
+  function cheapDotHtml(st, level, selected) {
+    const p = UR.priceOf(st, state.filters);
+    const kw = (st.kw ? Math.round(st.kw) : '?') + ' ' + (lang === 'ru' ? 'кВт' : 'kW');
+    const price = p && isFinite(p.mid) ? fmtEur(p.mid) + ' €' : '';
+    return '<span class="cd cd-' + esc(st.cls) + ' lv-' + level + (selected ? ' sel' : '') + '"><i class="cd-a">' + esc(kw) + '</i>' + (price ? '<i class="cd-b">' + esc(price) + '</i>' : '') + '</span>';
   }
 
   const PLUG_SVG = '<svg viewBox="0 0 16 16" aria-hidden="true"><rect width="16" height="16" rx="4" fill="#123a63"/><circle cx="8" cy="8" r="3.4" fill="none" stroke="#cfe8ff" stroke-width="1.5"/><circle cx="8" cy="8" r="1" fill="#cfe8ff"/></svg>';
@@ -844,7 +864,8 @@
     const okColor = cssVar('--ok');
     const textColor = cssVar('--text');
     const pillIds = pillSet(list);
-    const cheapIds = pillIds.size ? UR.cheapestIds(list.filter((x) => pillIds.has(x.id)), state.filters, 6) : new Set();
+    const cheapIds = cheapSet(list, pillIds);
+    lastCheapKey = [...cheapIds].sort().join(',');
     for (const st of list) {
       const selected = st.id === state.detailId;
       const sum = UR.liveSummary(st, state.filters);
@@ -874,6 +895,18 @@
           interactive: false,
           halo: true,
         }).addTo(markerLayer);
+      }
+      if (cheapIds.has(st.id)) {
+        const cm = L.marker([st.lat, st.lon], {
+          icon: L.divIcon({ className: 'cdot', html: cheapDotHtml(st, level, selected), iconSize: [0, 0] }),
+          zIndexOffset: 400,
+          title: stationTitle(st) + ' · ' + t('cheapTip'),
+          keyboard: true,
+        });
+        cm.on('click', () => openDetail(st.id, false));
+        cm.addTo(markerLayer);
+        markers.set(st.id, cm);
+        continue;
       }
       const m = L.circleMarker([st.lat, st.lon], {
         radius: selected ? 11 : zoomed ? 8 : 5,
@@ -1649,7 +1682,7 @@
       pwr.map(([id, label]) => '<button class="chip" data-pwr="' + id + '" aria-pressed="' + (state.filters.power === id) + '">' + esc(label) + '</button>').join('') +
       '<span class="chip-gap"></span>' +
       extra.map(([id, label]) => '<button class="chip" data-flt="' + id + '" aria-pressed="' + !!state.filters[id] + '">' + esc(label) + '</button>').join('') +
-      '<span class="chip-gap"></span><button class="chip" data-act="pills" aria-pressed="' + !!state.pills + '">' + esc(t('fPills')) + '</button>';
+      '';
   }
 
   function renderTop() {
@@ -1857,7 +1890,6 @@
       if (st) toggleWatch(st).then(() => renderPanel());
     }
     else if (d.charge) { const st = stationById(d.charge); if (st) { openChargeForm(stationTitle(st)); setSheetOpen(true); } }
-    else if (d.act === 'pills') { state.pills = !state.pills; writeJson('ur_pills_v1', state.pills); renderFilters(); renderMarkers(lastMarkerList); }
     else if (d.act === 'chargeAdd') openChargeForm('');
     else if (d.act === 'chargeCancel') { state.chargeForm = null; renderPanel(); }
     else if (d.chdel) deleteCharge(d.chdel);

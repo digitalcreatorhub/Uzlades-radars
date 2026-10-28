@@ -921,6 +921,32 @@ input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); ou
 @keyframes plshine { from { background-position: 0 0, 0% 0; } to { background-position: 0 0, -250% 0; } }
 @media (prefers-reduced-motion: reduce) { .ppill .pl.cheap { animation: none; } }
 
+/* самая низкая цена среди станций на экране: ярлык с переливающимся зелёным ободком, где кВт и цена сменяют друг друга */
+.leaflet-marker-icon.cdot { background: none; border: 0; }
+.cd {
+  --cd-fill: var(--c-unknown);
+  position: absolute; left: 0; top: 0; transform: translate(-50%, -50%);
+  display: grid; place-items: center; width: max-content; min-width: 64px; height: 28px; box-sizing: border-box;
+  padding: 0 8px; border-radius: 999px; border: 3px solid transparent;
+  background: linear-gradient(var(--cd-fill), var(--cd-fill)) padding-box,
+    linear-gradient(110deg, #19d6a4 0%, #c9ffe9 25%, #35f58f 50%, #c9ffe9 75%, #19d6a4 100%) border-box;
+  background-size: 100% 100%, 250% 100%;
+  animation: plshine 2.4s linear infinite;
+  box-shadow: 0 0 12px rgba(53, 245, 143, 0.6);
+  color: var(--ink-on-text); font: 800 12.5px/1 "Manrope", system-ui, sans-serif; white-space: nowrap;
+}
+.cd i { grid-area: 1 / 1; font-style: normal; }
+.cd .cd-a { animation: cdA 4s ease-in-out infinite; }
+.cd .cd-b { animation: cdB 4s ease-in-out infinite; opacity: 0; }
+@keyframes cdA { 0%, 42% { opacity: 1; } 50%, 92% { opacity: 0; } 100% { opacity: 1; } }
+@keyframes cdB { 0%, 42% { opacity: 0; } 50%, 92% { opacity: 1; } 100% { opacity: 0; } }
+.cd-ac { --cd-fill: var(--c-ac); }
+.cd-dc { --cd-fill: var(--c-dc); }
+.cd-hpc { --cd-fill: var(--c-hpc); }
+.cd.lv-busy { opacity: 0.85; }
+.cd.sel { outline: 2px solid var(--text); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .cd, .cd .cd-a { animation: none; } .cd .cd-b { display: none; } }
+
 /* ---------- скидки сетей ---------- */
 .disc { margin: 14px 0 6px; }
 .disc-list { margin: 0 0 8px; padding: 0; list-style: none; display: grid; gap: 8px; }
