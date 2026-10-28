@@ -134,6 +134,8 @@
       cls: classify(kw),
       points: isFinite(cap) && cap > 0 ? cap : null,
       fee: tags.fee || null,
+      indoor: ['underground', 'multi-storey', 'garage_boxes', 'rooftop'].includes(tags.parking) || ['underground', 'indoor'].includes(tags.location) || tags.indoor === 'yes' || tags.covered === 'yes',
+      maxheight: tags.maxheight || null,
       hours: tags.opening_hours || null,
       address: [tags['addr:street'], tags['addr:housenumber']].filter(Boolean).join(' '),
       pay: parsePay(tags),
@@ -241,8 +243,10 @@
   }
 
   // Цена по умолчанию для станции: живая, если есть, иначе справочная по сети и классу.
+  // Если в filters есть mine/tou (их задаёт приложение), учитываются личные скидки и ночной тариф.
   function priceOf(st, filters) {
-    return livePriceOf(st, filters) || priceFor(st.operatorId, st.cls);
+    const base = livePriceOf(st, filters) || priceFor(st.operatorId, st.cls);
+    return filters && (filters.mine || filters.tou) ? personalPrice(base, st.operatorId, { mine: filters.mine, tou: filters.tou, nowMs: filters.nowMs }) : base;
   }
 
   // Самые дешёвые станции среди переданных (те, что сейчас на карте): цена в пределах 1,5 цента от минимума, не больше max.
@@ -376,6 +380,9 @@
           name: base.name || nap.name,
           address: base.address || nap.address,
           hours: base.hours || nap.hours,
+          fee: base.fee || nap.fee || null,
+          indoor: !!(base.indoor || nap.indoor),
+          maxheight: base.maxheight || nap.maxheight || null,
           pay: nap.pay.length ? nap.pay : base.pay || [],
           operatorId: nap.operatorId !== 'other' ? nap.operatorId : base.operatorId,
           operatorName: nap.operatorId !== 'other' ? nap.operatorName : base.operatorName || nap.operatorName,
@@ -575,6 +582,14 @@
       if (f.open247 && !isOpen247(st)) return false;
       if (f.cardPay && !(st.pay || []).includes('card')) return false;
       if (f.query && !matchesQuery(st, f.query)) return false;
+      if (f.indoor && !st.indoor) return false;
+      if (f.discount && !hasDiscountNow(st, f.mine, f.nowMs)) return false;
+      if (f.free || f.maxPrice) {
+        const pr = priceOf(st, f);
+        const gratis = st.fee === 'no' || !!(pr && pr.hi === 0);
+        if (f.free && !gratis) return false;
+        if (f.maxPrice && !gratis && !(pr && pr.mid <= f.maxPrice + 1e-9)) return false;
+      }
       if (f.car && f.car.onlyCompatible && !carAccepts(f.car, st)) return false;
       if (f.freeNow) {
         const sum = liveSummary(st, f);
@@ -898,6 +913,7 @@
         ru: '−10% клиентам Enefit по электричеству: нужен договор на ваше имя и e-mail зарядного аккаунта в личном кабинете mans.enefit.lv.',
         en: '−10% for Enefit electricity customers: you need a contract in your name and your charging account e-mail added in the mans.enefit.lv account.',
         src: 'https://www.enefit.lv/en/majai/elektroauto-uzlade/publiska-uzlade',
+        personal: true, pct: 10, label: { ru: 'Enefit: клиент по электричеству', en: 'Enefit: electricity customer' },
       },
       {
         ru: 'Дневной тариф 08:00–21:00 дешевле: от 0,36 € (до 47 кВт) и 0,43 € (быстрее). Ночью (21:00–08:00) минимум 0,50 € за сессию.',
@@ -910,6 +926,7 @@
         ru: '−0,02 €/кВт·ч, если до зарядки показать карту или приложение Virši и заплатить на станции. Действует с 04.07.2025, срока окончания на странице нет.',
         en: '−0.02 €/kWh if you show the Virši card or app before charging and pay at the station. Valid since 04.07.2025, the page gives no end date.',
         src: 'https://www.virsi.lv/en/private/electricity/electric-charging',
+        personal: true, abs: 0.02, label: { ru: 'Virši: карта или приложение', en: 'Virši: card or app' },
       },
     ],
     eleport: [
@@ -917,6 +934,7 @@
         ru: '−0,09 €/кВт·ч при зарядке через приложение или карту Eleport (не при оплате через сторонние платформы и charge.eleport.com). По объявлению от 04.10.2024: проверьте в приложении, действует ли сейчас.',
         en: '−0.09 €/kWh when charging with the Eleport app or card (not when paying through third-party platforms or charge.eleport.com). From an announcement of 04.10.2024: check in the app that it still applies.',
         src: 'https://eleport.com/lv/eleport-standartize-atlaides-klientiem-visa-baltija-un-atver-jaunas-uzlades-stacijas-latvija/',
+        personal: true, abs: 0.09, label: { ru: 'Eleport: приложение или карта', en: 'Eleport: app or card' },
       },
     ],
     elektrum: [
@@ -924,6 +942,7 @@
         ru: '−5% клиентам с договором постоплаты (по сводке Cenotava.lv, на сайте самой сети подтверждения не нашёл).',
         en: '−5% for post-payment contract customers (per the Cenotava.lv summary; I could not confirm it on the network’s own site).',
         src: 'https://cenotava.lv/elektroauto-uzlade',
+        personal: true, pct: 5, label: { ru: 'Elektrum: договор с постоплатой', en: 'Elektrum: post-payment contract' },
       },
     ],
     neste: [
@@ -932,6 +951,7 @@
         en: 'Night price 0.32 €/kWh from 19:00 to 07:00 until 30.11.2026 (per the Cenotava.lv summary).',
         until: '2026-11-30',
         src: 'https://cenotava.lv/elektroauto-uzlade',
+        tou: { from: 19, to: 7, price: 0.32 },
       },
     ],
   };
@@ -947,6 +967,61 @@
   }
 
   const stationDiscounts = (st, nowMs) => (st && st.operatorId ? activeDiscounts(st.operatorId, nowMs) : []);
+
+  // Минуты от полуночи по Риге
+  function rigaMinutes(ms) {
+    const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Riga', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(ms);
+    const get = (type) => parseInt((parts.find((x) => x.type === type) || {}).value, 10);
+    return (get('hour') % 24) * 60 + get('minute');
+  }
+
+  // Тариф по часам сети (ночная цена): { price, from, to, active, inMin } или null. inMin: сколько минут до начала (если не действует) или до конца (если действует).
+  function touInfo(operatorId, nowMs) {
+    const d = activeDiscounts(operatorId, nowMs).find((x) => x.tou);
+    if (!d) return null;
+    const now = rigaMinutes(nowMs == null ? Date.now() : nowMs);
+    const from = d.tou.from * 60;
+    const to = d.tou.to * 60;
+    const active = from < to ? now >= from && now < to : now >= from || now < to; // окно через полночь: с 19:00 до 07:00
+    const until = (target) => (target - now + 1440) % 1440 || 1440;
+    return { price: d.tou.price, from: d.tou.from, to: d.tou.to, active, inMin: active ? until(to) : until(from) };
+  }
+
+  // Цена станции для конкретного человека: ночной тариф сети (если сейчас действует) и скидки по его картам.
+  // opts: { mine: { virsi: true, ... }, tou: true, nowMs }. Без opts цена не меняется.
+  function personalPrice(price, operatorId, opts) {
+    if (!price || !opts) return price;
+    let lo = price.lo;
+    let hi = price.hi;
+    let tou = false;
+    let mine = false;
+    if (opts.tou) {
+      const t = touInfo(operatorId, opts.nowMs);
+      if (t && t.active && t.price < hi) { lo = Math.min(lo, t.price); hi = Math.min(hi, t.price); tou = true; }
+    }
+    if (opts.mine && opts.mine[operatorId]) {
+      for (const d of activeDiscounts(operatorId, opts.nowMs)) {
+        if (!d.personal) continue;
+        if (d.pct) { lo *= 1 - d.pct / 100; hi *= 1 - d.pct / 100; mine = true; }
+        else if (d.abs) { lo = Math.max(0, lo - d.abs); hi = Math.max(0, hi - d.abs); mine = true; }
+      }
+    }
+    if (!tou && !mine) return price;
+    lo = Math.round(lo * 1000) / 1000;
+    hi = Math.round(hi * 1000) / 1000;
+    return Object.assign({}, price, { lo, hi, mid: (lo + hi) / 2, tou, mine, listMid: price.mid });
+  }
+
+  // Подходит ли станция под «Со скидкой»: сейчас действует ночной тариф сети или есть скидка по картам, которые человек отметил
+  function hasDiscountNow(st, mine, nowMs) {
+    if (!st || !st.operatorId) return false;
+    const t = touInfo(st.operatorId, nowMs);
+    if (t && t.active) return true;
+    return !!(mine && mine[st.operatorId] && activeDiscounts(st.operatorId, nowMs).some((d) => d.personal));
+  }
+
+  // Какие сети можно отметить как «мои»: только те, где есть личная скидка
+  const mineOptions = () => Object.keys(DISCOUNTS).filter((id) => DISCOUNTS[id].some((d) => d.personal));
 
   return {
     OPERATORS,
@@ -1014,6 +1089,11 @@
     amenityQuery,
     parseAmenities,
     freeEta,
+    rigaMinutes,
+    touInfo,
+    personalPrice,
+    hasDiscountNow,
+    mineOptions,
     DISCOUNTS_DATE,
     DISCOUNTS,
     activeDiscounts,

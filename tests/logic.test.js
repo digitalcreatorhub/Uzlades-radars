@@ -673,4 +673,53 @@ test('freeEta: ближайшая освобождающаяся точка, «�
   assert.equal(UR.freeEta(st([]), null, now), null);
 });
 
+test('touInfo: ночное окно через полночь, обратный отсчёт по времени Риги', () => {
+  const at = (h, m) => Date.UTC(2026, 10, 10, h - 2, m); // ноябрь: Рига UTC+2
+  const night = UR.touInfo('neste', at(22, 0));
+  assert.equal(night.active, true); assert.equal(night.price, 0.32); assert.equal(night.inMin, 9 * 60); // до 07:00
+  const early = UR.touInfo('neste', at(6, 30));
+  assert.equal(early.active, true); assert.equal(early.inMin, 30);
+  const day = UR.touInfo('neste', at(16, 50));
+  assert.equal(day.active, false); assert.equal(day.inMin, 130); // до 19:00
+  assert.equal(UR.touInfo('neste', at(19, 0)).active, true);
+  assert.equal(UR.touInfo('neste', at(7, 0)).active, false);
+  assert.equal(UR.touInfo('virsi', at(22, 0)), null);
+  assert.equal(UR.touInfo('neste', Date.UTC(2026, 11, 1, 10, 0)), null); // после 30.11 акции нет
+});
+
+test('personalPrice: ночной тариф, скидки по моим картам, без opts цена прежняя', () => {
+  const at = (h) => Date.UTC(2026, 10, 10, h - 2, 0);
+  const base = { lo: 0.4, hi: 0.4, mid: 0.4 };
+  assert.equal(UR.personalPrice(base, 'virsi', null), base);
+  assert.equal(UR.personalPrice(base, 'virsi', { mine: {}, tou: true, nowMs: at(12) }), base);
+  const v = UR.personalPrice(base, 'virsi', { mine: { virsi: true }, nowMs: at(12) });
+  assert.equal(v.mid, 0.38); assert.equal(v.mine, true); assert.equal(v.listMid, 0.4);
+  const e = UR.personalPrice({ lo: 0.4, hi: 0.5, mid: 0.45 }, 'enefit', { mine: { enefit: true }, nowMs: at(12) });
+  assert.equal(e.lo, 0.36); assert.equal(e.hi, 0.45);
+  const el = UR.personalPrice({ lo: 0.05, hi: 0.05, mid: 0.05 }, 'eleport', { mine: { eleport: true }, nowMs: at(12) });
+  assert.equal(el.mid, 0); // скидка не уводит цену в минус
+  const n = UR.personalPrice({ lo: 0.45, hi: 0.45, mid: 0.45 }, 'neste', { tou: true, nowMs: at(23) });
+  assert.equal(n.mid, 0.32); assert.equal(n.tou, true);
+  assert.equal(UR.personalPrice({ lo: 0.3, hi: 0.3, mid: 0.3 }, 'neste', { tou: true, nowMs: at(23) }).mid, 0.3); // ночная цена выше обычной: не трогаем
+  assert.equal(UR.personalPrice(base, 'neste', { tou: true, nowMs: at(12) }), base);
+  assert.equal(UR.personalPrice(null, 'virsi', { mine: { virsi: true } }), null);
+  assert.deepEqual(UR.mineOptions().sort(), ['elektrum', 'eleport', 'enefit', 'virsi']);
+});
+
+test('фильтры экономии: цена до, бесплатные, со скидкой, в помещении', () => {
+  const at = Date.UTC(2026, 10, 10, 20, 0); // 22:00 в Риге
+  const mk = (id, op, price, extra) => Object.assign({ id, operatorId: op, cls: 'dc', kw: 50, live: { pts: [{ s: 'free', kw: 50, p: price }] } }, extra || {});
+  const list = [mk('a', 'virsi', 0.40), mk('b', 'ignitis', 0.30), mk('c', 'neste', 0.50), mk('d', 'ignitis', 0.60, { fee: 'no' }), mk('e', 'ignitis', 0.55, { indoor: true })];
+  const base = { connector: 'any', power: 'any', operator: 'all', nowMs: at };
+  const ids = (f) => UR.applyFilters(list, Object.assign({}, base, f)).map((s) => s.id).sort().join('');
+  assert.equal(ids({}), 'abcde');
+  assert.equal(ids({ maxPrice: 0.35 }), 'bd'); // бесплатная проходит всегда
+  assert.equal(ids({ maxPrice: 0.45, tou: true }), 'abcd'); // ночью Neste 0,32
+  assert.equal(ids({ free: true }), 'd');
+  assert.equal(ids({ indoor: true }), 'e');
+  assert.equal(ids({ discount: true, tou: true }), 'c'); // сейчас действует только ночная цена Neste
+  assert.equal(ids({ discount: true, mine: { virsi: true } }), 'ac');
+  assert.equal(ids({ maxPrice: 0.39, mine: { virsi: true } }), 'abd'); // Virši со скидкой 0,38
+});
+
 console.log('\n' + passed + ' tests passed');

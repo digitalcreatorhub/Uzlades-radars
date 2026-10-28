@@ -687,6 +687,36 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
     await cU.close();
   }
 
+  // «Моя цена» и фильтры экономии
+  {
+    const cM = await browser.newContext({ viewport: { width: 390, height: 780 }, serviceWorkers: 'block' });
+    const pm = await cM.newPage();
+    const errM = [];
+    pm.on('pageerror', (e) => errM.push('pageerror: ' + e.message));
+    await routeFor(pm, liveDoc(minsAgo(3)), null);
+    await pm.goto(base + '/');
+    await pm.waitForSelector('.live', { timeout: 8000 });
+    const before = await pm.locator('.best').innerText();
+    check('моя цена: без отметок в карточке лучшей станции цена 0,41', before.includes('0,41'), before.replace(/\n/g, ' | ').slice(0, 200));
+    await pm.click('[data-tab="prices"]');
+    check('моя цена: во вкладке «Цены» четыре сети для отметки', (await pm.locator('.mine-chips [data-mine]').count()) === 4);
+    await pm.click('[data-mine="eleport"]');
+    check('моя цена: отметка запоминается', (await pm.evaluate(() => localStorage.getItem('ur_mine_v1'))) === '{"eleport":true}' && (await pm.locator('[data-mine="eleport"]').getAttribute('aria-pressed')) === 'true');
+    await pm.click('[data-tab="go"]');
+    const after = await pm.locator('.best').innerText();
+    check('моя цена: после отметки Eleport цена 0,41 → 0,32 и пометка', after.includes('0,32') && /с вашей скидкой, без неё/.test(after), after.replace(/\n/g, ' | ').slice(0, 260));
+    await pm.click('[data-flt="discount"]');
+    check('фильтр «Со скидкой»: остаются только станции с моей скидкой (Eleport)', (await pm.evaluate(() => window.__markers)) >= 1 && (await pm.evaluate(() => window.__markers)) <= 2, 'markers=' + (await pm.evaluate(() => window.__markers)));
+    await pm.click('[data-flt="discount"]');
+    await pm.click('[data-act="maxPrice"]');
+    check('фильтр цены: первое нажатие «до 0,30 €»', /до 0,30 €/.test(await pm.locator('[data-act="maxPrice"]').innerText()));
+    for (let i = 0; i < 4; i++) await pm.click('[data-act="maxPrice"]');
+    check('фильтр цены: пять нажатий (0,30 → 0,35 → 0,40 → 0,50 → выкл) возвращают «Цена до…»', /Цена до/.test(await pm.locator('[data-act="maxPrice"]').innerText()));
+    await pm.screenshot({ path: path.join(shots, '21-my-price.png') });
+    check('моя цена: нет JS-ошибок', errM.length === 0, errM.join(' || '));
+    await cM.close();
+  }
+
   check('нет ошибок в консоли', errors.length === 0, errors.join(' || '));
 
   await browser.close();

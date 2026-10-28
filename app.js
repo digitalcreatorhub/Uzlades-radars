@@ -5,7 +5,7 @@
   'use strict';
 
   const UR = window.UR;
-  const APP_VERSION = 'v12'; // совпадает с VERSION в sw.js (проверяет тест); меняется с каждым выпуском
+  const APP_VERSION = 'v13'; // совпадает с VERSION в sw.js (проверяет тест); меняется с каждым выпуском
 
   /* ---------- хранилище ---------- */
   const store = {
@@ -81,6 +81,10 @@
       dtEta: 'Прогноз', etaIn: 'Освободится примерно через {min} мин (обычно зарядка здесь ≈ {typ} мин)', etaSoon: 'Скоро может освободиться (обычно зарядка здесь ≈ {typ} мин)', etaOver: 'Занято дольше обычного ({typ} мин): может освободиться в любой момент',
       liveSource: 'Статус и цены: Eco-Movement через национальную точку доступа Латвии (CC0).',
       updAvail: 'Доступна новая версия приложения', updGo: 'Обновить', verLine: 'Версия {v}',
+      fMax: 'Цена до…', fMaxN: 'до {p} €', fGratis: 'Бесплатные', fDisc: 'Со скидкой', fIndoor: 'В помещении',
+      mineTitle: 'Мои скидки', mineNote: 'Отметьте, что у вас есть: цены на карте, в списках и в карточках станут с вашей скидкой.',
+      priceMine: 'с вашей скидкой, без неё {p}', priceTou: 'ночной тариф', dtMaxh: 'Высота въезда', dtIndoor: 'Расположение', indoorYes: 'в помещении или паркинге',
+      touNow: 'Ночной тариф {price} € с {from}:00 до {to}:00 действует сейчас, ещё {left}.', touSoon: 'Ночной тариф {price} € с {from}:00 до {to}:00 начнётся через {left}.',
       pricesLiveIntro: 'Цены в €/кВт·ч с НДС по данным самих станций на {time}. Где данных нет, ориентир от {date}.',
       fixOsm: 'Ошибка в данных? Исправить на OpenStreetMap',
       pricesIntro: 'Ориентировочные цены публичной зарядки в €/кВт·ч с НДС на {date}. Точную цену показывает приложение сети.',
@@ -224,6 +228,10 @@
       dtEta: 'Forecast', etaIn: 'Should free up in about {min} min (charging here usually takes ≈ {typ} min)', etaSoon: 'May free up soon (charging here usually takes ≈ {typ} min)', etaOver: 'Busy longer than usual ({typ} min): may free up any minute',
       liveSource: 'Availability and prices: Eco-Movement via the Latvian national access point (CC0).',
       updAvail: 'A new version of the app is available', updGo: 'Update', verLine: 'Version {v}',
+      fMax: 'Price up to…', fMaxN: 'up to {p} €', fGratis: 'Free', fDisc: 'Discounted', fIndoor: 'Indoor',
+      mineTitle: 'My discounts', mineNote: 'Tick what you have: prices on the map, in lists and on station cards will include your discount.',
+      priceMine: 'with your discount, {p} without', priceTou: 'night rate', dtMaxh: 'Entry height', dtIndoor: 'Location', indoorYes: 'indoors or in a car park',
+      touNow: 'Night rate {price} € from {from}:00 to {to}:00 is on now, {left} left.', touSoon: 'Night rate {price} € from {from}:00 to {to}:00 starts in {left}.',
       pricesLiveIntro: 'Prices in €/kWh incl. VAT as reported by the stations at {time}. Where there is no data: indicative as of {date}.',
       fixOsm: 'Wrong data? Fix it on OpenStreetMap',
       pricesIntro: 'Indicative public charging prices in €/kWh incl. VAT as of {date}. The network app shows the exact price.',
@@ -328,7 +336,7 @@
     stations: [], // результат слияния: их показываем
     liveError: false,
     origin: { lat: RIGA.lat, lon: RIGA.lon, real: false },
-    filters: { connector: 'any', power: 'any', operator: 'all', freeNow: false, open247: false, cardPay: false, query: '', car: null },
+    filters: { connector: 'any', power: 'any', operator: 'all', freeNow: false, open247: false, cardPay: false, maxPrice: null, free: false, discount: false, indoor: false, mine: {}, tou: true, query: '', car: null },
     car: null, // профиль машины (logic.normalizeCar) или null
     prefs: { petrol: null, petrolCons: 7, home: null }, // бензин и домашний тариф
     petrol: null, // средняя цена 95 из Degvielas Radars
@@ -477,6 +485,10 @@
 
   /* ---------- моя машина, цены бензина, погода ---------- */
   function loadProfile() {
+    const mine = readJson('ur_mine_v1', {});
+    state.mine = {};
+    for (const id of UR.mineOptions()) if (mine && mine[id] === true) state.mine[id] = true;
+    state.filters.mine = state.mine;
     state.car = UR.normalizeCar(readJson('ur_car_v1', null));
     const p = readJson('ur_prefs_v1', {});
     const num = (v, lo, hi) => { const n = parseFloat(String(v).replace(',', '.')); return isFinite(n) && n >= lo && n <= hi ? n : null; };
@@ -1156,7 +1168,7 @@
       '<div class="facts">' +
       '<div><b>' + esc(fmtKm(best.distKm)) + ' ' + esc(t('unitKm')) + '</b><span>' + esc(t(state.origin.real ? 'fromYouShort' : 'fromCenterShort')) + '</span></div>' +
       '<div>' + (best.price
-        ? '<b>' + fmtRange(best.price) + ' ' + esc(t('perKwh')) + '</b><span>' + esc(priceCaption(best)) + '</span>'
+        ? '<b>' + fmtRange(best.price) + ' ' + esc(t('perKwh')) + '</b><span>' + esc(priceCaption(best)) + (best.price.mine ? ' · ' + esc(t('priceMine', { p: fmtEur(best.price.listMid) + ' €' })) : best.price.tou ? ' · ' + esc(t('priceTou')) : '') + '</span>'
         : '<b>' + esc(t('priceUnknown')) + '</b>') + '</div>' +
       '</div>' + payChips(st, true) + (etaText(st) ? '<div class="usual-line eta-line">' + esc(etaText(st)) + '</div>' : '') + usualLine(st) + navLinks(st, true) +
       '</article>';
@@ -1218,7 +1230,7 @@
     if (!refs.length) {
       html += '<p class="empty">' + esc(t('favEmpty')) + '</p>';
     } else {
-      const neutral = Object.assign({}, state.filters, { connector: 'any', power: 'any', operator: 'all', freeNow: false, open247: false, cardPay: false, query: '' });
+      const neutral = Object.assign({}, state.filters, { connector: 'any', power: 'any', operator: 'all', freeNow: false, open247: false, cardPay: false, maxPrice: null, free: false, discount: false, indoor: false, query: '' });
       const ranked = UR.rank(refs, state.origin, 'near', neutral, rankCtx());
       html += '<div class="rows">' + ranked.map(rowHtml).join('') + '</div>';
     }
@@ -1338,7 +1350,9 @@
   function discountBlock(st) {
     const list = UR.stationDiscounts(st);
     if (!list.length) return '';
-    return '<div class="disc"><h3 class="sect">' + esc(t('discTitle')) + '</h3>' + discItems(list) +
+    const tou = UR.touInfo(st.operatorId);
+    const touHtml = tou ? '<p class="tou-line">' + esc(t(tou.active ? 'touNow' : 'touSoon', { price: fmtEur(tou.price), from: tou.from, to: String(tou.to).padStart(2, '0'), left: fmtDur(tou.inMin) })) + '</p>' : '';
+    return '<div class="disc"><h3 class="sect">' + esc(t('discTitle')) + '</h3>' + touHtml + discItems(list) +
       '<p class="note">' + esc(t('discNote', { date: discDate() })) + '</p></div>';
   }
   function discountsPrices() {
@@ -1349,6 +1363,14 @@
     if (!blocks) return '';
     return '<div class="disc"><h3 class="sect">' + esc(t('discPricesTitle')) + '</h3>' + blocks +
       '<p class="note">' + esc(t('discNote', { date: discDate() })) + '</p></div>';
+  }
+
+  function mineBlock() {
+    const chips = UR.mineOptions().map((id) => {
+      const d = UR.DISCOUNTS[id].find((x) => x.personal);
+      return '<button class="chip" data-mine="' + esc(id) + '" aria-pressed="' + !!state.mine[id] + '">' + esc(d.label[lang] || d.label.ru) + '</button>';
+    }).join('');
+    return '<div class="mine"><h3 class="sect">' + esc(t('mineTitle')) + '</h3><p class="note">' + esc(t('mineNote')) + '</p><div class="mine-chips">' + chips + '</div></div>';
   }
 
   function renderPrices() {
@@ -1373,6 +1395,7 @@
     const liveOk = state.live && UR.isLiveFresh(state.live);
     $('panel').innerHTML =
       '<p class="note">' + esc(liveOk ? t('pricesLiveIntro', { time: fmtTime(UR.liveTime(state.live)), date }) : t('pricesIntro', { date })) + '</p>' +
+      mineBlock() +
       '<table class="price-table"><thead><tr><th>' + esc(t('thNet')) + '</th>' +
       '<th><span class="dot" style="background:var(--c-ac)"></span>' + esc(t('thAc')) + '</th>' +
       '<th><span class="dot" style="background:var(--c-dc)"></span>' + esc(t('thDc')) + '</th>' +
@@ -1464,13 +1487,16 @@
     const st = state.stations.find((s) => s.id === state.detailId);
     if (!st) { state.detailId = null; renderPanel(); return; }
     const livePrice = UR.livePriceOf(st, null);
-    const price = livePrice || UR.priceFor(st.operatorId, st.cls);
+    const listPrice = livePrice || UR.priceFor(st.operatorId, st.cls);
+    const price = UR.personalPrice(listPrice, st.operatorId, { mine: state.mine, tou: true });
     const sum = UR.liveSummary(st, null);
     const rows = [];
     rows.push([t('dtPower'), st.kw ? (st.powerKnown ? t('powerKnown', { n: Math.round(st.kw) }) : t('powerEst', { n: Math.round(st.kw) })) : t('powerNone')]);
     rows.push([t('dtSockets'), socketsText(st)]);
     if (st.points) rows.push([t('dtPoints'), String(st.points)]);
-    rows.push([t('dtPrice'), price ? fmtRange(price) + ' ' + t('perKwh') + ' (' + t(livePrice ? 'priceLive' : 'priceNote') + ')' : t('priceUnknown')]);
+    rows.push([t('dtPrice'), price ? fmtRange(price) + ' ' + t('perKwh') + ' (' + (price.mine ? t('priceMine', { p: fmtRange(listPrice) }) : price.tou ? t('priceTou') : t(livePrice ? 'priceLive' : 'priceNote')) + ')' : t('priceUnknown')]);
+    if (st.indoor) rows.push([t('dtIndoor'), t('indoorYes')]);
+    if (st.maxheight) rows.push([t('dtMaxh'), String(st.maxheight).replace(/^(\d+(?:\.\d+)?)$/, '$1 m')]);
     const payHtml = payChips(st, false);
     if (payHtml) rows.push([t('payTitle'), payHtml, true]);
     if (st.fee) rows.push([t('dtFee'), st.fee === 'yes' ? t('feeYes') : st.fee === 'no' ? t('feeNo') : st.fee]);
@@ -1574,7 +1600,7 @@
     const r = state.route;
     if (!r || r.status !== 'ok') return null;
     const f = state.filters;
-    const sig = [state.stations.length, state.live && state.live.generated, f.connector, f.power, f.operator, f.open247, f.cardPay, f.query, state.car && [state.car.id, state.car.kwh, state.car.dc, state.car.cons, state.car.conn.join(), state.car.onlyCompatible].join(), state.tempC == null ? '' : Math.round(state.tempC), state.routeForm.soc].join('|');
+    const sig = [state.stations.length, state.live && state.live.generated, f.connector, f.power, f.operator, f.open247, f.cardPay, f.maxPrice, f.free, f.discount, f.indoor, Object.keys(state.mine).sort().join(), f.query, state.car && [state.car.id, state.car.kwh, state.car.dc, state.car.cons, state.car.conn.join(), state.car.onlyCompatible].join(), state.tempC == null ? '' : Math.round(state.tempC), state.routeForm.soc].join('|');
     if (r.cache && r.cache.sig === sig) return r.cache;
     const pool = UR.applyFilters(state.stations, Object.assign({}, f, { freeNow: false }));
     const along = UR.stationsAlong(pool, r.line, 3);
@@ -1705,6 +1731,7 @@
     const extra = [];
     if (liveOk) extra.push(['freeNow', t('fFree')]);
     extra.push(['open247', t('fOpen')], ['cardPay', t('fCard')]);
+    const saveChips = [['free', t('fGratis')], ['discount', t('fDisc')], ['indoor', t('fIndoor')]];
     $('filters').innerHTML =
       (state.car ? '<button class="chip chip-car" data-act="carOnly" aria-pressed="' + state.car.onlyCompatible + '">' + ICON.car + esc(t('fCar')) + '</button><span class="chip-gap"></span>' : '') +
       conn.map(([id, label]) => '<button class="chip" data-conn="' + id + '" aria-pressed="' + (state.filters.connector === id) + '">' + esc(label) + '</button>').join('') +
@@ -1712,6 +1739,8 @@
       pwr.map(([id, label]) => '<button class="chip" data-pwr="' + id + '" aria-pressed="' + (state.filters.power === id) + '">' + esc(label) + '</button>').join('') +
       '<span class="chip-gap"></span>' +
       extra.map(([id, label]) => '<button class="chip" data-flt="' + id + '" aria-pressed="' + !!state.filters[id] + '">' + esc(label) + '</button>').join('') +
+      '<span class="chip-gap"></span><button class="chip" data-act="maxPrice" aria-pressed="' + !!state.filters.maxPrice + '">' + esc(state.filters.maxPrice ? t('fMaxN', { p: fmtEur(state.filters.maxPrice) }) : t('fMax')) + '</button>' +
+      saveChips.map(([id, label]) => '<button class="chip" data-flt="' + id + '" aria-pressed="' + !!state.filters[id] + '">' + esc(label) + '</button>').join('') +
       '';
   }
 
@@ -1920,6 +1949,17 @@
       if (st) toggleWatch(st).then(() => renderPanel());
     }
     else if (d.charge) { const st = stationById(d.charge); if (st) { openChargeForm(stationTitle(st)); setSheetOpen(true); } }
+    else if (d.act === 'maxPrice') {
+      const steps = [0.3, 0.35, 0.4, 0.5];
+      const i = steps.indexOf(state.filters.maxPrice);
+      state.filters.maxPrice = i < 0 ? steps[0] : steps[i + 1] || null;
+      state.detailId = null;
+      renderAll();
+    } else if (d.mine) {
+      if (state.mine[d.mine]) delete state.mine[d.mine]; else state.mine[d.mine] = true;
+      writeJson('ur_mine_v1', state.mine);
+      renderAll();
+    }
     else if (d.act === 'chargeAdd') openChargeForm('');
     else if (d.act === 'chargeCancel') { state.chargeForm = null; renderPanel(); }
     else if (d.chdel) deleteCharge(d.chdel);
