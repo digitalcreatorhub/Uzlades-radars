@@ -246,12 +246,12 @@
   }
 
   // Самые дешёвые станции среди переданных (те, что сейчас на карте): цена в пределах 1,5 цента от минимума, не больше max.
-  // Не работающие не берём. Если станций с ценой меньше трёх или цены почти одинаковые, выделять нечего: пустой набор.
+  // Неработающие и полностью занятые не берём (дешёвая, но занятая зарядка не помощник). Если станций с ценой меньше трёх или цены почти одинаковые, выделять нечего: пустой набор.
   function cheapestIds(list, filters, max) {
     const priced = [];
     for (const st of list || []) {
       const sum = liveSummary(st, filters);
-      if (sum && sum.level === 'out') continue;
+      if (sum && (sum.level === 'out' || sum.level === 'busy')) continue;
       const p = priceOf(st, filters);
       if (p && isFinite(p.mid)) priced.push([st.id, p.mid]);
     }
@@ -260,6 +260,16 @@
     const hi = Math.max.apply(null, priced.map((x) => x[1]));
     if (hi - lo < 0.03) return new Set();
     return new Set(priced.filter((x) => x[1] <= lo + 0.015).sort((a, b) => a[1] - b[1]).slice(0, max || 6).map((x) => x[0]));
+  }
+
+  // Станции, где заняты все рабочие точки (для подходящих под фильтры): не больше max ближайших в переданном списке.
+  function busyIds(list, filters, max) {
+    const out = new Set();
+    for (const st of list || []) {
+      const sum = liveSummary(st, filters);
+      if (sum && sum.level === 'busy') { out.add(st.id); if (out.size >= (max || 30)) break; }
+    }
+    return out;
   }
 
   // Сводные цены по сетям и классам из всех точек с ценой: 10–90 перцентиль (отсекает редкие выбросы).
@@ -938,6 +948,7 @@
     livePriceOf,
     priceOf,
     cheapestIds,
+    busyIds,
     buildPriceTable,
     prettyName,
     napStation,

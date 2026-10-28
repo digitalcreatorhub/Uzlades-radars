@@ -943,7 +943,15 @@ input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); ou
 .cd-ac { --cd-fill: var(--c-ac); }
 .cd-dc { --cd-fill: var(--c-dc); }
 .cd-hpc { --cd-fill: var(--c-hpc); }
-.cd.lv-busy { opacity: 0.85; }
+.cd.lv-busy { opacity: 0.9; }
+/* все точки заняты: красный переливающийся ободок и тёмная заливка */
+.cd.bz {
+  background: linear-gradient(var(--cd-fill), var(--cd-fill)) padding-box,
+    linear-gradient(110deg, #e02f3d 0%, #ffb3ab 25%, #ff5b4d 50%, #ffb3ab 75%, #e02f3d 100%) border-box;
+  background-size: 100% 100%, 250% 100%;
+  box-shadow: 0 0 12px rgba(255, 91, 77, 0.6);
+  --cd-fill: #3d4150; color: #fff;
+}
 .cd.sel { outline: 2px solid var(--text); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .cd, .cd .cd-a { animation: none; } .cd .cd-b { display: none; } }
 
