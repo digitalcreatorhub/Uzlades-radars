@@ -877,3 +877,32 @@ input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); ou
 .charge-note { margin-top: 10px; }
 .amen { margin: 14px 0 6px; }
 .amen[hidden] { display: none; }
+
+/* ---------- метки с мощностью (как в Chargemap) ---------- */
+.leaflet-marker-icon.ppill { background: none; border: 0; }
+.ppill .pl {
+  position: absolute; left: 0; top: 0; transform: translate(-50%, -50%);
+  display: inline-flex; align-items: stretch; white-space: nowrap;
+  border-radius: 999px; overflow: hidden; background: var(--bg);
+  border: 2px solid var(--bg); box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+  font: 800 12px/1 "Manrope", system-ui, sans-serif; color: var(--text);
+}
+.ppill .pl b { padding: 5px 7px; color: var(--ink-on-text); font-weight: 800; }
+.ppill .pl i { padding: 5px 7px; font-style: normal; font-weight: 800; }
+.ppill .pl-ac b { background: var(--c-ac); }
+.ppill .pl-dc b { background: var(--c-dc); }
+.ppill .pl-hpc b { background: var(--c-hpc); }
+.ppill .pl-unknown b { background: var(--c-unknown); }
+.ppill .lv-free { border-color: var(--ok); }
+.ppill .lv-free i { color: var(--ok); }
+.ppill .lv-busy { opacity: 0.7; }
+.ppill .lv-busy i { color: var(--busy); }
+.ppill .lv-out { opacity: 0.4; }
+.ppill .sel { border-color: var(--text); box-shadow: 0 0 0 3px color-mix(in srgb, var(--text) 25%, transparent), 0 3px 10px rgba(0, 0, 0, 0.4); }
+
+/* ---------- скидки сетей ---------- */
+.disc { margin: 14px 0 6px; }
+.disc-list { margin: 0 0 8px; padding: 0; list-style: none; display: grid; gap: 8px; }
+.disc-list li { font-size: 13.5px; line-height: 1.45; padding: 10px 12px; border-radius: 14px; background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); }
+.disc-list a { color: var(--muted); font-size: 12px; margin-left: 4px; }
+.disc-op { margin: 14px 0 6px; font-size: 14px; }

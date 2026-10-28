@@ -27,7 +27,7 @@ window.L = {
   control:{ zoom(){ return new Layer(); } },
   layerGroup(){ const g=new Layer(); g.n=0; window.__groups.push(g); g.clearLayers=function(){ g.n=0; }; g.addTo=function(){return g}; return g; },
   polyline(l){ const m=new Layer(); m.addTo=function(){ window.__polylines=(window.__polylines||0)+1; return m; }; return m; },
-  marker(){ const m=new Layer(); m.addTo=function(){ window.__pins=(window.__pins||0)+1; return m; }; return m; },
+  marker(ll,o){ const m=new Layer(); const pill=o&&o.icon&&/ppill/.test(o.icon.className||''); m.addTo=function(g){ if(pill){ if(g&&g.n!==undefined) g.n++; window.__pillHtml=(window.__pillHtml||[]).concat(o.icon.html); } else window.__pins=(window.__pins||0)+1; return m; }; return m; },
   divIcon(o){ return o; },
   latLngBounds(l){ return l; },
   tileLayer(u){ window.__tileUrl = u; return new Layer(); },
@@ -620,6 +620,47 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
     check('журнал: второе нажатие удаляет', (await pj.locator('.charge-list li').count()) === 0 && (await pj.locator('.charge-sum').count()) === 0);
     check('журнал: нет JS-ошибок', errJ.length === 0, errJ.join(' || '));
     await cJ.close();
+  }
+
+  // Метки с мощностью и скидки сетей
+  {
+    const cP = await browser.newContext({ viewport: { width: 390, height: 780 }, deviceScaleFactor: 2, serviceWorkers: 'block' });
+    const pp = await cP.newPage();
+    const errP = [];
+    pp.on('pageerror', (e) => errP.push('pageerror: ' + e.message));
+    pp.on('dialog', (d) => { errP.push('dialog: ' + d.message()); d.dismiss(); });
+    await pp.route('**/*', async (route) => {
+      const url = route.request().url();
+      if (url.startsWith(base)) return route.continue();
+      if (url.includes('leaflet.min.js')) return route.fulfill({ contentType: 'text/javascript', body: LEAFLET_STUB });
+      if (url.includes('overpass')) return route.fulfill({ contentType: 'application/json', body: JSON.stringify(MOCK) });
+      if (url.includes('fonts.googleapis') || url.includes('leaflet.min.css')) return route.fulfill({ contentType: 'text/css', body: '' });
+      return route.abort();
+    });
+    await pp.goto(base + '/');
+    await pp.waitForSelector('.best', { timeout: 8000 });
+    check('метки: по умолчанию выключены, остаются точки', (await pp.evaluate(() => (window.__pillHtml || []).length)) === 0 && (await pp.evaluate(() => window.__markers)) === 6);
+    await pp.click('[data-act="pills"]');
+    check('метки: чип включает «таблетки» для всех 6 станций', (await pp.evaluate(() => (window.__pillHtml || []).length)) === 6 && (await pp.evaluate(() => window.__markers)) === 6, 'pills=' + (await pp.evaluate(() => (window.__pillHtml || []).length)));
+    const html = await pp.evaluate(() => window.__pillHtml.join('\n'));
+    check('метки: мощность в кВт на «таблетке» (150 и 22)', /<b>150<\/b>/.test(html) && /<b>22<\/b>/.test(html), html.slice(0, 200));
+    check('метки: станция без данных о мощности показывает «?», без доступности', /<b>\?<\/b><\/span>/.test(html));
+    check('метки: в названии нет сырого HTML', !/<img|<script/.test(html));
+    check('метки: чип нажат и выбор запомнился', (await pp.locator('[data-act="pills"]').getAttribute('aria-pressed')) === 'true' && (await pp.evaluate(() => localStorage.getItem('ur_pills_v1'))) === 'true');
+    await pp.reload();
+    await pp.waitForSelector('.best', { timeout: 8000 });
+    check('метки: после перезагрузки остаются включёнными', (await pp.evaluate(() => new Set(window.__pillHtml || []).size)) === 6);
+    await pp.goto(base + '/?pills=0');
+    await pp.waitForSelector('.best', { timeout: 8000 });
+    check('метки: ссылка ?pills=0 выключает', (await pp.evaluate(() => (window.__pillHtml || []).length)) === 0 && (await pp.evaluate(() => localStorage.getItem('ur_pills_v1'))) === 'false');
+    // скидки
+    await pp.click('[data-tab="prices"]');
+    const pr = await pp.locator('#panel, .panel').first().innerText().catch(() => '');
+    check('скидки: во вкладке цен есть блок со скидками и ссылками на источники', /Скидки по сетям/i.test(pr) && (await pp.locator('.disc-list a[href^="https://"]').count()) >= 4, pr.slice(-300));
+    check('скидки: указана дата сверки', /Сверено 28\.10\.2026/.test(pr));
+    await pp.screenshot({ path: path.join(shots, '20-discounts.png') });
+    check('метки и скидки: нет JS-ошибок', errP.length === 0, errP.join(' || '));
+    await cP.close();
   }
 
   check('нет ошибок в консоли', errors.length === 0, errors.join(' || '));

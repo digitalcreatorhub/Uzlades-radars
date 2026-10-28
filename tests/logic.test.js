@@ -594,4 +594,31 @@ test('amenityQuery и parseAmenities: запрос и подсчёт без по
   assert.deepEqual(UR.parseAmenities(undefined), { toilets: 0, food: 0, shop: 0, wifi: 0 });
 });
 
+test('скидки: у каждой записи оба языка и https-источник, ключи — настоящие сети', () => {
+  const ids = new Set(UR.OPERATORS.map((o) => o.id));
+  for (const [op, list] of Object.entries(UR.DISCOUNTS)) {
+    assert.ok(ids.has(op), 'сеть ' + op + ' есть в OPERATORS');
+    assert.ok(list.length >= 1);
+    for (const d of list) {
+      assert.ok(d.ru && d.en, op + ': есть русский и английский текст');
+      assert.match(d.src, /^https:\/\//);
+      if (d.until) assert.match(d.until, /^\d{4}-\d{2}-\d{2}$/);
+    }
+  }
+  assert.match(UR.DISCOUNTS_DATE, /^\d{4}-\d{2}-\d{2}$/);
+});
+
+test('activeDiscounts: срок «до даты» включительно, неизвестная сеть и мусор', () => {
+  const at = (y, m, d, h) => Date.UTC(y, m - 1, d, h, 0);
+  assert.equal(UR.activeDiscounts('neste', at(2026, 10, 28, 10)).length, 1);
+  assert.equal(UR.activeDiscounts('neste', at(2026, 11, 30, 20)).length, 1); // последний день ещё действует (22:00 по Риге)
+  assert.equal(UR.activeDiscounts('neste', at(2026, 12, 1, 0)).length, 0);
+  assert.equal(UR.activeDiscounts('virsi', at(2030, 1, 1, 0)).length, 1); // без срока не истекает
+  assert.deepEqual(UR.activeDiscounts('tesla', at(2026, 10, 28, 10)), []);
+  assert.deepEqual(UR.activeDiscounts(undefined), []);
+  assert.deepEqual(UR.stationDiscounts(null), []);
+  assert.deepEqual(UR.stationDiscounts({}), []);
+  assert.equal(UR.stationDiscounts({ operatorId: 'eleport' }, at(2026, 10, 28, 10)).length, 1);
+});
+
 console.log('\n' + passed + ' tests passed');

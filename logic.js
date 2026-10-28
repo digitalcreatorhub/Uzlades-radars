@@ -839,6 +839,66 @@
     return out;
   }
 
+  /* ---------- скидки сетей ---------- */
+  // Только то, что написано на страницах самих сетей (или, где так сказано, в сводке Cenotava.lv). Сверено 28.10.2026.
+  // Условия меняются, поэтому в интерфейсе всегда показываем дату сверки и ссылку на источник. Править здесь.
+  const DISCOUNTS_DATE = '2026-10-28';
+  const DISCOUNTS = {
+    enefit: [
+      {
+        ru: '−10% клиентам Enefit по электричеству: нужен договор на ваше имя и e-mail зарядного аккаунта в личном кабинете mans.enefit.lv.',
+        en: '−10% for Enefit electricity customers: you need a contract in your name and your charging account e-mail added in the mans.enefit.lv account.',
+        src: 'https://www.enefit.lv/en/majai/elektroauto-uzlade/publiska-uzlade',
+      },
+      {
+        ru: 'Дневной тариф 08:00–21:00 дешевле: от 0,36 € (до 47 кВт) и 0,43 € (быстрее). Ночью (21:00–08:00) минимум 0,50 € за сессию.',
+        en: 'The daytime rate 08:00–21:00 is cheaper: from 0.36 € (up to 47 kW) and 0.43 € (faster). At night (21:00–08:00) there is a 0.50 € minimum per session.',
+        src: 'https://www.enefit.lv/en/majai/elektroauto-uzlade/publiska-uzlade',
+      },
+    ],
+    virsi: [
+      {
+        ru: '−0,02 €/кВт·ч, если до зарядки показать карту или приложение Virši и заплатить на станции. Действует с 04.07.2025, срока окончания на странице нет.',
+        en: '−0.02 €/kWh if you show the Virši card or app before charging and pay at the station. Valid since 04.07.2025, the page gives no end date.',
+        src: 'https://www.virsi.lv/en/private/electricity/electric-charging',
+      },
+    ],
+    eleport: [
+      {
+        ru: '−0,09 €/кВт·ч при зарядке через приложение или карту Eleport (не при оплате через сторонние платформы и charge.eleport.com). По объявлению от 04.10.2024: проверьте в приложении, действует ли сейчас.',
+        en: '−0.09 €/kWh when charging with the Eleport app or card (not when paying through third-party platforms or charge.eleport.com). From an announcement of 04.10.2024: check in the app that it still applies.',
+        src: 'https://eleport.com/lv/eleport-standartize-atlaides-klientiem-visa-baltija-un-atver-jaunas-uzlades-stacijas-latvija/',
+      },
+    ],
+    elektrum: [
+      {
+        ru: '−5% клиентам с договором постоплаты (по сводке Cenotava.lv, на сайте самой сети подтверждения не нашёл).',
+        en: '−5% for post-payment contract customers (per the Cenotava.lv summary; I could not confirm it on the network’s own site).',
+        src: 'https://cenotava.lv/elektroauto-uzlade',
+      },
+    ],
+    neste: [
+      {
+        ru: 'Ночная цена 0,32 €/кВт·ч с 19:00 до 07:00 до 30.11.2026 (по сводке Cenotava.lv).',
+        en: 'Night price 0.32 €/kWh from 19:00 to 07:00 until 30.11.2026 (per the Cenotava.lv summary).',
+        until: '2026-11-30',
+        src: 'https://cenotava.lv/elektroauto-uzlade',
+      },
+    ],
+  };
+
+  // Действующие скидки сети. Срок «до даты» считаем включительно, по зимнему времени Риги (разница в час летом не важна).
+  function activeDiscounts(operatorId, nowMs) {
+    const now = nowMs == null ? Date.now() : nowMs;
+    return (DISCOUNTS[operatorId] || []).filter((d) => {
+      if (!d.until) return true;
+      const end = Date.parse(d.until + 'T23:59:59+02:00');
+      return isFinite(end) && now <= end;
+    });
+  }
+
+  const stationDiscounts = (st, nowMs) => (st && st.operatorId ? activeDiscounts(st.operatorId, nowMs) : []);
+
   return {
     OPERATORS,
     PRICES,
@@ -902,5 +962,9 @@
     AMENITY_RADIUS_M,
     amenityQuery,
     parseAmenities,
+    DISCOUNTS_DATE,
+    DISCOUNTS,
+    activeDiscounts,
+    stationDiscounts,
   };
 });
