@@ -1,11 +1,12 @@
 /* Service worker: оболочка приложения работает офлайн. Данные станций кэширует само приложение. */
-const VERSION = 'ur-v16';
+const VERSION = 'ur-v17';
 const SHELL = [
   './',
   'index.html',
   'styles.css',
   'logic.js',
   'app.js',
+  'lang-lv.js',
   'manifest.webmanifest',
   'icons/icon.svg',
   'icons/icon-192.png',

@@ -234,4 +234,16 @@ await test('run: устаревшие данные не мешают тайме�
   assert.equal(upd.fired, undefined); // таймер не снят, уйдёт при следующем запуске
 });
 
+await test('латышский: тексты пушей и язык подписки', () => {
+  assert.equal(textFor('lv', 'Galleria'), 'Atbrīvojās lādētājs: Galleria');
+  assert.equal(timerText('lv', 'Galleria'), 'Uzlāde līdz 80% gandrīz gatava: Galleria');
+  const fm = freeMapOf(live([site('A', ['free'])]));
+  assert.equal(evaluate({ lang: 'lv', watch: [{ napId: 'A', name: 'G', free: 0 }] }, fm, APP).messages[0].body, 'Atbrīvojās lādētājs: G');
+  assert.equal(evaluate({ lang: 'de', watch: [{ napId: 'A', name: 'G', free: 0 }] }, fm, APP).messages[0].body, 'Освободилась зарядка: G'); // неизвестный язык: русский
+  const row = new Array(48).fill(55); row[22] = 8;
+  const d = evaluateDigest({ lang: 'lv', watch: [], digest: { hour: 14, favs: [{ napId: 'A', name: 'Galleria' }] } }, fm, { sites: { A: row } }, NOW, APP);
+  assert.equal(d.message.title, 'Uzlādes Radars · vakars');
+  assert.equal(d.message.body, 'Galleria: brīvi 1, visbrīvāk ap 22:00');
+});
+
 console.log('\n' + passed + ' tests passed');

@@ -23,7 +23,11 @@ export function freeMapOf(live) {
   return m;
 }
 
+// Язык подписки: ru (по умолчанию), en или lv
+export const langOf = (record) => (record && (record.lang === 'en' || record.lang === 'lv') ? record.lang : 'ru');
+
 export function textFor(lang, name) {
+  if (lang === 'lv') return 'Atbrīvojās lādētājs: ' + (name || 'Uzlādes stacija');
   const n = name || (lang === 'en' ? 'Charging station' : 'Станция');
   return lang === 'en' ? 'A charger is free: ' + n : 'Освободилась зарядка: ' + n;
 }
@@ -34,7 +38,7 @@ export function textFor(lang, name) {
 export function evaluate(record, freeMap, appUrl) {
   const messages = [];
   let changed = false;
-  const lang = record && record.lang === 'en' ? 'en' : 'ru';
+  const lang = langOf(record);
   const watch = ((record && record.watch) || []).map((w) => {
     if (!freeMap.has(w.napId)) return w;
     const cur = freeMap.get(w.napId);
@@ -58,6 +62,7 @@ export const TIMER_LEAD_MS = 7 * 60 * 1000; // запуск раз в 15 мин�
 export const TIMER_STALE_MS = 2 * 3600 * 1000; // просроченный больше чем на 2 часа уже не нужен
 
 export function timerText(lang, name) {
+  if (lang === 'lv') return 'Uzlāde līdz 80% gandrīz gatava: ' + (name || 'stacija');
   const n = name || (lang === 'en' ? 'the station' : 'станции');
   return lang === 'en' ? 'Your charge to 80% is about ready at ' + n : 'Зарядка до 80% почти готова на ' + n;
 }
@@ -65,7 +70,7 @@ export function timerText(lang, name) {
 // -> { messages, timers: что осталось, fired: id сработавших или устаревших }
 export function evaluateTimers(record, now, appUrl) {
   const t0 = now == null ? Date.now() : now;
-  const lang = record && record.lang === 'en' ? 'en' : 'ru';
+  const lang = langOf(record);
   const messages = [];
   const fired = [];
   const timers = [];
@@ -85,11 +90,13 @@ const rigaHour = (ms) => parseInt(new Intl.DateTimeFormat('en-GB', { timeZone: '
 
 export function digestLine(lang, fav, free, win) {
   const parts = [];
-  if (free != null) parts.push(lang === 'en' ? (free > 0 ? free + ' free now' : 'all busy now') : (free > 0 ? 'свободно ' + free : 'сейчас все заняты'));
-  if (win && !win.good) {
-    const hh = String(win.best.hour).padStart(2, '0') + ':00';
-    parts.push(lang === 'en' ? 'quietest around ' + hh : 'свободнее всего около ' + hh);
-  }
+  const L = {
+    ru: { free: (n) => (n > 0 ? 'свободно ' + n : 'сейчас все заняты'), best: (h) => 'свободнее всего около ' + h },
+    en: { free: (n) => (n > 0 ? n + ' free now' : 'all busy now'), best: (h) => 'quietest around ' + h },
+    lv: { free: (n) => (n > 0 ? 'brīvi ' + n : 'pašlaik viss aizņemts'), best: (h) => 'visbrīvāk ap ' + h },
+  }[lang] || null;
+  if (free != null) parts.push(L.free(free));
+  if (win && !win.good) parts.push(L.best(String(win.best.hour).padStart(2, '0') + ':00'));
   return (fav.name || fav.napId) + (parts.length ? ': ' + parts.join(', ') : '');
 }
 
@@ -102,7 +109,7 @@ export function evaluateDigest(record, freeMap, patterns, now, appUrl) {
   const today = rigaDate(t0);
   const h = rigaHour(t0);
   if (d.last === today || !(h === d.hour || h === (d.hour + 1) % 24)) return { message: null, last: null };
-  const lang = record.lang === 'en' ? 'en' : 'ru';
+  const lang = langOf(record);
   const lines = [];
   for (const f of d.favs.slice(0, 3)) {
     const free = freeMap && freeMap.has(f.napId) ? freeMap.get(f.napId) : null;
@@ -112,7 +119,7 @@ export function evaluateDigest(record, freeMap, patterns, now, appUrl) {
   }
   if (!lines.length) return { message: null, last: null };
   return {
-    message: { title: lang === 'en' ? 'Uzlādes Radars · tonight' : 'Uzlādes Radars · вечер', body: lines.join('\n'), url: appUrl, tag: 'digest' },
+    message: { title: 'Uzlādes Radars · ' + (lang === 'en' ? 'tonight' : lang === 'lv' ? 'vakars' : 'вечер'), body: lines.join('\n'), url: appUrl, tag: 'digest' },
     last: today,
   };
 }
