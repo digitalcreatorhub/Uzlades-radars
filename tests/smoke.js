@@ -131,6 +131,9 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
   await page.click('#btn-lang');
   check('английский язык', (await page.locator('.tab').first().innerText()) === 'Best');
   await page.click('#btn-lang');
+  check('латышский язык: вкладки и кнопка «LV»', (await page.locator('.tab').first().innerText()) === 'Kurp' && (await page.locator('#btn-lang').innerText()) === 'LV' && (await page.evaluate(() => document.documentElement.lang)) === 'lv');
+  await page.click('#btn-lang');
+  check('русский вернулся после круга языков', (await page.locator('.tab').first().innerText()) === 'Куда' && (await page.locator('#btn-lang').innerText()) === 'RU');
   await page.click('#btn-theme');
   check('светлая тема', (await page.evaluate(() => document.documentElement.dataset.theme)) === 'light');
   await page.click('[data-tab="go"]');
@@ -518,6 +521,8 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
     await pf.click('#btn-lang');
     check('английский: вкладка «Saved» и «Route»', (await pf.locator('.tab').allInnerTexts()).join(' ').includes('Route'));
     await pf.click('#btn-lang');
+    check('латышский на маршруте: «Maršruts»', (await pf.locator('.tab').allInnerTexts()).join(' ').includes('Maršruts'));
+    await pf.click('#btn-lang');
     check('новые функции: нет JS-ошибок', errF.length === 0, errF.join(' || '));
     await cF.close();
 
@@ -601,6 +606,27 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
     check('пуши: без адреса сервера подсказка прежняя, только при открытом приложении', /пока приложение открыто/.test(await pk2.locator('#toast').innerText()));
     check('пуши: без адреса сервера слежение работает и ничего не отправляется', leaked === 0 && (await pk2.evaluate(() => JSON.parse(localStorage.getItem('ur_watch_v1') || '[]').length)) === 1);
     await cK2.close();
+  }
+
+  // латышский интерфейс: карточка станции, единицы, время, скидки
+  {
+    const cL = await browser.newContext({ viewport: { width: 390, height: 780 }, serviceWorkers: 'block', locale: 'lv-LV' });
+    const pl = await cL.newPage();
+    const errL = [];
+    pl.on('pageerror', (e) => errL.push('pageerror: ' + e.message));
+    await routeFor(pl, liveDoc(minsAgo(3)), null);
+    await pl.goto(base + '/?st=a2');
+    await pl.waitForSelector('.detail', { timeout: 8000 });
+    const lt = await pl.locator('.detail').innerText();
+    check('латышский по языку браузера: карточка станции без русских слов', (await pl.locator('#btn-lang').innerText()) === 'LV' && /Jauda/.test(lt) && /Savienotāji/.test(lt) && !/[а-яА-Я]/.test(lt), lt.slice(0, 300));
+    check('латышский: единицы «līdz 50 kW»', /līdz 50 kW/.test(lt), lt.slice(0, 300));
+    await pl.screenshot({ path: path.join(shots, '41-latvian-detail.png') });
+    await pl.click('[data-tab="prices"]');
+    await pl.screenshot({ path: path.join(shots, '42-latvian-prices.png') });
+    const prices = await pl.locator('#panel').innerText();
+    check('латышский: вкладка цен без русских слов', /Cenas|cenas/.test(prices) && !/[а-яА-Я]/.test(prices), prices.slice(0, 200));
+    check('латышский: нет JS-ошибок', errL.length === 0, errL.join(' || '));
+    await cL.close();
   }
 
   // когда ехать, таймер зарядки, вечерняя сводка

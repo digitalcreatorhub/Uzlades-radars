@@ -5,7 +5,7 @@
   'use strict';
 
   const UR = window.UR;
-  const APP_VERSION = 'v16'; // совпадает с VERSION в sw.js (проверяет тест); меняется с каждым выпуском
+  const APP_VERSION = 'v17'; // совпадает с VERSION в sw.js (проверяет тест); меняется с каждым выпуском
 
   /* ---------- хранилище ---------- */
   const store = {
@@ -182,6 +182,7 @@
       baltics: 'Литва и Эстония: станции из OpenStreetMap без статуса в реальном времени.',
       loadingBalt: 'Загружаю станции…',
       sockType2: 'Type 2', sockCcs: 'CCS', sockChademo: 'CHAdeMO', sockTesla: 'Tesla',
+      unitKw: 'кВт', unitKwh: 'кВт·ч', unitH: 'ч', unitMin: 'мин',
     },
     en: {
       install: 'Install',
@@ -347,12 +348,22 @@
       baltics: 'Lithuania and Estonia: OpenStreetMap stations without live status.',
       loadingBalt: 'Loading stations…',
       sockType2: 'Type 2', sockCcs: 'CCS', sockChademo: 'CHAdeMO', sockTesla: 'Tesla',
+      unitKw: 'kW', unitKwh: 'kWh', unitH: 'h', unitMin: 'min',
     },
   };
+  // Латышский лежит в lang-lv.js (если файл не загрузился, показываем английский)
+  I18N.lv = Object.assign({}, I18N.en, window.UR_LV || {});
+  const LANGS = ['ru', 'en', 'lv'];
+  const LOCALES = { ru: 'ru-RU', en: 'en-GB', lv: 'lv-LV' };
 
-  let lang = store.get('ur_lang') === 'en' ? 'en' : 'ru';
+  // Язык: сохранённый выбор, иначе латышский для тех, у кого браузер на латышском, иначе русский
+  let lang = (() => {
+    const s = store.get('ur_lang');
+    if (LANGS.includes(s)) return s;
+    return /^lv\b/i.test((navigator.language || '')) ? 'lv' : 'ru';
+  })();
   function t(key, vars) {
-    let s = (I18N[lang] && I18N[lang][key]) || I18N.ru[key] || key;
+    let s = (I18N[lang] && I18N[lang][key]) || I18N.en[key] || I18N.ru[key] || key;
     if (vars) for (const k of Object.keys(vars)) s = s.replace('{' + k + '}', vars[k]);
     return s;
   }
@@ -976,7 +987,7 @@
 
   // Ярлык вместо точки: у самой дешёвой станции (kind 'cheap') кВт сменяются ценой, у станции, где заняты все точки (kind 'busy'), надписью «Все заняты»
   function cheapDotHtml(st, level, selected, kind) {
-    const kw = (st.kw ? Math.round(st.kw) : '?') + ' ' + (lang === 'ru' ? 'кВт' : 'kW');
+    const kw = (st.kw ? Math.round(st.kw) : '?') + ' ' + t('unitKw');
     let alt = '';
     if (kind === 'busy') alt = t('allBusy');
     else {
@@ -989,7 +1000,7 @@
   const PLUG_SVG = '<svg viewBox="0 0 16 16" aria-hidden="true"><rect width="16" height="16" rx="4" fill="#123a63"/><circle cx="8" cy="8" r="3.4" fill="none" stroke="#cfe8ff" stroke-width="1.5"/><circle cx="8" cy="8" r="1" fill="#cfe8ff"/></svg>';
   function pillHtml(st, sum, level, selected, cheap) {
     const kw = st.kw ? String(Math.round(st.kw)) : '?';
-    const unit = lang === 'ru' ? 'кВт' : 'kW';
+    const unit = t('unitKw');
     const cnt = sum && sum.total ? '<div class="pc"><b>' + (level === 'out' ? '–' : sum.free) + '</b>/' + sum.total + '</div>' : '';
     return '<span class="pl lv-' + level + (selected ? ' sel' : '') + (cheap ? ' cheap' : '') + '"><span class="pw"><span><b>' + kw + '</b> <em>' + unit + '</em></span>' + PLUG_SVG + '</span>' + cnt + '</span>';
   }
@@ -1353,7 +1364,7 @@
   /* ---------- журнал зарядок ---------- */
   const saveCharges = () => writeJson('ur_charges_v1', state.charges);
   const fmtNum = (n) => String(Math.round(n * 10) / 10).replace('.', ',');
-  const fmtDay = (ts) => new Date(ts).toLocaleDateString(lang === 'ru' ? 'ru-RU' : 'en-GB', { timeZone: 'Europe/Riga', day: '2-digit', month: '2-digit' });
+  const fmtDay = (ts) => new Date(ts).toLocaleDateString(LOCALES[lang] || 'en-GB', { timeZone: 'Europe/Riga', day: '2-digit', month: '2-digit' });
 
   // Экономия против бензина: за месяц, год и всё время
   function savingsHtml(list) {
@@ -1418,7 +1429,7 @@
     h += savingsHtml(list);
     h += '<ul class="charge-list">' + list.slice(0, 30).map((e) =>
       '<li><span class="ch-date">' + esc(fmtDay(e.ts)) + '</span><span class="ch-name">' + esc(e.name || '–') + '</span>' +
-      '<span class="ch-val">' + esc(fmtNum(e.kwh)) + ' ' + esc(lang === 'ru' ? 'кВт·ч' : 'kWh') + ' · ' + esc(fmtEur(e.eur)) + ' €</span>' +
+      '<span class="ch-val">' + esc(fmtNum(e.kwh)) + ' ' + esc(t('unitKwh')) + ' · ' + esc(fmtEur(e.eur)) + ' €</span>' +
       '<button class="ch-del' + (state.chargeDelArm === e.id ? ' armed' : '') + '" data-chdel="' + esc(e.id) + '" aria-label="' + esc(t('chargeDel')) + '">' +
       (state.chargeDelArm === e.id ? esc(t('chargeDelSure')) : '×') + '</button></li>').join('') + '</ul>';
     return h + '<button class="link-btn" data-act="chargeCsv">' + esc(t('csvBtn')) + '</button><p class="note charge-note">' + esc(t('chargeNote')) + '</p>';
@@ -1496,7 +1507,7 @@
   const discDate = () => UR.DISCOUNTS_DATE.split('-').reverse().join('.');
   function discItems(list) {
     return '<ul class="disc-list">' + list.map((d) =>
-      '<li>' + esc(d[lang] || d.ru) + ' <a href="' + esc(d.src) + '" target="_blank" rel="noopener">' + esc(t('discSrc')) + '</a></li>').join('') + '</ul>';
+      '<li>' + esc(d[lang] || d.en || d.ru) + ' <a href="' + esc(d.src) + '" target="_blank" rel="noopener">' + esc(t('discSrc')) + '</a></li>').join('') + '</ul>';
   }
   function discountBlock(st) {
     const list = UR.stationDiscounts(st);
@@ -1519,7 +1530,7 @@
   function mineBlock() {
     const chips = UR.mineOptions().map((id) => {
       const d = UR.DISCOUNTS[id].find((x) => x.personal);
-      return '<button class="chip" data-mine="' + esc(id) + '" aria-pressed="' + !!state.mine[id] + '">' + esc(d.label[lang] || d.label.ru) + '</button>';
+      return '<button class="chip" data-mine="' + esc(id) + '" aria-pressed="' + !!state.mine[id] + '">' + esc(d.label[lang] || d.label.en || d.label.ru) + '</button>';
     }).join('');
     return '<div class="mine"><h3 class="sect">' + esc(t('mineTitle')) + '</h3><p class="note">' + esc(t('mineNote')) + '</p><div class="mine-chips">' + chips + '</div></div>';
   }
@@ -1565,7 +1576,7 @@
       '<ul class="pts">' +
       pts.map((p) => {
         const name = PT_NAMES[p.t] ? t(PT_NAMES[p.t]) : '?';
-        const kw = p.kw ? ' ' + Math.round(p.kw) + ' ' + (lang === 'ru' ? 'кВт' : 'kW') : '';
+        const kw = p.kw ? ' ' + Math.round(p.kw) + ' ' + t('unitKw') : '';
         const price = p.p != null ? fmtEur(p.p) + ' ' + t('perKwh') : '';
         return '<li><span class="pt-dot pt-' + esc(p.s) + '"></span><span class="pt-name">' + esc(name + kw) + '</span>' +
           '<span class="pt-state">' + esc(sinceText(p) || t(key[p.s] || 'ptUnk')) + '</span><span class="pt-price">' + esc(price) + '</span></li>';
@@ -1789,7 +1800,7 @@
   const fmtDur = (min) => {
     const h = Math.floor(min / 60);
     const m = Math.round(min % 60);
-    return h ? h + (lang === 'ru' ? ' ч ' : ' h ') + (m ? m + (lang === 'ru' ? ' мин' : ' min') : '') : m + (lang === 'ru' ? ' мин' : ' min');
+    return h ? h + ' ' + t('unitH') + ' ' + (m ? m + ' ' + t('unitMin') : '') : m + ' ' + t('unitMin');
   };
   const fmtOff = (km) => (km < 1 ? t('routeOff', { n: Math.max(50, Math.round(km * 10) * 100 / 10 | 0) }) : t('routeOffKm', { n: fmtKm(km) }));
 
@@ -1981,7 +1992,7 @@
   }
 
   function renderTop() {
-    $('btn-lang').textContent = lang === 'ru' ? 'RU' : 'EN';
+    $('btn-lang').textContent = lang.toUpperCase();
     $('btn-theme').textContent = state.theme === 'dark' ? '☾' : '☀';
     $('btn-install').textContent = t('install');
     $('btn-install').title = t('install');
@@ -2222,7 +2233,7 @@
     else if (el.id === 'btn-gps') locate({ zoom: 16 });
     else if (el.id === 'btn-retry') { setStatus('loading'); loadStations(true); loadLive(true); }
     else if (el.id === 'grab') { if (!dragSuppressClick) setSheetOpen($('sheet').dataset.open !== 'true'); }
-    else if (el.id === 'btn-lang') { lang = lang === 'ru' ? 'en' : 'ru'; store.set('ur_lang', lang); renderAll(); }
+    else if (el.id === 'btn-lang') { lang = LANGS[(LANGS.indexOf(lang) + 1) % LANGS.length]; store.set('ur_lang', lang); renderAll(); }
     else if (el.id === 'btn-theme') {
       state.theme = state.theme === 'dark' ? 'light' : 'dark';
       store.set('ur_theme', state.theme);

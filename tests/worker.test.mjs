@@ -206,4 +206,12 @@ await test('sync: таймер и сводка сохраняются без с�
   assert.equal(subs.items[0].digest.hour, 17);
 });
 
+await test('sync: язык lv сохраняется, неизвестный язык становится ru', async () => {
+  const e = env();
+  await call(e, 'POST', '/sync', { sub: mkSub(), lang: 'lv', watch: [{ napId: 'S1', name: 'A', free: 0 }] });
+  assert.equal(JSON.parse([...e.SUBS.m.values()][0]).lang, 'lv');
+  await call(e, 'POST', '/sync', { sub: mkSub(), lang: 'de', watch: [{ napId: 'S1', name: 'A', free: 0 }] });
+  assert.equal(JSON.parse([...e.SUBS.m.values()][0]).lang, 'ru');
+});
+
 console.log('\n' + passed + ' tests passed');

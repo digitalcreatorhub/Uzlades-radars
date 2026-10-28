@@ -816,4 +816,36 @@ test('chargesCsv: шапка, порядок по времени, кавычки
   assert.equal(UR.chargesCsv([]).slice(1), 'date,time,kWh,EUR,EUR_per_kWh,place\r\n');
 });
 
+test('латышский язык: набор ключей и подстановок совпадает с русским', () => {
+  const fs = require('node:fs');
+  const vm = require('node:vm');
+  const src = fs.readFileSync(require('node:path').join(__dirname, '..', 'app.js'), 'utf8');
+  const a = src.indexOf('  const I18N = {');
+  const b = src.indexOf('\n  };\n', a);
+  const I18N = vm.runInNewContext('(' + src.slice(a + '  const I18N = '.length, b + 4) + ')');
+  const ctx = { window: {} };
+  vm.runInNewContext(fs.readFileSync(require('node:path').join(__dirname, '..', 'lang-lv.js'), 'utf8'), ctx);
+  const lv = ctx.window.UR_LV;
+  const ph = (s) => (String(s).match(/\{[a-zA-Z0-9_]+\}/g) || []).sort().join(',');
+  const missing = Object.keys(I18N.ru).filter((k) => !(k in lv));
+  const extra = Object.keys(lv).filter((k) => !(k in I18N.ru));
+  assert.deepEqual(missing, [], 'нет перевода: ' + missing.join(', '));
+  assert.deepEqual(extra, [], 'лишние ключи: ' + extra.join(', '));
+  assert.deepEqual(Object.keys(I18N.en).filter((k) => !(k in I18N.ru)), [], 'в английском есть то, чего нет в русском');
+  const bad = Object.keys(I18N.ru).filter((k) => ph(I18N.ru[k]) !== ph(lv[k]));
+  assert.deepEqual(bad, [], 'не совпадают подстановки {…}: ' + bad.join(', '));
+  // русские буквы в латышском тексте — признак недоперевода
+  const cyr = Object.keys(lv).filter((k) => /[а-яА-Я]/.test(lv[k]));
+  assert.deepEqual(cyr, [], 'кириллица в латышском: ' + cyr.join(', '));
+});
+
+test('скидки: у каждой есть ru, en и lv, у личных скидок и метки на трёх языках', () => {
+  for (const [op, list] of Object.entries(UR.DISCOUNTS)) {
+    for (const d of list) {
+      for (const l of ['ru', 'en', 'lv']) assert.ok(d[l] && d[l].length > 10, op + ' ' + l);
+      if (d.label) for (const l of ['ru', 'en', 'lv']) assert.ok(d.label[l], op + ' label ' + l);
+    }
+  }
+});
+
 console.log('\n' + passed + ' tests passed');

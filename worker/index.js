@@ -124,7 +124,7 @@ async function handleSync(request, env, cors) {
   // Состояние «сколько было свободно» хранит сервер: у уже известных станций оставляем его, приложение задаёт только начальное
   const prev = new Map(((old && old.watch) || []).map((w) => [w.napId, w.free]));
   for (const w of watch) if (prev.has(w.napId) && prev.get(w.napId) != null) w.free = prev.get(w.napId);
-  const lang = r.data.lang === 'en' ? 'en' : 'ru';
+  const lang = r.data.lang === 'en' || r.data.lang === 'lv' ? r.data.lang : 'ru';
   const rec = { sub, watch, lang, t: Date.now() };
   if (timers.length) rec.timers = timers;
   if (digest) { rec.digest = digest; if (old && old.digest && old.digest.last) rec.digest.last = old.digest.last; }
