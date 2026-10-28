@@ -5,6 +5,7 @@
   'use strict';
 
   const UR = window.UR;
+  const APP_VERSION = 'v12'; // совпадает с VERSION в sw.js (проверяет тест); меняется с каждым выпуском
 
   /* ---------- хранилище ---------- */
   const store = {
@@ -78,6 +79,7 @@
       usualNow: 'Сейчас обычно занято ≈ {n}%', usualSince: 'по данным с {date}',
       usualLine: 'В это время обычно занято ≈ {n}%',
       liveSource: 'Статус и цены: Eco-Movement через национальную точку доступа Латвии (CC0).',
+      updAvail: 'Доступна новая версия приложения', updGo: 'Обновить', verLine: 'Версия {v}',
       pricesLiveIntro: 'Цены в €/кВт·ч с НДС по данным самих станций на {time}. Где данных нет, ориентир от {date}.',
       fixOsm: 'Ошибка в данных? Исправить на OpenStreetMap',
       pricesIntro: 'Ориентировочные цены публичной зарядки в €/кВт·ч с НДС на {date}. Точную цену показывает приложение сети.',
@@ -219,6 +221,7 @@
       usualNow: 'Usually ≈ {n}% busy right now', usualSince: 'data since {date}',
       usualLine: 'Usually ≈ {n}% busy at this time',
       liveSource: 'Availability and prices: Eco-Movement via the Latvian national access point (CC0).',
+      updAvail: 'A new version of the app is available', updGo: 'Update', verLine: 'Version {v}',
       pricesLiveIntro: 'Prices in €/kWh incl. VAT as reported by the stations at {time}. Where there is no data: indicative as of {date}.',
       fixOsm: 'Wrong data? Fix it on OpenStreetMap',
       pricesIntro: 'Indicative public charging prices in €/kWh incl. VAT as of {date}. The network app shows the exact price.',
@@ -1362,7 +1365,8 @@
       '<th><span class="dot" style="background:var(--c-dc)"></span>' + esc(t('thDc')) + '</th>' +
       '<th><span class="dot" style="background:var(--c-hpc)"></span>' + esc(t('thHpc')) + '</th></tr></thead><tbody>' + rows + '</tbody></table>' +
       (state.live ? '<p class="note" style="margin-top:12px">' + esc(t('liveSource')) + '</p>' : '') +
-      discountsPrices();
+      discountsPrices() +
+      '<p class="note ver">' + esc(t('verLine', { v: APP_VERSION })) + '</p>';
   }
 
   const PT_NAMES = { type2: 'sockType2', ccs: 'sockCcs', chademo: 'sockChademo', tesla: 'sockTesla' };
@@ -2103,6 +2107,44 @@
   loadWeather();
 
   locateOnOpen();
+
+  /* ---------- проверка новой версии ---------- */
+  // Открытая вкладка или окно само не обновляется. Раз в несколько минут и при возврате в приложение смотрим sw.js на сервере:
+  // если там другая версия, предлагаем обновиться (кнопка чистит кэши и перезагружает страницу).
+  let updShown = false;
+  let updChecked = 0;
+  async function checkUpdate(force) {
+    if (updShown || (!force && Date.now() - updChecked < 3 * 60 * 1000)) return;
+    updChecked = Date.now();
+    try {
+      const r = await fetch('sw.js?c=' + Date.now(), { cache: 'no-store' });
+      if (!r.ok) return;
+      const m = /VERSION\s*=\s*'ur-(v\d+)'/.exec(await r.text());
+      if (m && m[1] !== APP_VERSION) showUpdate();
+    } catch (e) { /* нет сети: проверим в следующий раз */ }
+  }
+  function showUpdate() {
+    updShown = true;
+    const el = document.createElement('div');
+    el.className = 'upd';
+    el.setAttribute('role', 'status');
+    el.innerHTML = '<span>' + esc(t('updAvail')) + '</span><button type="button" class="btn btn-primary" id="upd-go">' + esc(t('updGo')) + '</button>';
+    document.body.appendChild(el);
+    $('upd-go').addEventListener('click', applyUpdate);
+  }
+  async function applyUpdate() {
+    try {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k)));
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map((r) => r.unregister()));
+    } catch (e) { /* перезагрузим и так */ }
+    location.reload();
+  }
+  setTimeout(() => checkUpdate(true), 4000);
+  setInterval(() => checkUpdate(false), 30 * 60 * 1000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkUpdate(false); });
+  window.addEventListener('focus', () => checkUpdate(false));
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
