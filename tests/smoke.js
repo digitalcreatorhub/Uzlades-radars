@@ -547,6 +547,7 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
     const sync = pushCalls.find((c) => c.path === '/sync');
     check('пуши: при слежении телефон подписался на сервере push', (await pk.evaluate(() => window.__subscribeOpts && window.__subscribeOpts.userVisibleOnly)) === true && (await pk.evaluate(() => window.__subscribeOpts.keyLen)) > 60);
     check('пуши: на сервер ушла подписка и станция под слежением', !!sync && sync.body.sub.endpoint === SUB_ENDPOINT && sync.body.lang === 'ru' && sync.body.watch.length === 1 && sync.body.watch[0].napId === 'a2' && sync.body.watch[0].free === 0, JSON.stringify(sync && sync.body));
+    check('пуши: подсказка честная, уведомление придёт и при закрытом приложении', /при закрытом приложении/.test(await pk.locator('#toast').innerText()) && !/пока приложение открыто/.test(await pk.locator('#toast').innerText()), await pk.locator('#toast').innerText());
     await pk.click('[data-watch]');
     await pk.waitForTimeout(500);
     const un = pushCalls.find((c) => c.path === '/unsubscribe');
@@ -564,6 +565,7 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
     await pk2.waitForSelector('.detail', { timeout: 8000 });
     await pk2.click('[data-watch]');
     await pk2.waitForTimeout(500);
+    check('пуши: без адреса сервера подсказка прежняя, только при открытом приложении', /пока приложение открыто/.test(await pk2.locator('#toast').innerText()));
     check('пуши: без адреса сервера слежение работает и ничего не отправляется', leaked === 0 && (await pk2.evaluate(() => JSON.parse(localStorage.getItem('ur_watch_v1') || '[]').length)) === 1);
     await cK2.close();
   }

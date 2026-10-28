@@ -130,6 +130,9 @@
       share: 'Поделиться', shareCopied: 'Ссылка скопирована', shareText: 'Зарядная станция: {name}',
       appleMaps: 'Apple Карты',
       watch: 'Следить', unwatch: 'Слежу', watchOn: 'Скажу, когда освободится. Работает, пока приложение открыто.',
+      pushOn: 'Скажу, когда освободится: уведомление придёт и при закрытом приложении.',
+      pushDenied: 'Уведомления запрещены в настройках браузера, поэтому скажу, только пока приложение открыто. Разрешите их в настройках сайта.',
+      pushFail: 'Не получилось включить уведомления при закрытом приложении, скажу, только пока оно открыто. Попробуйте ещё раз позже.',
       watchNoLive: 'Для этой станции нет статуса в реальном времени.',
       watchFreeNow: 'Свободная зарядка уже есть.',
       watchFreed: 'Освободилась: {name}',
@@ -267,6 +270,9 @@
       share: 'Share', shareCopied: 'Link copied', shareText: 'Charging station: {name}',
       appleMaps: 'Apple Maps',
       watch: 'Watch', unwatch: 'Watching', watchOn: 'I will tell you when one frees up. Works while the app is open.',
+      pushOn: 'I will tell you when one frees up: you will get a notification even when the app is closed.',
+      pushDenied: 'Notifications are blocked in the browser settings, so I can only tell you while the app is open. Allow them in the site settings.',
+      pushFail: 'Could not enable notifications for a closed app, so I can only tell you while it is open. Try again later.',
       watchNoLive: 'This station has no live status.',
       watchFreeNow: 'A free charger is already available.',
       watchFreed: 'Now free: {name}',
@@ -582,9 +588,10 @@
     await askNotifyPermission();
     state.watch.push(Object.assign(r, { free: sum.free }));
     writeJson('ur_watch_v1', state.watch);
-    toast(sum.free > 0 ? t('watchFreeNow') : t('watchOn'));
-    pushSync();
-    if (PUSH.api && isIosBrowserTab()) setTimeout(() => toast(t('pushIos')), 2600);
+    if (PUSH.api && isIosBrowserTab()) { toast(t('pushIos')); pushSync(); return; } // iPhone во вкладке Safari: пуши невозможны, говорим как включить
+    const res = await pushSync();
+    const base = sum.free > 0 ? t('watchFreeNow') : res === 'on' ? t('pushOn') : res === 'denied' ? t('pushDenied') : res === 'error' ? t('pushFail') : t('watchOn');
+    toast(base);
   }
 
   /* ---------- пуши при закрытом приложении ---------- */
@@ -615,26 +622,29 @@
   }
 
   // Приводит сервер в соответствие со списком слежения на телефоне. Лучшее усилие: при любой ошибке остаются уведомления при открытом приложении.
+  // Возвращает итог: 'on' (телефон подписан), 'off' (пуши не настроены или не поддерживаются), 'denied' (уведомления запрещены), 'none' (следить не за чем), 'error'.
   async function pushSync() {
     try {
-      if (!PUSH.api || !pushSupported() || Notification.permission !== 'granted') return;
+      if (!PUSH.api || !pushSupported()) return 'off';
+      if (Notification.permission !== 'granted') return Notification.permission === 'denied' ? 'denied' : 'off';
       const reg = await navigator.serviceWorker.ready;
       const items = state.watch.filter((w) => w.napId).map((w) => ({ napId: w.napId, name: w.name, free: Number.isInteger(w.free) ? w.free : null }));
       let sub = await reg.pushManager.getSubscription();
       if (!items.length) {
         if (sub) { try { await pushPost('/unsubscribe', { endpoint: sub.endpoint }); } catch (e) { /* сервер сам забудет через 60 дней */ } await sub.unsubscribe(); }
-        return;
+        return 'none';
       }
       const vres = await fetch(PUSH.api + '/vapid');
-      if (!vres.ok) return;
+      if (!vres.ok) return 'error';
       const key = (await vres.json()).key;
-      if (!key) return;
+      if (!key) return 'error';
       // ключи сервера сменились: старая подписка не подойдёт
       if (sub && sub.options && sub.options.applicationServerKey && bytesToB64url(sub.options.applicationServerKey) !== key) { await sub.unsubscribe(); sub = null; }
       if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64urlToBytes(key) });
       const j = sub.toJSON();
       await pushPost('/sync', { sub: { endpoint: j.endpoint, keys: j.keys }, lang, watch: items });
-    } catch (e) { /* не получилось: повторим при следующем изменении или открытии */ }
+      return 'on';
+    } catch (e) { return 'error'; /* повторим при следующем изменении или открытии */ }
   }
 
   // После каждого обновления статуса: была ли занята вся станция, а теперь есть свободная
