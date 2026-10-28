@@ -1,6 +1,6 @@
 // Запуск: node tests/worker.test.mjs
 import assert from 'node:assert/strict';
-import worker, { cleanSub, cleanWatch } from '../worker/index.js';
+import worker, { cleanSub, cleanWatch, cleanTimers, cleanDigest } from '../worker/index.js';
 
 let passed = 0;
 async function test(name, fn) {
@@ -87,7 +87,7 @@ await test('sync: сохраняет подписку, TTL, повторный s
   const e = env();
   const r = await call(e, 'POST', '/sync', { sub: mkSub(), lang: 'en', watch: [{ napId: 'S1', name: 'Galleria', free: 0 }] });
   assert.equal(r.status, 200);
-  assert.deepEqual(await r.json(), { ok: true, watching: 1 });
+  assert.deepEqual(await r.json(), { ok: true, watching: 1, timers: 0, digest: false });
   assert.equal(e.SUBS.m.size, 1);
   assert.ok(e.SUBS.lastOpts.expirationTtl >= 30 * 24 * 3600);
   // сервер сменил состояние (занято -> свободно), приложение присылает старое значение 0
@@ -159,6 +159,51 @@ await test('без ADMIN_TOKEN в окружении админ-ручки за�
   const e = env(); delete e.ADMIN_TOKEN;
   assert.equal((await call(e, 'GET', '/subs', null, { Authorization: 'Bearer ' })).status, 401);
   assert.equal((await call(e, 'GET', '/subs', null, { Authorization: 'Bearer undefined' })).status, 401);
+});
+
+await test('cleanTimers и cleanDigest: сроки, формат, пределы', () => {
+  const now = Date.UTC(2026, 9, 28, 12, 0);
+  const ok = { id: 'abc123', at: now + 3600000, name: '  Galleria\n' };
+  const list = cleanTimers([ok, { id: 'abc123', at: now + 7200000 }, { id: 'bad id!', at: now + 1000 }, { id: 'old', at: now - 4 * 3600000 }, { id: 'far', at: now + 20 * 3600000 }, { id: 'nan', at: 'x' }, null], now);
+  assert.deepEqual(list, [{ id: 'abc123', at: now + 3600000, name: 'Galleria' }]);
+  assert.equal(cleanTimers(Array.from({ length: 9 }, (_, i) => ({ id: 't' + i, at: now + 60000 })), now).length, 5);
+  assert.deepEqual(cleanTimers('no', now), []);
+  assert.deepEqual(cleanDigest({ hour: 17, favs: [{ napId: 'a', name: 'A\n' }, { napId: 'a' }, { napId: '' }] }), { hour: 17, favs: [{ napId: 'a', name: 'A' }] });
+  assert.equal(cleanDigest({ hour: 24, favs: [{ napId: 'a' }] }), null);
+  assert.equal(cleanDigest({ hour: 9, favs: [] }), null);
+  assert.equal(cleanDigest(null), null);
+});
+
+await test('sync: таймер и сводка сохраняются без слежения, сработавший таймер заново не принимается', async () => {
+  const e = env();
+  const at = Date.now() + 3600000;
+  const r = await call(e, 'POST', '/sync', { sub: mkSub(), lang: 'ru', watch: [], timers: [{ id: 't1', at, name: 'Galleria' }] });
+  assert.deepEqual(await r.json(), { ok: true, watching: 0, timers: 1, digest: false });
+  assert.equal(e.SUBS.m.size, 1);
+  const key = [...e.SUBS.m.keys()][0];
+  // сервер отметил таймер сработавшим и убрал его
+  const rec = JSON.parse(e.SUBS.m.get(key));
+  assert.equal(rec.timers.length, 1);
+  const st = await call(e, 'POST', '/state', { updates: [{ key, watch: [], timers: [], fired: ['t1'] }] }, admin);
+  assert.deepEqual(await st.json(), { ok: true, updated: 0, removed: 1 }); // ни слежения, ни таймеров, ни сводки: запись удалена
+  // подписку создали заново: таймер t1 снова присылают из приложения, но запись уже без «fired», так что принимается (нечего помнить)
+  await call(e, 'POST', '/sync', { sub: mkSub(), watch: [{ napId: 'S1', name: 'A', free: 0 }], timers: [{ id: 't2', at }] });
+  const key2 = [...e.SUBS.m.keys()][0];
+  await call(e, 'POST', '/state', { updates: [{ key: key2, watch: [{ napId: 'S1', name: 'A', free: 0 }], timers: [], fired: ['t2'] }] }, admin);
+  const r3 = await call(e, 'POST', '/sync', { sub: mkSub(), watch: [{ napId: 'S1', name: 'A', free: 0 }], timers: [{ id: 't2', at }] });
+  assert.equal((await r3.json()).timers, 0);
+  const after = JSON.parse(e.SUBS.m.get(key2));
+  assert.deepEqual(after.fired, ['t2']);
+  assert.equal(after.timers, undefined);
+  // сводка
+  const r4 = await call(e, 'POST', '/sync', { sub: mkSub(), watch: [], digest: { hour: 17, favs: [{ napId: 'S1', name: 'A' }] } });
+  assert.equal((await r4.json()).digest, true);
+  await call(e, 'POST', '/state', { updates: [{ key: key2, watch: [], digestLast: '2026-10-28' }] }, admin);
+  const r5 = await call(e, 'POST', '/sync', { sub: mkSub(), watch: [], digest: { hour: 17, favs: [{ napId: 'S1', name: 'A' }] } });
+  assert.equal((await r5.json()).digest, true);
+  assert.equal(JSON.parse(e.SUBS.m.get(key2)).digest.last, '2026-10-28'); // «сегодня уже отправляли» не теряется при повторной синхронизации
+  const subs = await (await call(e, 'GET', '/subs', null, admin)).json();
+  assert.equal(subs.items[0].digest.hour, 17);
 });
 
 console.log('\n' + passed + ' tests passed');

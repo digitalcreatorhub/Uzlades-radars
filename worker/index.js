@@ -16,6 +16,10 @@ const TTL_SECONDS = 60 * 24 * 3600; // подписка живёт 60 дней �
 const MAX_BODY = 8 * 1024;
 const MAX_WATCH = 20;
 const PAGE_MAX = 40;
+const MAX_TIMERS = 5;
+const MAX_DIGEST_FAVS = 10;
+const TIMER_WINDOW_MS = 12 * 3600 * 1000; // таймер зарядки: не дальше чем на 12 часов вперёд
+const FIRED_KEEP = 20;
 const B64URL = /^[A-Za-z0-9_-]+$/;
 
 const json = (data, status, cors) =>
@@ -78,6 +82,30 @@ function cleanWatch(list) {
   return out;
 }
 
+// Таймеры «зарядка до 80% готова»: [{ id, at (мс), name }], не больше MAX_TIMERS, срок от «час назад» до 12 часов вперёд
+function cleanTimers(list, now) {
+  if (!Array.isArray(list)) return [];
+  const t0 = now == null ? Date.now() : now;
+  const out = [];
+  const seen = new Set();
+  for (const x of list) {
+    if (!x || typeof x.id !== 'string' || !/^[A-Za-z0-9_-]{1,24}$/.test(x.id) || seen.has(x.id)) continue;
+    if (!Number.isInteger(x.at) || x.at < t0 - 3600 * 1000 || x.at > t0 + TIMER_WINDOW_MS) continue;
+    seen.add(x.id);
+    out.push({ id: x.id, at: x.at, name: String(x.name == null ? '' : x.name).replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, 80) });
+    if (out.length >= MAX_TIMERS) break;
+  }
+  return out;
+}
+
+// Вечерняя сводка: { hour: 0..23, favs: [{ napId, name }] } или null
+function cleanDigest(d) {
+  if (!d || typeof d !== 'object' || !Number.isInteger(d.hour) || d.hour < 0 || d.hour > 23) return null;
+  const favs = cleanWatch((d.favs || []).map((f) => ({ napId: f && f.napId, name: f && f.name })));
+  if (!favs || !favs.length) return null;
+  return { hour: d.hour, favs: favs.slice(0, MAX_DIGEST_FAVS).map((f) => ({ napId: f.napId, name: f.name })) };
+}
+
 const subKey = async (endpoint) => 's:' + (await sha256Hex(endpoint));
 
 async function handleSync(request, env, cors) {
@@ -87,15 +115,22 @@ async function handleSync(request, env, cors) {
   const watch = cleanWatch(r.data && r.data.watch);
   if (!sub || !watch) return json({ error: 'bad_request' }, 400, cors);
   const key = await subKey(sub.endpoint);
-  if (!watch.length) { await env.SUBS.delete(key); return json({ ok: true, watching: 0 }, 200, cors); }
-  // Состояние «сколько было свободно» хранит сервер: у уже известных станций оставляем его, приложение задаёт только начальное
   let old = null;
   try { old = await env.SUBS.get(key, 'json'); } catch (e) { old = null; }
+  const fired = new Set((old && old.fired) || []);
+  const timers = cleanTimers(r.data.timers).filter((x) => !fired.has(x.id)); // уже сработавший таймер заново не принимаем
+  const digest = cleanDigest(r.data.digest);
+  if (!watch.length && !timers.length && !digest) { await env.SUBS.delete(key); return json({ ok: true, watching: 0 }, 200, cors); }
+  // Состояние «сколько было свободно» хранит сервер: у уже известных станций оставляем его, приложение задаёт только начальное
   const prev = new Map(((old && old.watch) || []).map((w) => [w.napId, w.free]));
   for (const w of watch) if (prev.has(w.napId) && prev.get(w.napId) != null) w.free = prev.get(w.napId);
   const lang = r.data.lang === 'en' ? 'en' : 'ru';
-  await env.SUBS.put(key, JSON.stringify({ sub, watch, lang, t: Date.now() }), { expirationTtl: TTL_SECONDS });
-  return json({ ok: true, watching: watch.length }, 200, cors);
+  const rec = { sub, watch, lang, t: Date.now() };
+  if (timers.length) rec.timers = timers;
+  if (digest) { rec.digest = digest; if (old && old.digest && old.digest.last) rec.digest.last = old.digest.last; }
+  if (old && old.fired && old.fired.length) rec.fired = old.fired;
+  await env.SUBS.put(key, JSON.stringify(rec), { expirationTtl: TTL_SECONDS });
+  return json({ ok: true, watching: watch.length, timers: timers.length, digest: !!digest }, 200, cors);
 }
 
 async function handleUnsubscribe(request, env, cors) {
@@ -115,7 +150,7 @@ async function handleSubs(request, env) {
   const items = [];
   for (const k of page.keys) {
     const v = await env.SUBS.get(k.name, 'json');
-    if (v && v.sub && Array.isArray(v.watch)) items.push({ key: k.name, sub: v.sub, watch: v.watch, lang: v.lang || 'ru' });
+    if (v && v.sub && Array.isArray(v.watch)) items.push({ key: k.name, sub: v.sub, watch: v.watch, lang: v.lang || 'ru', timers: v.timers || [], digest: v.digest || null });
   }
   return json({ items, cursor: page.list_complete ? null : page.cursor }, 200);
 }
@@ -137,8 +172,15 @@ async function handleState(request, env) {
     if (!watch) continue;
     const old = await env.SUBS.get(u.key, 'json');
     if (!old) continue; // подписку уже удалили: не воскрешаем
-    if (!watch.length) { await env.SUBS.delete(u.key); removed++; continue; }
-    await env.SUBS.put(u.key, JSON.stringify(Object.assign({}, old, { watch })), { expirationTtl: TTL_SECONDS });
+    const next = Object.assign({}, old, { watch });
+    if (Array.isArray(u.timers)) {
+      const keep = cleanTimers(u.timers, 0).slice(0, MAX_TIMERS); // сроки уже проверены при приёме; здесь только форма
+      if (keep.length) next.timers = keep; else delete next.timers;
+    }
+    if (Array.isArray(u.fired)) next.fired = u.fired.filter((x) => typeof x === 'string' && /^[A-Za-z0-9_-]{1,24}$/.test(x)).concat(old.fired || []).slice(0, FIRED_KEEP);
+    if (typeof u.digestLast === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(u.digestLast) && next.digest) next.digest = Object.assign({}, next.digest, { last: u.digestLast });
+    if (!next.watch.length && !(next.timers && next.timers.length) && !next.digest) { await env.SUBS.delete(u.key); removed++; continue; }
+    await env.SUBS.put(u.key, JSON.stringify(next), { expirationTtl: TTL_SECONDS });
     updated++;
   }
   return json({ ok: true, updated, removed }, 200);
@@ -175,4 +217,4 @@ export default {
   },
 };
 
-export { handle, cleanSub, cleanWatch, PUSH_HOSTS };
+export { handle, cleanSub, cleanWatch, cleanTimers, cleanDigest, PUSH_HOSTS };

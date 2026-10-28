@@ -983,3 +983,17 @@ input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); ou
 .saved-routes { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
 .saved-route { display: inline-flex; gap: 4px; }
 .chip-x { padding-left: 10px; padding-right: 10px; }
+
+/* когда ехать, таймер, сводка */
+.inl { background: none; border: 0; padding: 0; font: inherit; color: var(--accent); text-decoration: underline; cursor: pointer; }
+.timer { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.timer small { color: var(--muted); font-size: 12px; }
+.timer-btns { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; margin-top: 4px; }
+.chip-btn { border: 1px solid var(--line); background: var(--surface); color: var(--text); border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+.chip-btn:active { background: var(--surface-2); }
+.digest-btn { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; border: 1px solid var(--line); background: var(--surface); color: var(--text); border-radius: 12px; padding: 11px 14px; font: inherit; cursor: pointer; }
+.digest-btn span { display: inline-flex; align-items: center; gap: 8px; }
+.digest-btn svg { width: 18px; height: 18px; color: var(--accent); }
+.digest-btn[aria-pressed="true"] { border-color: var(--accent); }
+.digest-btn[aria-pressed="true"] b { color: var(--accent); }
+.digest-note { margin: 6px 2px 14px; }

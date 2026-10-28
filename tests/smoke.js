@@ -603,6 +603,82 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
     await cK2.close();
   }
 
+  // когда ехать, таймер зарядки, вечерняя сводка
+  {
+    const SUB_ENDPOINT = 'https://fcm.googleapis.com/fcm/send/smoke-test-2';
+    const cW = await browser.newContext({ viewport: { width: 390, height: 780 }, serviceWorkers: 'block' });
+    const pw = await cW.newPage();
+    const errW = [];
+    pw.on('pageerror', (e) => errW.push('pageerror: ' + e.message));
+    pw.on('dialog', (d) => { errW.push('dialog: ' + d.message()); d.dismiss(); });
+    await pw.addInitScript((endpoint) => {
+      window.Notification = class { static get permission() { return 'granted'; } static requestPermission() { return Promise.resolve('granted'); } };
+      window.PushManager = function PushManager() {};
+      let sub = null;
+      const mk = (key) => ({ endpoint, options: { applicationServerKey: key }, toJSON: () => ({ endpoint, keys: { p256dh: 'B'.repeat(87), auth: 'a'.repeat(22) } }), unsubscribe: async () => { sub = null; return true; } });
+      const reg = { pushManager: { getSubscription: async () => sub, subscribe: async (o) => { sub = mk(o.applicationServerKey.buffer); return sub; } }, showNotification: async () => {} };
+      Object.defineProperty(navigator, 'serviceWorker', { get: () => ({ ready: Promise.resolve(reg), register: async () => reg, addEventListener() {} }) });
+      if (!localStorage.getItem('ur_car_v1')) localStorage.setItem('ur_car_v1', JSON.stringify({ id: 'teslay' }));
+    }, SUB_ENDPOINT);
+    const nowH2 = Number(new Intl.DateTimeFormat('en-GB', { hour: '2-digit', hour12: false, timeZone: 'Europe/Riga' }).format(new Date())) % 24;
+    const row2 = Array.from({ length: 24 }, (_, h) => (h === nowH2 ? 70 : h === (nowH2 + 3) % 24 ? 10 : 50));
+    await routeFor(pw, liveDoc(minsAgo(3)), { v: 1, since: '2026-10-27', minSamples: 12, sites: { a2: row2.concat(row2) }, dur: {}, durMin: 4 });
+    const callsW = [];
+    await pw.route('**/push-config.json', (r) => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ api: 'https://push.test' }) }));
+    await pw.route('https://push.test/**', async (route) => {
+      const u = new URL(route.request().url());
+      const h = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'Content-Type', 'content-type': 'application/json' };
+      if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers: h });
+      callsW.push({ path: u.pathname, body: route.request().postData() ? JSON.parse(route.request().postData()) : null });
+      if (u.pathname === '/vapid') return route.fulfill({ headers: h, body: JSON.stringify({ key: 'B'.repeat(87) }) });
+      return route.fulfill({ headers: h, body: JSON.stringify({ ok: true }) });
+    });
+    await pw.goto(base + '/?st=a2');
+    await pw.waitForSelector('.detail .insight', { timeout: 8000 });
+    const dtxt = await pw.locator('.detail').innerText();
+    check('когда ехать: «Свободнее всего около ЧЧ:00» и текущая занятость', new RegExp('Свободнее всего около ' + String((nowH2 + 3) % 24).padStart(2, '0') + ':00 \\(обычно занято ≈ 10%\\), сейчас ≈ 70%').test(dtxt), dtxt.slice(0, 500));
+    check('рядом свободно: у занятой станции предложена соседняя со свободной точкой', /Рядом свободно:\s*Galleria/.test(dtxt) && (await pw.locator('.detail [data-goto]').count()) === 1, dtxt.slice(0, 500));
+    await pw.locator('.timer').scrollIntoViewIfNeeded();
+    await pw.screenshot({ path: path.join(shots, '40-when-timer.png') });
+    check('таймер: четыре кнопки с временем до 80%', (await pw.locator('.timer [data-timer]').count()) === 4);
+    await pw.locator('.timer [data-timer][data-soc="20"]').click();
+    await pw.waitForTimeout(500);
+    const tsync = callsW.filter((c) => c.path === '/sync').pop();
+    check('таймер: сохранён локально и ушёл на сервер вместе с подпиской', (await pw.evaluate(() => JSON.parse(localStorage.getItem('ur_timers_v1') || '[]').length)) === 1 && !!tsync && tsync.body.timers.length === 1 && tsync.body.timers[0].at > Date.now() && /^t[a-z0-9]+$/.test(tsync.body.timers[0].id) && tsync.body.watch.length === 0, JSON.stringify(tsync && tsync.body));
+    check('таймер: подсказка про закрытое приложение и обратный отсчёт в карточке', /при закрытом приложении/.test(await pw.locator('#toast').innerText()) && /Таймер: через \d+ мин/.test(await pw.locator('.timer').innerText()), await pw.locator('.timer').innerText());
+    await pw.locator('[data-timer-off]').click();
+    await pw.waitForTimeout(400);
+    check('таймер: отмена убирает его и локально, и на сервере (подписка снята)', (await pw.evaluate(() => JSON.parse(localStorage.getItem('ur_timers_v1') || '[]').length)) === 0 && callsW.some((c) => c.path === '/unsubscribe') && (await pw.locator('.timer [data-timer]').count()) === 4);
+    // срок вышел, пока приложение было закрыто: при открытии напоминаем сами
+    await pw.evaluate(() => localStorage.setItem('ur_timers_v1', JSON.stringify([{ id: 'tdue', at: Date.now() - 60000, name: 'Elektrum', k: 'x' }])));
+    await pw.reload();
+    await pw.waitForSelector('.detail', { timeout: 8000 });
+    await pw.waitForTimeout(300);
+    check('таймер: просроченный срок даёт напоминание при открытии и снимается', /Зарядка до 80% почти готова: Elektrum/.test(await pw.locator('#toast').innerText()) && (await pw.evaluate(() => JSON.parse(localStorage.getItem('ur_timers_v1') || '[]').length)) === 0, await pw.locator('#toast').innerText());
+    // вечерняя сводка
+    await pw.click('[data-tab="fav"]');
+    check('сводка: кнопка есть и выключена', /Вечерняя сводка\s*выкл/i.test((await pw.locator('.digest-btn').innerText()).replace(/\n/g, ' ')));
+    await pw.click('.digest-btn');
+    await pw.waitForTimeout(250);
+    check('сводка: без избранных предупреждает и не включается', /избранное/.test(await pw.locator('#toast').innerText()) && [null, 'null'].includes(await pw.evaluate(() => localStorage.getItem('ur_digest_v1'))));
+    await pw.evaluate(() => localStorage.setItem('ur_favs_v1', JSON.stringify([{ k: 'n:a2', id: 'x', napId: 'a2', lat: 56.94, lon: 24.1, name: 'Elektrum Drive' }])));
+    await pw.reload();
+    await pw.waitForSelector('.digest-btn, .detail', { timeout: 8000 });
+    await pw.goto(base + '/?tab=fav');
+    await pw.waitForSelector('.digest-btn', { timeout: 8000 });
+    await pw.click('.digest-btn');
+    await pw.waitForTimeout(500);
+    const dsync = callsW.filter((c) => c.path === '/sync').pop();
+    check('сводка: включается на 17:00, на сервер уходит час и избранные', /17:00/.test(await pw.locator('.digest-btn').innerText()) && !!dsync && !!dsync.body.digest && dsync.body.digest.hour === 17 && dsync.body.digest.favs[0].napId === 'a2', JSON.stringify(dsync && dsync.body));
+    await pw.click('.digest-btn'); await pw.waitForTimeout(150);
+    await pw.click('.digest-btn'); await pw.waitForTimeout(150);
+    check('сводка: часы 19 и 21 по кругу', /21:00/.test(await pw.locator('.digest-btn').innerText()));
+    await pw.click('.digest-btn'); await pw.waitForTimeout(400);
+    check('сводка: четвёртое нажатие выключает', /выкл/.test(await pw.locator('.digest-btn').innerText()) && [null, 'null'].includes(await pw.evaluate(() => localStorage.getItem('ur_digest_v1'))));
+    check('когда ехать, таймер, сводка: нет JS-ошибок', errW.length === 0, errW.join(' || '));
+    await cW.close();
+  }
+
   // журнал зарядок и удобства рядом
   {
     const AMEN = { elements: [

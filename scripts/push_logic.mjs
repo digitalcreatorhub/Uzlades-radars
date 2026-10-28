@@ -1,4 +1,6 @@
 // Чистая логика рассылки: кому и что отправить. Без сети, поэтому проверяется тестами целиком.
+import { createRequire } from 'node:module';
+const UR = createRequire(import.meta.url)('../logic.js');
 export const FRESH_MS = 90 * 60 * 1000; // как в приложении: статус старше 90 минут не считаем актуальным
 
 export function liveTimeOf(live) {
@@ -49,4 +51,68 @@ export function evaluate(record, freeMap, appUrl) {
     return w;
   });
   return { watch, messages, changed };
+}
+
+// ---------- таймер «зарядка до 80% готова» ----------
+export const TIMER_LEAD_MS = 7 * 60 * 1000; // запуск раз в 15 минут: шлём тем, кому срок выйдет до следующего запуска (в среднем это за ~0-7 мин до срока)
+export const TIMER_STALE_MS = 2 * 3600 * 1000; // просроченный больше чем на 2 часа уже не нужен
+
+export function timerText(lang, name) {
+  const n = name || (lang === 'en' ? 'the station' : 'станции');
+  return lang === 'en' ? 'Your charge to 80% is about ready at ' + n : 'Зарядка до 80% почти готова на ' + n;
+}
+
+// -> { messages, timers: что осталось, fired: id сработавших или устаревших }
+export function evaluateTimers(record, now, appUrl) {
+  const t0 = now == null ? Date.now() : now;
+  const lang = record && record.lang === 'en' ? 'en' : 'ru';
+  const messages = [];
+  const fired = [];
+  const timers = [];
+  for (const x of (record && Array.isArray(record.timers) ? record.timers : [])) {
+    if (!x || typeof x.id !== 'string' || !isFinite(x.at)) continue;
+    if (x.at - t0 > TIMER_LEAD_MS) { timers.push(x); continue; }
+    fired.push(x.id);
+    if (t0 - x.at > TIMER_STALE_MS) continue; // слишком поздно: не тревожим
+    messages.push({ id: x.id, title: 'Uzlādes Radars', body: timerText(lang, x.name), url: appUrl, tag: 'timer:' + x.id });
+  }
+  return { messages, timers, fired };
+}
+
+// ---------- вечерняя сводка ----------
+const rigaDate = (ms) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Riga', year: 'numeric', month: '2-digit', day: '2-digit' }).format(ms);
+const rigaHour = (ms) => parseInt(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Riga', hour: '2-digit', hourCycle: 'h23' }).format(ms), 10) % 24;
+
+export function digestLine(lang, fav, free, win) {
+  const parts = [];
+  if (free != null) parts.push(lang === 'en' ? (free > 0 ? free + ' free now' : 'all busy now') : (free > 0 ? 'свободно ' + free : 'сейчас все заняты'));
+  if (win && !win.good) {
+    const hh = String(win.best.hour).padStart(2, '0') + ':00';
+    parts.push(lang === 'en' ? 'quietest around ' + hh : 'свободнее всего около ' + hh);
+  }
+  return (fav.name || fav.napId) + (parts.length ? ': ' + parts.join(', ') : '');
+}
+
+// Сводка уходит один раз в сутки в окне «заданный час по Риге + ещё час» (запуски идут с задержками)
+// -> { message|null, last: новая дата отправки или null }
+export function evaluateDigest(record, freeMap, patterns, now, appUrl) {
+  const d = record && record.digest;
+  if (!d || !Number.isInteger(d.hour) || !Array.isArray(d.favs) || !d.favs.length) return { message: null, last: null };
+  const t0 = now == null ? Date.now() : now;
+  const today = rigaDate(t0);
+  const h = rigaHour(t0);
+  if (d.last === today || !(h === d.hour || h === (d.hour + 1) % 24)) return { message: null, last: null };
+  const lang = record.lang === 'en' ? 'en' : 'ru';
+  const lines = [];
+  for (const f of d.favs.slice(0, 3)) {
+    const free = freeMap && freeMap.has(f.napId) ? freeMap.get(f.napId) : null;
+    const win = UR.bestWindow({ napId: f.napId }, patterns, t0, 15);
+    if (free == null && !win) continue; // про эту станцию нечего сказать
+    lines.push(digestLine(lang, f, free, win));
+  }
+  if (!lines.length) return { message: null, last: null };
+  return {
+    message: { title: lang === 'en' ? 'Uzlādes Radars · tonight' : 'Uzlādes Radars · вечер', body: lines.join('\n'), url: appUrl, tag: 'digest' },
+    last: today,
+  };
 }

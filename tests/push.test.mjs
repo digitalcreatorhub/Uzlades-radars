@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { createECDH } from 'node:crypto';
 import { deriveVapid, deriveAdminToken } from '../scripts/push_keys.mjs';
-import { isFresh, freeMapOf, evaluate, textFor } from '../scripts/push_logic.mjs';
+import { isFresh, freeMapOf, evaluate, textFor, evaluateTimers, evaluateDigest, timerText } from '../scripts/push_logic.mjs';
 import { run } from '../scripts/send_push.mjs';
 
 let passed = 0;
@@ -120,13 +120,13 @@ await test('run: полный проход по страницам, отправ
   assert.equal(stateCalls[0].body.updates[0].watch[0].free, 1);
 });
 
-await test('run: устаревшие данные: ничего не шлём и не трогаем Worker', async () => {
+await test('run: устаревшие данные: «освободилась» не шлём, состояние слежения не трогаем', async () => {
   const w = fakeWorker([mkItem('s:1', 'A', 0)], 40);
   let sent = 0;
   const stats = await run({ api: 'https://w.test', adminToken: 'T', live: live([site('A', ['free'])], 120), now: NOW, appUrl: APP, fetchImpl: w.fetchImpl, sendNotification: async () => { sent++; } });
   assert.equal(stats.skipped, 'stale-live');
   assert.equal(sent, 0);
-  assert.equal(w.calls.length, 0);
+  assert.equal(w.calls.some((c) => c.path === '/state'), false);
 });
 
 await test('run: мёртвая подписка (410) удаляется, временная ошибка не удаляет и не теряет состояние', async () => {
@@ -152,6 +152,86 @@ await test('run: Worker недоступен или отвечает ошибк�
   const bad = async () => ({ ok: false, status: 503, json: async () => ({}) });
   await assert.rejects(run({ api: 'https://w.test', adminToken: 'T', live: live([site('A', ['free'])]), now: NOW, appUrl: APP, fetchImpl: bad, sendNotification: async () => { sent++; } }), /HTTP 503/);
   assert.equal(sent, 0);
+});
+
+await test('evaluateTimers: срок вышел или выйдет до следующего запуска: пуш; далёкие остаются; просроченные тихо снимаются', () => {
+  const rec = { lang: 'ru', timers: [
+    { id: 'due', at: NOW + 5 * 60000, name: 'Galleria' },   // выйдет через 5 минут: шлём
+    { id: 'late', at: NOW - 20 * 60000, name: 'Virši' },    // уже вышел: шлём
+    { id: 'far', at: NOW + 40 * 60000, name: 'Далеко' },    // ещё рано
+    { id: 'old', at: NOW - 3 * 3600000, name: 'Давно' },    // слишком поздно: без пуша, но снимаем
+    { id: 7 }, null,
+  ] };
+  const r = evaluateTimers(rec, NOW, APP);
+  assert.deepEqual(r.messages.map((m) => m.id), ['due', 'late']);
+  assert.equal(r.messages[0].body, 'Зарядка до 80% почти готова на Galleria');
+  assert.equal(r.messages[0].tag, 'timer:due');
+  assert.deepEqual(r.timers.map((x) => x.id), ['far']);
+  assert.deepEqual(r.fired, ['due', 'late', 'old']);
+  assert.equal(timerText('en', ''), 'Your charge to 80% is about ready at the station');
+  assert.deepEqual(evaluateTimers({}, NOW, APP), { messages: [], timers: [], fired: [] });
+});
+
+// NOW = 28.10.2026 14:00 по Риге (зима, UTC+2)
+const row = new Array(48).fill(55); row[22] = 8; // будни 22:00 — самое свободное
+const PAT = { sites: { A: row } };
+const digestRec = (over) => Object.assign({ lang: 'ru', watch: [], digest: { hour: 14, favs: [{ napId: 'A', name: 'Galleria' }, { napId: 'ZZ', name: 'Нет данных' }] } }, over);
+
+await test('evaluateDigest: раз в сутки в нужный час, с текущей занятостью и лучшим часом', () => {
+  const fm = freeMapOf(live([site('A', ['free', 'busy'])]));
+  const r = evaluateDigest(digestRec(), fm, PAT, NOW, APP);
+  assert.equal(r.last, '2026-10-28');
+  assert.equal(r.message.tag, 'digest');
+  assert.equal(r.message.body, 'Galleria: свободно 1, свободнее всего около 22:00'); // станции без данных в сводку не попадают
+  // тот же день: второй раз не шлём
+  assert.equal(evaluateDigest(digestRec({ digest: { hour: 14, favs: [{ napId: 'A', name: 'Galleria' }], last: '2026-10-28' } }), fm, PAT, NOW, APP).message, null);
+  // следующий час окна ещё подходит (запуск задержался), через два часа уже нет
+  assert.ok(evaluateDigest(digestRec({ digest: { hour: 13, favs: [{ napId: 'A', name: 'G' }] } }), fm, PAT, NOW, APP).message);
+  assert.equal(evaluateDigest(digestRec({ digest: { hour: 12, favs: [{ napId: 'A', name: 'G' }] } }), fm, PAT, NOW, APP).message, null);
+  assert.equal(evaluateDigest(digestRec({ digest: { hour: 17, favs: [{ napId: 'A', name: 'G' }] } }), fm, PAT, NOW, APP).message, null);
+  // без живых данных (устарели) сводка строится по шаблонам занятости
+  const noLive = evaluateDigest(digestRec(), new Map(), PAT, NOW, APP);
+  assert.equal(noLive.message.body, 'Galleria: свободнее всего около 22:00');
+  // совсем нет данных: молчим и дату не ставим
+  assert.deepEqual(evaluateDigest(digestRec(), new Map(), null, NOW, APP), { message: null, last: null });
+  assert.deepEqual(evaluateDigest({ lang: 'ru' }, new Map(), PAT, NOW, APP), { message: null, last: null });
+  // английский
+  assert.equal(evaluateDigest(digestRec({ lang: 'en' }), freeMapOf(live([site('A', ['busy'])])), PAT, NOW, APP).message.body, 'Galleria: all busy now, quietest around 22:00');
+});
+
+await test('run: таймер и сводка отправляются, состояние возвращается в Worker (сработавший таймер, дата сводки)', async () => {
+  const item = Object.assign(mkItem('s:1', 'A', 1), { timers: [{ id: 'due', at: NOW + 60000, name: 'Galleria' }, { id: 'far', at: NOW + 3600000, name: 'X' }], digest: { hour: 14, favs: [{ napId: 'A', name: 'Galleria' }] } });
+  const w = fakeWorker([item], 40);
+  const sent = [];
+  const stats = await run({ api: 'https://w.test', adminToken: 'T', live: live([site('A', ['free'])]), patterns: PAT, now: NOW, appUrl: APP, fetchImpl: w.fetchImpl, sendNotification: async (s, payload) => { sent.push(JSON.parse(payload)); } });
+  assert.deepEqual(sent.map((p) => p.tag).sort(), ['digest', 'timer:due']);
+  assert.equal(stats.timers, 1);
+  assert.equal(stats.digests, 1);
+  const upd = w.calls.find((c) => c.path === '/state').body.updates[0];
+  assert.deepEqual(upd.timers.map((x) => x.id), ['far']);
+  assert.deepEqual(upd.fired, ['due']);
+  assert.equal(upd.digestLast, '2026-10-28');
+  // повторный запуск с обновлённой записью ничего не шлёт
+  const again = Object.assign({}, item, { timers: upd.timers, digest: Object.assign({}, item.digest, { last: upd.digestLast }) });
+  const w2 = fakeWorker([again], 40);
+  const sent2 = [];
+  await run({ api: 'https://w.test', adminToken: 'T', live: live([site('A', ['free'])]), patterns: PAT, now: NOW, appUrl: APP, fetchImpl: w2.fetchImpl, sendNotification: async () => { sent2.push(1); } });
+  assert.equal(sent2.length, 0);
+  assert.equal(w2.calls.some((c) => c.path === '/state'), false);
+});
+
+await test('run: устаревшие данные не мешают таймеру; временная ошибка не теряет таймер и сводку', async () => {
+  const item = Object.assign(mkItem('s:1', 'A', 0), { timers: [{ id: 'due', at: NOW, name: 'G' }], digest: { hour: 14, favs: [{ napId: 'A', name: 'G' }] } });
+  const w = fakeWorker([item], 40);
+  const sent = [];
+  await run({ api: 'https://w.test', adminToken: 'T', live: live([site('A', ['free'])], 120), patterns: PAT, now: NOW, appUrl: APP, fetchImpl: w.fetchImpl, sendNotification: async (s, payload) => { sent.push(JSON.parse(payload).tag); } });
+  assert.deepEqual(sent.sort(), ['digest', 'timer:due']);
+  // временная ошибка (500): дату сводки не ставим, таймер остаётся на следующий запуск
+  const w2 = fakeWorker([item], 40);
+  await run({ api: 'https://w.test', adminToken: 'T', live: live([site('A', ['free'])]), patterns: PAT, now: NOW, appUrl: APP, fetchImpl: w2.fetchImpl, sendNotification: async () => { const e = new Error('boom'); e.statusCode = 500; throw e; } });
+  const upd = (w2.calls.find((c) => c.path === '/state') || { body: { updates: [{}] } }).body.updates[0];
+  assert.equal(upd.digestLast, undefined);
+  assert.equal(upd.fired, undefined); // таймер не снят, уйдёт при следующем запуске
 });
 
 console.log('\n' + passed + ' tests passed');

@@ -91,4 +91,4 @@ jobs:
           if [ -z "$CLOUDFLARE_API_TOKEN" ]; then echo "Секрет CLOUDFLARE_API_TOKEN не задан, пуши пропускаю"; exit 0; fi
           node -e "process.exit(JSON.parse(require('fs').readFileSync('push-config.json','utf8')).api ? 0 : 1)" || { echo "В push-config.json нет адреса Worker, пуши пропускаю"; exit 0; }
           npm install --no-save --ignore-scripts --no-audit --no-fund web-push@3.6.7
-          node scripts/send_push.mjs out/live.json
+          node scripts/send_push.mjs out/live.json out/patterns.json

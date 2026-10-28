@@ -670,6 +670,41 @@
     return { pct: v, hour: clock.hour, atMs: at };
   }
 
+  /* ---------- когда ехать ---------- */
+  // Лучший час в ближайшие `hoursAhead` часов по обычной занятости площадки (patterns.sites).
+  // -> { now, best: {hour, pct, inMin}, good } или null, если данных нет. good: сейчас уже почти так же свободно, как в лучший час.
+  function bestWindow(st, patterns, nowMs, hoursAhead) {
+    const t0 = nowMs == null ? Date.now() : nowMs;
+    const span = hoursAhead == null ? 12 : hoursAhead;
+    const nowFc = forecastFor(st, patterns, t0, 0);
+    if (!nowFc) return null;
+    let best = null;
+    for (let h = 0; h <= span; h++) {
+      const fc = forecastFor(st, patterns, t0, h * 60);
+      if (!fc) continue;
+      if (!best || fc.pct < best.pct) best = { hour: fc.hour, pct: fc.pct, inMin: h * 60 };
+    }
+    if (!best) return null;
+    return { now: nowFc.pct, best, good: nowFc.pct <= best.pct + 10 };
+  }
+
+  // Ближайшая станция со свободными точками рядом (живые данные), того же класса, что выбранная. -> { st, km } или null
+  function nearbyFree(st, list, filters, radiusKm) {
+    if (!st || !Array.isArray(list)) return null;
+    const r = radiusKm == null ? 2 : radiusKm;
+    let best = null;
+    for (const o of list) {
+      if (!o || o === st || o.id === st.id || (st.napId && o.napId === st.napId)) continue;
+      const sum = liveSummary(o, filters);
+      if (!sum || sum.free < 1) continue;
+      if (st.cls && o.cls !== st.cls && !(o.cls === 'hpc' && st.cls === 'dc') && !(o.cls === 'dc' && st.cls === 'hpc')) continue;
+      const km = haversine(st.lat, st.lon, o.lat, o.lon);
+      if (km > r) continue;
+      if (!best || km < best.km) best = { st: o, km };
+    }
+    return best;
+  }
+
   // Надёжность площадки: доля снимков, где часть точек не работала. null, пока снимков мало.
   function reliabilityOf(st, patterns) {
     if (!st || !st.napId || !patterns || !patterns.rel) return null;
@@ -1082,6 +1117,8 @@
     matchesQuery,
     isOpen247,
     forecastFor,
+    bestWindow,
+    nearbyFree,
     reliabilityOf,
     priceChangeOf,
     routeLengths,
