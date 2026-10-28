@@ -80,3 +80,15 @@ jobs:
           git add -A
           git commit -q -m "History $(date -u +%FT%TZ)"
           git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" history
+
+      # Пуши «освободилась зарядка» для телефонов, подписанных через Worker uzlades-push.
+      # Ошибка здесь не должна ломать публикацию данных, поэтому continue-on-error; скрипт и сам завершается кодом 0.
+      - name: Send push notifications
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then echo "Секрет CLOUDFLARE_API_TOKEN не задан, пуши пропускаю"; exit 0; fi
+          node -e "process.exit(JSON.parse(require('fs').readFileSync('push-config.json','utf8')).api ? 0 : 1)" || { echo "В push-config.json нет адреса Worker, пуши пропускаю"; exit 0; }
+          npm install --no-save --ignore-scripts --no-audit --no-fund web-push@3.6.7
+          node scripts/send_push.mjs out/live.json

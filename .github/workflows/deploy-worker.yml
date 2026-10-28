@@ -1,0 +1,68 @@
+name: Deploy push worker
+
+# Выкладывает Worker «uzlades-push» в Cloudflare (хранилище подписок на пуши).
+# Нужен один секрет репозитория: CLOUDFLARE_API_TOKEN (шаблон «Edit Cloudflare Workers»).
+# Необязательный секрет CLOUDFLARE_ACCOUNT_ID нужен, только если у токена несколько аккаунтов.
+# Ключи для пушей и пароль рассылки выводятся из CLOUDFLARE_API_TOKEN (scripts/push_keys.mjs), отдельно хранить их не надо.
+# Запускается при изменении папки worker/ в main и вручную (вкладка Actions, Run workflow).
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'worker/**'
+      - 'scripts/push_keys.mjs'
+      - '.github/workflows/deploy-worker.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-worker
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ACCOUNT_ID_SECRET: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::error::Добавьте секрет репозитория CLOUDFLARE_API_TOKEN (Settings, Secrets and variables, Actions)"
+            exit 1
+          fi
+          if [ -n "$ACCOUNT_ID_SECRET" ]; then export CLOUDFLARE_ACCOUNT_ID="$ACCOUNT_ID_SECRET"; fi
+          PUB=$(node scripts/push_keys.mjs public)
+          ADMIN=$(node scripts/push_keys.mjs admin)
+          echo "::add-mask::$ADMIN"
+          printf '{"ADMIN_TOKEN":"%s"}' "$ADMIN" > "$RUNNER_TEMP/secrets.json"
+          export WRANGLER_OUTPUT_FILE_PATH="$RUNNER_TEMP/wrangler-out.ndjson"
+          cd worker
+          npx --yes wrangler@4 deploy --var "VAPID_PUBLIC:$PUB" --secrets-file "$RUNNER_TEMP/secrets.json"
+          rm -f "$RUNNER_TEMP/secrets.json"
+          # адрес Worker из отчёта wrangler: показываем в итогах запуска и проверяем /health
+          URL=$(node -e "
+            const fs=require('fs');
+            try {
+              const lines=fs.readFileSync(process.env.WRANGLER_OUTPUT_FILE_PATH,'utf8').split('\n').filter(Boolean).map(l=>JSON.parse(l));
+              const d=lines.filter(l=>l.type==='deploy').pop();
+              process.stdout.write((d && d.targets && d.targets[0]) || '');
+            } catch (e) {}
+          ")
+          if [ -z "$URL" ]; then
+            echo "::warning::Не удалось определить адрес Worker из отчёта wrangler. Он виден в Cloudflare: Workers & Pages, uzlades-push."
+            exit 0
+          fi
+          echo "Адрес Worker: $URL"
+          { echo "### Worker выложен"; echo; echo "Адрес: \`$URL\`"; echo; echo "Впишите его в \`push-config.json\` (поле \`api\`)."; } >> "$GITHUB_STEP_SUMMARY"
+          for i in 1 2 3 4 5; do
+            if curl -fsS "$URL/health" -o "$RUNNER_TEMP/health.json"; then cat "$RUNNER_TEMP/health.json"; echo; exit 0; fi
+            sleep 5
+          done
+          echo "::error::Worker выложен, но /health не отвечает"
+          exit 1
