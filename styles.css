@@ -878,27 +878,35 @@ input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); ou
 .amen { margin: 14px 0 6px; }
 .amen[hidden] { display: none; }
 
-/* ---------- метки с мощностью (как в Chargemap) ---------- */
+/* ---------- метки с мощностью (как в Chargemap): «выноска» с кВт сверху и свободно/всего снизу ---------- */
 .leaflet-marker-icon.ppill { background: none; border: 0; }
 .ppill .pl {
-  position: absolute; left: 0; top: 0; transform: translate(-50%, -50%);
-  display: inline-flex; align-items: stretch; white-space: nowrap;
-  border-radius: 999px; overflow: hidden; background: var(--bg);
-  border: 2px solid var(--bg); box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
-  font: 800 12px/1 "Manrope", system-ui, sans-serif; color: var(--text);
+  --pl-bg: #565b69; --pl-chip: #bfe6ff; --pl-chip-ink: #0d2f52; --pl-count: #ffffff;
+  position: absolute; left: 0; top: 0; transform: translate(-50%, calc(-100% - 7px));
+  display: flex; flex-direction: column; align-items: stretch; text-align: center; white-space: nowrap; width: max-content;
+  padding: 3px; border-radius: 15px; background: var(--pl-bg);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45);
+  font: 700 12px/1 "Manrope", system-ui, sans-serif;
 }
-.ppill .pl b { padding: 5px 7px; color: var(--ink-on-text); font-weight: 800; }
-.ppill .pl i { padding: 5px 7px; font-style: normal; font-weight: 800; }
-.ppill .pl-ac b { background: var(--c-ac); }
-.ppill .pl-dc b { background: var(--c-dc); }
-.ppill .pl-hpc b { background: var(--c-hpc); }
-.ppill .pl-unknown b { background: var(--c-unknown); }
-.ppill .lv-free { border-color: var(--ok); }
-.ppill .lv-free i { color: var(--ok); }
-.ppill .lv-busy { opacity: 0.7; }
-.ppill .lv-busy i { color: var(--busy); }
-.ppill .lv-out { opacity: 0.4; }
-.ppill .sel { border-color: var(--text); box-shadow: 0 0 0 3px color-mix(in srgb, var(--text) 25%, transparent), 0 3px 10px rgba(0, 0, 0, 0.4); }
+.ppill .pl::after {
+  content: ""; position: absolute; left: 50%; bottom: -7px; transform: translateX(-50%);
+  border: 7px solid transparent; border-bottom: 0; border-top-color: var(--pl-bg);
+}
+.ppill .pl .pw {
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  padding: 5px 7px 5px 9px; border-radius: 12px; background: var(--pl-chip); color: var(--pl-chip-ink);
+}
+.ppill .pl .pw b { font-size: 15px; font-weight: 800; }
+.ppill .pl .pw em { font-style: normal; font-weight: 600; font-size: 12.5px; }
+.ppill .pl .pw svg { width: 15px; height: 15px; flex: none; }
+.ppill .pl .pc { padding: 5px 4px 3px; font-size: 13px; font-weight: 700; color: var(--pl-count); }
+.ppill .pl .pc b { font-weight: 800; }
+.ppill .lv-free .pc b { color: #7dffc4; }
+.ppill .lv-busy .pc b { color: #ffb9ac; }
+.ppill .lv-out { --pl-bg: #3a3e4a; --pl-chip: #5a5f6d; --pl-chip-ink: #c5cad6; --pl-count: #9aa1b2; opacity: 0.8; }
+.ppill .lv-unknown .pw { padding-bottom: 5px; }
+.ppill .sel { --pl-bg: #1f6fd6; z-index: 2; box-shadow: 0 0 0 2px #fff, 0 4px 14px rgba(0, 0, 0, 0.5); }
+.ppill .sel::after { filter: drop-shadow(0 1px 0 #fff); }
 
 /* ---------- скидки сетей ---------- */
 .disc { margin: 14px 0 6px; }
