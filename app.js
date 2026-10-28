@@ -118,6 +118,15 @@
       priceUp: 'Подорожала на {d} € с {date}', priceDown: 'Подешевела на {d} € с {date}',
       favAdd: 'В избранное', favRemove: 'В избранном', favEmpty: 'Пока пусто. Нажмите ★ у станции, и она появится здесь с живым статусом.',
       favTitle: 'Избранные станции',
+      chargeTitle: 'Журнал зарядок', chargeAdd: '+ Записать зарядку', chargeKwh: 'Сколько кВт·ч', chargeEur: 'Сколько заплатили, €',
+      chargeName: 'Где (необязательно)', chargeSave: 'Сохранить', chargeCancel: 'Отмена',
+      chargeBad: 'Введите кВт·ч и сумму числами.',
+      chargeEmpty: 'Пока пусто. Запишите зарядку, и здесь появятся итоги за месяц.',
+      chargeMonth: 'Этот месяц: {kwh} кВт·ч · {eur} € · {n} шт.', chargePrev: 'Прошлый месяц: {kwh} кВт·ч · {eur} €',
+      chargeAvg: 'Средняя цена: {p} €/кВт·ч', chargeDel: 'Удалить запись', chargeDelSure: 'Удалить?',
+      chargeHere: 'Записать зарядку здесь', chargeNote: 'Записи хранятся только на этом телефоне.',
+      amenTitle: 'Рядом (≈100 м)', amenLoading: 'Ищу, что есть рядом…', amenNone: 'Рядом ничего не отмечено в OpenStreetMap.',
+      amenToilets: 'Туалет', amenFood: 'Кафе, еда', amenShop: 'Магазин', amenWifi: 'Wi-Fi', amenNote: 'По данным OpenStreetMap, может быть неполно.',
       share: 'Поделиться', shareCopied: 'Ссылка скопирована', shareText: 'Зарядная станция: {name}',
       appleMaps: 'Apple Карты',
       watch: 'Следить', unwatch: 'Слежу', watchOn: 'Скажу, когда освободится. Работает, пока приложение открыто.',
@@ -245,6 +254,15 @@
       priceUp: 'Price up {d} € since {date}', priceDown: 'Price down {d} € since {date}',
       favAdd: 'Save', favRemove: 'Saved', favEmpty: 'Nothing yet. Tap ★ on a station and it will appear here with live status.',
       favTitle: 'Saved stations',
+      chargeTitle: 'Charging log', chargeAdd: '+ Log a charge', chargeKwh: 'kWh charged', chargeEur: 'Amount paid, €',
+      chargeName: 'Where (optional)', chargeSave: 'Save', chargeCancel: 'Cancel',
+      chargeBad: 'Enter kWh and the amount as numbers.',
+      chargeEmpty: 'Nothing yet. Log a charge and the monthly totals will show up here.',
+      chargeMonth: 'This month: {kwh} kWh · {eur} € · {n}', chargePrev: 'Last month: {kwh} kWh · {eur} €',
+      chargeAvg: 'Average price: {p} €/kWh', chargeDel: 'Delete entry', chargeDelSure: 'Delete?',
+      chargeHere: 'Log a charge here', chargeNote: 'Entries are stored on this phone only.',
+      amenTitle: 'Nearby (≈100 m)', amenLoading: 'Looking for what is nearby…', amenNone: 'Nothing nearby is tagged in OpenStreetMap.',
+      amenToilets: 'Toilet', amenFood: 'Cafe, food', amenShop: 'Shop', amenWifi: 'Wi-Fi', amenNote: 'From OpenStreetMap, may be incomplete.',
       share: 'Share', shareCopied: 'Link copied', shareText: 'Charging station: {name}',
       appleMaps: 'Apple Maps',
       watch: 'Watch', unwatch: 'Watching', watchOn: 'I will tell you when one frees up. Works while the app is open.',
@@ -301,6 +319,10 @@
     petrol: null, // средняя цена 95 из Degvielas Radars
     tempC: null, // температура воздуха там, где человек
     favs: [], // избранное: [{ k, id, napId, lat, lon, name }]
+    charges: [], // журнал зарядок: [{ id, ts, kwh, eur, name }]
+    chargeForm: null, // открытая форма записи: { kwh, eur, name, error } или null
+    chargeDelArm: null, // id записи, ждущей второго нажатия «Удалить?»
+    amen: {}, // удобства рядом: ключ места -> { t, v: { toilets, food, shop, wifi } }
     watch: [], // слежение за станциями: [{ k, id, napId, lat, lon, name, free }]
     route: null, // построенный маршрут
     osmBy: {}, // станции OSM по странам
@@ -341,13 +363,14 @@
   }
 
   // Спрашиваем все зеркала Overpass одновременно, берём первый хороший ответ.
-  async function fetchElements(cc) {
+  async function fetchElements(cc) { return overpass(queryFor(cc), 60000); }
+
+  async function overpass(query, timeoutMs) {
     const controllers = [];
-    const query = queryFor(cc);
     const attempt = async (url) => {
       const ctl = new AbortController();
       controllers.push(ctl);
-      const timer = setTimeout(() => ctl.abort(), 60000);
+      const timer = setTimeout(() => ctl.abort(), timeoutMs);
       try {
         const res = await fetch(url, {
           method: 'POST',
@@ -1016,7 +1039,111 @@
       const ranked = UR.rank(refs, state.origin, 'near', neutral, rankCtx());
       html += '<div class="rows">' + ranked.map(rowHtml).join('') + '</div>';
     }
-    $('panel').innerHTML = html;
+    $('panel').innerHTML = html + chargeLogHtml();
+  }
+
+  /* ---------- журнал зарядок ---------- */
+  const saveCharges = () => writeJson('ur_charges_v1', state.charges);
+  const fmtNum = (n) => String(Math.round(n * 10) / 10).replace('.', ',');
+  const fmtDay = (ts) => new Date(ts).toLocaleDateString(lang === 'ru' ? 'ru-RU' : 'en-GB', { timeZone: 'Europe/Riga', day: '2-digit', month: '2-digit' });
+
+  function chargeLogHtml() {
+    const list = state.charges;
+    const cf = state.chargeForm;
+    let h = '<h3 class="sect charge-sect">' + esc(t('chargeTitle')) + '</h3>';
+    if (cf) {
+      h += '<form id="charge-form" class="charge-form" novalidate>' +
+        '<div class="fld-grid">' +
+        '<label class="fld"><span>' + esc(t('chargeKwh')) + '</span><input id="ch-kwh" type="text" inputmode="decimal" autocomplete="off" value="' + esc(cf.kwh) + '"></label>' +
+        '<label class="fld"><span>' + esc(t('chargeEur')) + '</span><input id="ch-eur" type="text" inputmode="decimal" autocomplete="off" value="' + esc(cf.eur) + '"></label></div>' +
+        '<label class="fld"><span>' + esc(t('chargeName')) + '</span><input id="ch-name" type="text" maxlength="80" autocomplete="off" value="' + esc(cf.name) + '"></label>' +
+        (cf.error ? '<p class="charge-err" role="alert">' + esc(t('chargeBad')) + '</p>' : '') +
+        '<div class="btn-row"><button type="button" class="btn" data-act="chargeCancel">' + esc(t('chargeCancel')) + '</button>' +
+        '<button type="submit" class="btn btn-primary">' + esc(t('chargeSave')) + '</button></div></form>';
+    } else {
+      h += '<button class="btn btn-block" data-act="chargeAdd">' + esc(t('chargeAdd')) + '</button>';
+    }
+    if (!list.length) return h + '<p class="note charge-note">' + esc(t('chargeEmpty')) + '</p>';
+    const sum = UR.chargeSummary(list);
+    if (sum.cur.count) {
+      h += '<div class="charge-sum"><b>' + esc(t('chargeMonth', { kwh: fmtNum(sum.cur.kwh), eur: fmtEur(sum.cur.eur), n: sum.cur.count })) + '</b>' +
+        (sum.cur.perKwh != null ? '<span>' + esc(t('chargeAvg', { p: sum.cur.perKwh.toFixed(3).replace('.', ',') })) + '</span>' : '') + '</div>';
+    }
+    if (sum.prev.count) h += '<div class="charge-prev">' + esc(t('chargePrev', { kwh: fmtNum(sum.prev.kwh), eur: fmtEur(sum.prev.eur) })) + '</div>';
+    h += '<ul class="charge-list">' + list.slice(0, 30).map((e) =>
+      '<li><span class="ch-date">' + esc(fmtDay(e.ts)) + '</span><span class="ch-name">' + esc(e.name || '–') + '</span>' +
+      '<span class="ch-val">' + esc(fmtNum(e.kwh)) + ' ' + esc(lang === 'ru' ? 'кВт·ч' : 'kWh') + ' · ' + esc(fmtEur(e.eur)) + ' €</span>' +
+      '<button class="ch-del' + (state.chargeDelArm === e.id ? ' armed' : '') + '" data-chdel="' + esc(e.id) + '" aria-label="' + esc(t('chargeDel')) + '">' +
+      (state.chargeDelArm === e.id ? esc(t('chargeDelSure')) : '×') + '</button></li>').join('') + '</ul>';
+    return h + '<p class="note charge-note">' + esc(t('chargeNote')) + '</p>';
+  }
+
+  function openChargeForm(name) {
+    state.chargeForm = { kwh: '', eur: '', name: name || '', error: false };
+    state.chargeDelArm = null;
+    state.tab = 'fav';
+    state.detailId = null;
+    renderTabs();
+    renderMarkers(filtered());
+    renderPanel();
+    const f = $('charge-form');
+    if (f && f.scrollIntoView) f.scrollIntoView({ block: 'center' });
+    const k = $('ch-kwh');
+    if (k) k.focus();
+  }
+
+  function submitCharge() {
+    const cf = state.chargeForm;
+    if (!cf) return;
+    const entry = UR.normalizeCharge({ kwh: cf.kwh, eur: cf.eur, name: cf.name });
+    if (!entry) { cf.error = true; renderPanel(); return; }
+    state.charges = UR.addCharge(state.charges, entry);
+    saveCharges();
+    state.chargeForm = null;
+    renderPanel();
+  }
+
+  function deleteCharge(id) {
+    if (state.chargeDelArm !== id) { state.chargeDelArm = id; renderPanel(); return; }
+    state.charges = state.charges.filter((e) => e.id !== id);
+    state.chargeDelArm = null;
+    saveCharges();
+    renderPanel();
+  }
+
+  /* ---------- удобства рядом (OpenStreetMap) ---------- */
+  const AMEN_TTL = 24 * 3600 * 1000;
+  const amenKey = (st) => st.lat.toFixed(4) + ',' + st.lon.toFixed(4);
+
+  function amenInner(st) {
+    const c = state.amen[amenKey(st)];
+    if (!c) return '<span class="note">' + esc(t('amenLoading')) + '</span>';
+    const v = c.v;
+    const chips = [['toilets', 'amenToilets'], ['food', 'amenFood'], ['shop', 'amenShop'], ['wifi', 'amenWifi']]
+      .filter(([k]) => v[k] > 0).map(([k, key]) => '<span class="chip-pay">' + esc(t(key)) + '</span>').join('');
+    return chips ? '<div class="pay">' + chips + '</div><span class="note">' + esc(t('amenNote')) + '</span>' : '<span class="note">' + esc(t('amenNone')) + '</span>';
+  }
+
+  function amenBlock(st) {
+    return '<div class="amen"><h3 class="sect">' + esc(t('amenTitle')) + '</h3><div id="amen">' + amenInner(st) + '</div></div>';
+  }
+
+  async function ensureAmenities(st) {
+    const key = amenKey(st);
+    const c = state.amen[key];
+    if (c && Date.now() - c.t < AMEN_TTL) return;
+    try {
+      const els = await overpass(UR.amenityQuery(st.lat, st.lon), 25000);
+      state.amen[key] = { t: Date.now(), v: UR.parseAmenities(els) };
+      const keys = Object.keys(state.amen);
+      if (keys.length > 60) keys.sort((a, b) => state.amen[a].t - state.amen[b].t).slice(0, keys.length - 60).forEach((k) => { delete state.amen[k]; });
+      writeJson('ur_amen_v1', state.amen);
+      const box = $('amen');
+      if (box && state.detailId === st.id) box.innerHTML = amenInner(st);
+    } catch (e) {
+      const box = $('amen');
+      if (box && state.detailId === st.id) { const blk = box.closest('.amen'); if (blk) blk.hidden = true; } // сеть не ответила: блок просто не показываем
+    }
   }
 
   function renderPrices() {
@@ -1156,9 +1283,12 @@
       compareBlock(price) +
       (st.live ? livePoints(st) + (liveNote() ? '<p class="note">' + esc(liveNote()) + '</p>' : '') : '') +
       usualChart(st) +
+      amenBlock(st) +
       navLinks(st) +
+      '<button class="link-btn" data-charge="' + esc(st.id) + '">' + esc(t('chargeHere')) + '</button>' +
       (osm ? '<p class="note" style="margin-top:14px"><a href="' + osm + '" target="_blank" rel="noopener" style="color:var(--muted)">' + esc(t('fixOsm')) + '</a></p>' : '') +
       (st.live ? '<p class="note">' + esc(t('liveSource')) + '</p>' : '') + '</div>';
+    ensureAmenities(st);
   }
 
   /* ---------- маршрут A→B ---------- */
@@ -1580,6 +1710,10 @@
       const st = stationById(d.watch);
       if (st) toggleWatch(st).then(() => renderPanel());
     }
+    else if (d.charge) { const st = stationById(d.charge); if (st) { openChargeForm(stationTitle(st)); setSheetOpen(true); } }
+    else if (d.act === 'chargeAdd') openChargeForm('');
+    else if (d.act === 'chargeCancel') { state.chargeForm = null; renderPanel(); }
+    else if (d.chdel) deleteCharge(d.chdel);
     else if (d.act === 'car') openCarDialog();
     else if (d.act === 'carOnly' && state.car) { state.car.onlyCompatible = !state.car.onlyCompatible; saveProfile(); state.detailId = null; renderAll(); }
     else if (d.act === 'routeClear') { state.route = null; renderAll(); }
@@ -1620,6 +1754,14 @@
   });
   document.addEventListener('submit', (e) => {
     if (e.target.id === 'route-form') { e.preventDefault(); findRoute(); }
+    else if (e.target.id === 'charge-form') { e.preventDefault(); submitCharge(); }
+  });
+  document.addEventListener('input', (e) => {
+    const cf = state.chargeForm;
+    if (!cf) return;
+    if (e.target.id === 'ch-kwh') cf.kwh = e.target.value;
+    else if (e.target.id === 'ch-eur') cf.eur = e.target.value;
+    else if (e.target.id === 'ch-name') cf.name = e.target.value;
   });
 
   document.addEventListener('change', (e) => {
@@ -1754,6 +1896,8 @@
   /* ---------- запуск ---------- */
   document.documentElement.dataset.theme = state.theme;
   loadProfile();
+  state.charges = (readJson('ur_charges_v1', []) || []).map((e) => UR.normalizeCharge(e)).filter(Boolean).sort((a, b) => b.ts - a.ts).slice(0, UR.CHARGE_LIMIT);
+  state.amen = (() => { const a = readJson('ur_amen_v1', {}); return a && typeof a === 'object' && !Array.isArray(a) ? a : {}; })();
   state.favs = readJson('ur_favs_v1', []).filter((f) => f && f.k && isFinite(f.lat) && isFinite(f.lon));
   state.watch = readJson('ur_watch_v1', []).filter((w) => w && w.k && isFinite(w.lat) && isFinite(w.lon));
   initMap();
