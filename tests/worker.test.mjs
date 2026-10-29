@@ -1,6 +1,6 @@
 // Запуск: node tests/worker.test.mjs
 import assert from 'node:assert/strict';
-import worker, { cleanSub, cleanWatch, cleanTimers, cleanDigest } from '../worker/index.js';
+import worker, { cleanSub, cleanWatch, cleanTimers, cleanDigest, cleanMorning } from '../worker/index.js';
 
 let passed = 0;
 async function test(name, fn) {
@@ -212,6 +212,77 @@ await test('sync: язык lv сохраняется, неизвестный я�
   assert.equal(JSON.parse([...e.SUBS.m.values()][0]).lang, 'lv');
   await call(e, 'POST', '/sync', { sub: mkSub(), lang: 'de', watch: [{ napId: 'S1', name: 'A', free: 0 }] });
   assert.equal(JSON.parse([...e.SUBS.m.values()][0]).lang, 'ru');
+});
+
+// ---------- несколько приложений: топливо (Degvielas Radars) ----------
+const FUEL_ENDPOINT = 'https://fcm.googleapis.com/fcm/send/fuel456';
+
+await test('cleanMorning: час 0..23, только известные виды топлива, без повторов', () => {
+  assert.deepEqual(cleanMorning({ hour: 8, fuels: ['95', 'diesel', '95', 'kerosene'] }), { hour: 8, fuels: ['95', 'diesel'] });
+  assert.equal(cleanMorning({ hour: 24, fuels: ['95'] }), null);
+  assert.equal(cleanMorning({ hour: 8, fuels: [] }), null);
+  assert.equal(cleanMorning({ hour: 8, fuels: ['x'] }), null);
+  assert.equal(cleanMorning({ hour: '8', fuels: ['95'] }), null);
+  assert.equal(cleanMorning(null), null);
+});
+
+await test('fuel sync: сохраняется как app=fuel, повторный sync не затирает дату последнего отчёта', async () => {
+  const e = env();
+  const r = await call(e, 'POST', '/sync', { app: 'fuel', sub: mkSub(FUEL_ENDPOINT), lang: 'lv', morning: { hour: 8, fuels: ['95', 'diesel'] } });
+  assert.equal(r.status, 200);
+  assert.equal((await r.json()).morning, true);
+  const rec = JSON.parse([...e.SUBS.m.values()][0]);
+  assert.equal(rec.app, 'fuel');
+  assert.equal(rec.lang, 'lv');
+  assert.deepEqual(rec.morning, { hour: 8, fuels: ['95', 'diesel'] });
+  const key = [...e.SUBS.m.keys()][0];
+  await call(e, 'POST', '/state', { updates: [{ key, morningLast: '2026-10-29' }] }, admin);
+  await call(e, 'POST', '/sync', { app: 'fuel', sub: mkSub(FUEL_ENDPOINT), lang: 'lv', morning: { hour: 9, fuels: ['95'] } });
+  const rec2 = JSON.parse(e.SUBS.m.get(key));
+  assert.equal(rec2.morning.last, '2026-10-29');
+  assert.equal(rec2.morning.hour, 9);
+});
+
+await test('fuel sync: без утреннего отчёта подписка удаляется, плохая подписка отклоняется', async () => {
+  const e = env();
+  await call(e, 'POST', '/sync', { app: 'fuel', sub: mkSub(FUEL_ENDPOINT), morning: { hour: 8, fuels: ['95'] } });
+  assert.equal(e.SUBS.m.size, 1);
+  const off = await call(e, 'POST', '/sync', { app: 'fuel', sub: mkSub(FUEL_ENDPOINT), morning: null });
+  assert.equal(off.status, 200);
+  assert.equal(e.SUBS.m.size, 0);
+  const bad = await call(e, 'POST', '/sync', { app: 'fuel', sub: { endpoint: 'https://evil.example/x', keys: { p256dh: P256DH, auth: AUTH } }, morning: { hour: 8, fuels: ['95'] } });
+  assert.equal(bad.status, 400);
+});
+
+await test('subs: зарядки и топливо не видят друг друга, без ?app отдаются зарядки (как раньше)', async () => {
+  const e = env();
+  await call(e, 'POST', '/sync', { sub: mkSub(), watch: [{ napId: 'S1', name: 'A', free: 0 }] }); // без поля app: зарядки
+  await call(e, 'POST', '/sync', { app: 'fuel', sub: mkSub(FUEL_ENDPOINT), morning: { hour: 8, fuels: ['95'] } });
+  const ev = await (await call(e, 'GET', '/subs', null, admin)).json();
+  assert.equal(ev.items.length, 1);
+  assert.equal(ev.items[0].watch[0].napId, 'S1');
+  const fuel = await (await call(e, 'GET', '/subs?app=fuel', null, admin)).json();
+  assert.equal(fuel.items.length, 1);
+  assert.deepEqual(fuel.items[0].morning, { hour: 8, fuels: ['95'] });
+  assert.equal(fuel.items[0].watch, undefined);
+  // старая запись без поля app по-прежнему зарядки
+  const legacyKey = [...e.SUBS.m.keys()].find((k) => JSON.parse(e.SUBS.m.get(k)).app !== 'fuel');
+  const legacy = JSON.parse(e.SUBS.m.get(legacyKey)); delete legacy.app; e.SUBS.m.set(legacyKey, JSON.stringify(legacy));
+  assert.equal((await (await call(e, 'GET', '/subs', null, admin)).json()).items.length, 1);
+});
+
+await test('state: для топлива меняется только morningLast, чужие поля и неверная дата игнорируются', async () => {
+  const e = env();
+  await call(e, 'POST', '/sync', { app: 'fuel', sub: mkSub(FUEL_ENDPOINT), morning: { hour: 8, fuels: ['95'] } });
+  const key = [...e.SUBS.m.keys()][0];
+  const a = await (await call(e, 'POST', '/state', { updates: [{ key, morningLast: 'yesterday' }, { key, watch: [{ napId: 'X', free: 0 }] }] }, admin)).json();
+  assert.equal(a.updated, 0);
+  assert.deepEqual(JSON.parse(e.SUBS.m.get(key)).watch, []);
+  const b = await (await call(e, 'POST', '/state', { updates: [{ key, morningLast: '2026-10-29' }] }, admin)).json();
+  assert.equal(b.updated, 1);
+  assert.equal(JSON.parse(e.SUBS.m.get(key)).morning.last, '2026-10-29');
+  // TTL не продлевается сверх 60 дней от последнего открытия приложения
+  assert.ok(e.SUBS.lastOpts.expirationTtl <= 60 * 24 * 3600);
 });
 
 console.log('\n' + passed + ' tests passed');
