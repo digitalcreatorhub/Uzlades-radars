@@ -148,6 +148,27 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
   if (after !== 'true') await page.click('#grab');
   await page.screenshot({ path: path.join(shots, '6-open.png') });
 
+  // три положения панели: полная → средняя → свёрнутая (карта крупно) и обратно по нажатию на вкладку
+  const dragGrab = async (dy) => {
+    await page.waitForTimeout(500); // панель ещё может двигаться после предыдущего шага
+    const gb = await page.locator('#grab').boundingBox();
+    const x = gb.x + gb.width / 2, y = gb.y + gb.height / 2;
+    await page.mouse.move(x, y); await page.mouse.down(); await page.mouse.move(x, y + dy, { steps: 4 }); await page.mouse.up();
+  };
+  await dragGrab(60);
+  check('ручка вниз: полная → средняя', (await page.locator('#sheet').getAttribute('data-open')) === 'false' && (await page.locator('#sheet').getAttribute('data-size')) === null);
+  await dragGrab(60);
+  check('ручка вниз ещё раз: панель свёрнута', (await page.locator('#sheet').getAttribute('data-size')) === 'mini');
+  await page.waitForTimeout(500); // ждём окончания анимации высоты
+  const mapH = await page.evaluate(() => { const r = document.getElementById('sheet').getBoundingClientRect(); return window.innerHeight - r.height; });
+  check('свёрнутая панель оставляет карте больше 80% высоты', mapH > 780 * 0.8, String(mapH));
+  await page.click('[data-tab="route"]');
+  check('нажатие на вкладку возвращает среднюю панель', (await page.locator('#sheet').getAttribute('data-size')) === null);
+  await page.waitForTimeout(500);
+  const peekFrac = await page.evaluate(() => document.getElementById('sheet').getBoundingClientRect().height / window.innerHeight);
+  check('вкладка «Маршрут»: панель занимает меньше половины экрана, карта крупнее', peekFrac < 0.5, String(peekFrac));
+  await page.click('[data-tab="go"]');
+
   // повторная загрузка из кэша (без сети)
   await page.route('**/overpass**', (r) => r.abort());
   await page.reload();
@@ -501,6 +522,7 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
     check('маршрут: видно, что найдено (A и B)', /B: Valmiera/.test(await pf.locator('.note').first().innerText().catch(() => '')) || /B: Valmiera/.test(await pf.locator('#panel').innerText()));
     check('маршрут: статус места виден на вкладке', (await pf.locator('.origin-line').count()) === 1);
     check('маршрут: линия нарисована', (await pf.evaluate(() => window.__polylines || 0)) >= 1);
+    await pf.waitForTimeout(500); // панель меняет высоту при смене вкладки
     await pf.screenshot({ path: path.join(shots, '18-route.png') });
     await pf.click('[data-act="routeSave"]');
     check('маршрут: «Сохранить» кладёт маршрут в список и в localStorage', (await pf.locator('.saved-route [data-route-load]').count()) === 1 && (await pf.evaluate(() => JSON.parse(localStorage.getItem('ur_routes_v1')).length)) === 1);

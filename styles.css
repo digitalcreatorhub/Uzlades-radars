@@ -38,12 +38,16 @@
   --scrim: rgba(6, 11, 22, 0.9);
   --header-h: 58px;
   --filters-h: 52px;
-  --sheet-peek: 58dvh;
+  --sheet-peek: 44dvh;
+  --sheet-mini: calc(98px + env(safe-area-inset-bottom));
   --sheet-full: 84dvh;
   --map-top: calc(var(--header-h) + var(--filters-h) + env(safe-area-inset-top) + 6px);
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   color-scheme: dark;
 }
+
+/* вкладка «Куда» и карточка станции высокие: им нужна панель повыше, остальным (маршрут, список и т.д.) хватает меньшей, карта крупнее */
+:root[data-view="go"], :root[data-view="detail"] { --sheet-peek: 58dvh; }
 
 :root[data-theme="light"] {
   --bg: #e9eff7;
@@ -298,6 +302,7 @@ main { position: fixed; inset: 0; z-index: 0; }
   animation: rise 0.28s var(--ease);
 }
 .toast { top: auto; right: 16px; bottom: calc(var(--sheet-peek) + 14px); }
+body:has(.sheet[data-size="mini"]) .toast { bottom: calc(var(--sheet-mini) + 14px); }
 .status[hidden], .toast[hidden] { display: none; }
 .status button {
   flex: none;
@@ -346,6 +351,9 @@ main { position: fixed; inset: 0; z-index: 0; }
   transition: height 0.34s var(--ease);
 }
 .sheet[data-open="true"] { height: var(--sheet-full); }
+/* свёрнутая панель: видны только ручка и вкладки, карта почти на весь экран */
+.sheet[data-size="mini"] { height: var(--sheet-mini); }
+.sheet[data-size="mini"] .panel { overflow: hidden; visibility: hidden; }
 .grab {
   flex: none;
   height: 22px;
@@ -584,12 +592,14 @@ select {
 
 @media (min-width: 760px) {
   .sheet { left: 16px; right: auto; width: 424px; top: var(--map-top); bottom: 16px; height: auto; border-radius: 28px; box-shadow: var(--shadow-card), 0 0 0 1px var(--line-2); }
-  .sheet[data-open="true"] { height: auto; }
+  .sheet[data-open="true"], .sheet[data-size="mini"] { height: auto; }
+  .sheet[data-size="mini"] .panel { overflow-y: auto; visibility: visible; }
+  body:has(.sheet[data-size="mini"]) .toast { bottom: 16px; }
   .grab { display: none; }
   .tabs { margin-top: 16px; }
   .toast { bottom: 16px; left: 460px; }
   .status { left: 460px; }
-  :root { --sheet-peek: 0px; }
+  :root, :root[data-view] { --sheet-peek: 0px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -814,6 +824,14 @@ input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); ou
 .route-form label { display: grid; gap: 4px; }
 .route-form label > span { font-size: 12px; font-weight: 700; color: var(--muted); }
 .route-form .btn { width: 100%; margin-top: 2px; }
+/* после построения маршрута форма сворачивается, итог и остановки сразу под картой */
+.route-edit { margin: 0 0 12px; border-radius: 16px; background: var(--surface-2); border: 1px solid var(--line); }
+.route-edit > summary { list-style: none; cursor: pointer; padding: 12px 14px; min-height: 44px; font-size: 14px; font-weight: 700; color: var(--accent); display: flex; align-items: center; justify-content: space-between; }
+.route-edit > summary::-webkit-details-marker { display: none; }
+.route-edit > summary::after { content: '▾'; font-size: 12px; transition: transform 0.2s var(--ease); }
+.route-edit[open] > summary::after { transform: rotate(180deg); }
+.route-edit-body { padding: 0 14px 12px; }
+.route-edit-body .origin-line { margin-top: 0; }
 .route-sum { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 2px 0 10px; font-size: 14px; font-weight: 700; }
 .route-ok, .route-warn { margin: 0 0 12px; padding: 11px 14px; border-radius: 16px; font-size: 13.5px; font-weight: 600; line-height: 1.4; }
 .route-ok { background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); color: var(--text); }
