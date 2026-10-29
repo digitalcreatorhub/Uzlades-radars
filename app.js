@@ -5,7 +5,7 @@
   'use strict';
 
   const UR = window.UR;
-  const APP_VERSION = 'v18'; // совпадает с VERSION в sw.js (проверяет тест); меняется с каждым выпуском
+  const APP_VERSION = 'v19'; // совпадает с VERSION в sw.js (проверяет тест); меняется с каждым выпуском
 
   /* ---------- хранилище ---------- */
   const store = {
@@ -2480,7 +2480,17 @@
       const r = await fetch('sw.js?c=' + Date.now(), { cache: 'no-store' });
       if (!r.ok) return;
       const m = /VERSION\s*=\s*'ur-(v\d+)'/.exec(await r.text());
-      if (m && m[1] !== APP_VERSION) showUpdate();
+      if (m && m[1] !== APP_VERSION) {
+        // Сразу после открытия приложения обновляемся сами, один раз на версию (защита от цикла перезагрузок).
+        // Если человек сейчас вводит текст или уже пробовали, остаётся баннер с кнопкой.
+        let tried = null;
+        try { tried = localStorage.getItem('ur_autoupd'); } catch (e) { /* без хранилища только баннер */ }
+        const typing = document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+        if (force && tried !== m[1] && !typing) {
+          try { localStorage.setItem('ur_autoupd', m[1]); } catch (e) { showUpdate(); return; }
+          applyUpdate();
+        } else showUpdate();
+      }
     } catch (e) { /* нет сети: проверим в следующий раз */ }
   }
   function showUpdate() {
@@ -2501,14 +2511,16 @@
     } catch (e) { /* перезагрузим и так */ }
     location.reload();
   }
-  setTimeout(() => checkUpdate(true), 4000);
+  // Проверка при каждом открытии и каждом возвращении в приложение, без паузы между проверками
+  setTimeout(() => checkUpdate(true), 600);
   setInterval(() => checkUpdate(false), 30 * 60 * 1000);
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkUpdate(false); });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkUpdate(true); });
+  window.addEventListener('pageshow', (e) => { if (e.persisted) checkUpdate(true); });
   window.addEventListener('focus', () => checkUpdate(false));
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').catch(() => { /* работаем без офлайн-режима */ });
+      navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(() => { /* работаем без офлайн-режима */ });
     });
   }
 })();
