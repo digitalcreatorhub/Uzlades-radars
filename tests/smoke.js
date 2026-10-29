@@ -21,9 +21,9 @@ const server = http.createServer((req, res) => {
 
 const LEAFLET_STUB = `
 window.__groups = []; Object.defineProperty(window, '__markers', { get(){ return window.__groups.reduce((a,g)=>a+g.n,0); } }); window.__circles = 0; window.__center = null;
-function Layer(){ this.on=function(){return this}; this.addTo=function(){return this}; this.remove=function(){return this}; }
+function Layer(){ this.on=function(ev,fn){ if(ev==='click') (window.__clicks=window.__clicks||[]).push(fn); return this}; this.addTo=function(){return this}; this.remove=function(){return this}; }
 window.L = {
-  map(){ const m={ setView(c,z){ window.__center=[c[0],c[1],z]; return m}, flyTo(c,z){ window.__center=[c[0],c[1],z]; return m}, getZoom(){return 12}, invalidateSize(){}, on(){return m}, fitBounds(b){ window.__fit = b; return m}, getCenter(){ return {lat:56.95,lng:24.1}; } }; return m; },
+  map(){ const m={ setView(c,z){ window.__center=[c[0],c[1],z]; return m}, flyTo(c,z){ window.__center=[c[0],c[1],z]; return m}, getZoom(){return 12}, invalidateSize(){}, on(ev,fn){ if(ev==='click') window.__mapClick=fn; return m}, fitBounds(b){ window.__fit = b; return m}, getCenter(){ return {lat:56.95,lng:24.1}; } }; return m; },
   control:{ zoom(){ return new Layer(); } },
   layerGroup(){ const g=new Layer(); g.n=0; window.__groups.push(g); g.clearLayers=function(){ g.n=0; }; g.addTo=function(){return g}; return g; },
   polyline(l){ const m=new Layer(); m.addTo=function(){ window.__polylines=(window.__polylines||0)+1; return m; }; return m; },
@@ -55,6 +55,13 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   const base = 'http://127.0.0.1:' + server.address().port;
   const browser = await chromium.launch();
+  // приложение открывается со свёрнутой панелью; остальные проверки идут со средней, как раньше (флаг ur_start_sheet)
+  const rawNewContext = browser.newContext.bind(browser);
+  browser.newContext = async (o) => {
+    const c = await rawNewContext(o);
+    await c.addInitScript(() => { try { localStorage.setItem('ur_start_sheet', 'peek'); } catch (e) { /* не критично */ } });
+    return c;
+  };
   const ctx = await browser.newContext({ viewport: { width: 390, height: 780 }, deviceScaleFactor: 2, serviceWorkers: 'block' });
   const page = await ctx.newPage();
   const errors = [];
@@ -819,6 +826,39 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
     await pp.screenshot({ path: path.join(shots, '20-discounts.png') });
     check('метки и скидки: нет JS-ошибок', errP.length === 0, errP.join(' || '));
     await cP.close();
+  }
+
+  // Запуск: карта на весь экран, панель поднимается нажатием на кружок, пустое место карты убирает её
+  {
+    const cS = await rawNewContext({ viewport: { width: 390, height: 780 }, serviceWorkers: 'block' });
+    const ps = await cS.newPage();
+    const errS = [];
+    ps.on('pageerror', (e) => errS.push(e.message));
+    await ps.route('**/*', async (route) => {
+      const url = route.request().url();
+      if (url.startsWith(base)) return route.continue();
+      if (url.includes('leaflet.min.js')) return route.fulfill({ contentType: 'text/javascript', body: LEAFLET_STUB });
+      if (url.includes('overpass')) return route.fulfill({ contentType: 'application/json', body: JSON.stringify(MOCK) });
+      if (url.includes('fonts.googleapis') || url.includes('leaflet.min.css')) return route.fulfill({ contentType: 'text/css', body: '' });
+      return route.abort();
+    });
+    await ps.goto(base + '/');
+    await ps.waitForFunction(() => (window.__clicks || []).length > 0, null, { timeout: 8000 });
+    await ps.waitForTimeout(600);
+    check('запуск: панель свёрнута, карта на весь экран', (await ps.locator('#sheet').getAttribute('data-size')) === 'mini');
+    const hS = await ps.evaluate(() => document.getElementById('sheet').getBoundingClientRect().height / window.innerHeight);
+    check('запуск: панель занимает меньше 15% высоты', hS < 0.15, String(hS));
+    await ps.evaluate(() => window.__clicks[0]());
+    await ps.waitForSelector('[data-fav]', { timeout: 5000 });
+    check('кружок на карте поднимает панель с карточкой станции', (await ps.locator('#sheet').getAttribute('data-size')) === null);
+    await ps.waitForTimeout(600);
+    await ps.evaluate(() => window.__mapClick());
+    check('нажатие на пустое место карты снова сворачивает панель', (await ps.locator('#sheet').getAttribute('data-size')) === 'mini');
+    await ps.goto(base + '/?tab=fav');
+    await ps.waitForSelector('.tab[aria-selected="true"]', { timeout: 8000 });
+    check('запуск по ссылке ?tab= сразу показывает панель', (await ps.locator('#sheet').getAttribute('data-size')) === null);
+    check('запуск: нет JS-ошибок', errS.length === 0, errS.join(' || '));
+    await cS.close();
   }
 
   // Баннер обновления: сервер отдаёт другую версию sw.js

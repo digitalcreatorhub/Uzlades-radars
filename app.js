@@ -5,7 +5,7 @@
   'use strict';
 
   const UR = window.UR;
-  const APP_VERSION = 'v20'; // совпадает с VERSION в sw.js (проверяет тест); меняется с каждым выпуском
+  const APP_VERSION = 'v21'; // совпадает с VERSION в sw.js (проверяет тест); меняется с каждым выпуском
 
   /* ---------- хранилище ---------- */
   const store = {
@@ -922,6 +922,8 @@
     routeLayer = L.layerGroup().addTo(map);
     markerLayer = L.layerGroup().addTo(map);
     if (map.on) map.on('moveend', onMapMoved);
+    // нажатие на пустое место карты убирает панель: карта снова на весь экран (нажатие на кружок сюда не относится)
+    if (map.on) map.on('click', () => { if (Date.now() - lastMarkerTap > 400 && sheetLevel() !== 'mini') setSheetLevel('mini'); });
     if (map.on) map.on('zoomend', () => { if (lastMarkerList.length) renderMarkers(lastMarkerList); });
     // Что на экране, то и сравниваем: после сдвига карты пересчитываем самые дешёвые станции и перерисовываем, только если набор изменился
     let moveTimer = null;
@@ -1027,7 +1029,7 @@
           title: stationTitle(st) + (cheapIds.has(st.id) ? ' · ' + t('cheapTip') : ''),
           keyboard: true,
         });
-        pm.on('click', () => openDetail(st.id, false));
+        pm.on('click', () => openFromMap(st.id));
         pm.addTo(markerLayer);
         markers.set(st.id, pm);
         continue;
@@ -1054,7 +1056,7 @@
           title: stationTitle(st) + ' · ' + t(alertKind === 'busy' ? 'allBusyTip' : 'cheapTip'),
           keyboard: true,
         });
-        cm.on('click', () => openDetail(st.id, false));
+        cm.on('click', () => openFromMap(st.id));
         cm.addTo(markerLayer);
         markers.set(st.id, cm);
         continue;
@@ -1066,7 +1068,7 @@
         fillColor: classColor(st.cls),
         fillOpacity: level === 'out' ? 0.3 : level === 'busy' ? 0.55 : 1,
       });
-      m.on('click', () => openDetail(st.id, false));
+      m.on('click', () => openFromMap(st.id));
       m.addTo(markerLayer);
       markers.set(st.id, m);
     }
@@ -2082,6 +2084,14 @@
     $('panel').scrollTop = 0;
   }
 
+  // Нажатие на кружок на карте: открываем карточку станции (панель поднимается из свёрнутого положения)
+  let lastMarkerTap = 0;
+  function openFromMap(id) {
+    lastMarkerTap = Date.now();
+    openDetail(id, false);
+    if (sheetLevel() === 'mini') setSheetLevel('peek');
+  }
+
   function closeDetail() {
     state.detailId = null;
     renderTabs();
@@ -2169,6 +2179,14 @@
   }
   const sheetLevel = () => ($('sheet').dataset.size === 'mini' ? 'mini' : $('sheet').dataset.open === 'true' ? 'full' : 'peek');
   function setSheetOpen(open) { setSheetLevel(open ? 'full' : 'peek'); }
+  // Приложение открывается с картой на весь экран; панель поднимается нажатием на кружок станции или на вкладку.
+  // Ссылки (станция, вкладка, маршрут, «свободные») сразу показывают панель.
+  (function startSheet() {
+    const p = state.pending || {};
+    let keep = false;
+    try { keep = localStorage.getItem('ur_start_sheet') === 'peek'; } catch (e) { /* без хранилища: обычный запуск */ }
+    if (!keep && !(p.st || p.tab || p.rt || p.go)) setSheetLevel('mini');
+  })();
 
   /* ---------- события ---------- */
   // Панель можно тянуть вверх и вниз за ручку; обычное нажатие работает как раньше
