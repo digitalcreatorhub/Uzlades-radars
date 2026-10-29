@@ -158,7 +158,7 @@ window.UR_LV = {
   routeTooMany: 'Pārāk daudz apstāšanos aprēķinam. Sadaliet maršrutu daļās.',
   routeAlong: 'Ātrās stacijas pie maršruta (labākā katriem 10 km)', routeFail: 'Maršruts nav atrasts. Pārbaudiet adresi un internetu.',
   routeNotFound: 'Šādu vietu neatradu. Precizējiet nosaukumu.',
-  routeClear: 'Notīrīt maršrutu', routeKm: 'pie {n} km', routeOff: '{n} m no ceļa', routeOffKm: '{n} km no ceļa',
+  routeClear: 'Notīrīt maršrutu', routeEdit: 'Mainīt maršrutu', routeKm: 'pie {n} km', routeOff: '{n} m no ceļa', routeOffKm: '{n} km no ceļa',
   routeArrive: 'ieradīsieties ar {n}%', routeNoStations: 'Gar maršrutu nav staciju ar jūsu filtriem.',
   routeWait: 'Meklēju maršrutu…',
   baltics: 'Lietuva un Igaunija: stacijas no OpenStreetMap bez reāllaika statusa.',

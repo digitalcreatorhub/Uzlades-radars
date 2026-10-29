@@ -5,7 +5,7 @@
   'use strict';
 
   const UR = window.UR;
-  const APP_VERSION = 'v17'; // совпадает с VERSION в sw.js (проверяет тест); меняется с каждым выпуском
+  const APP_VERSION = 'v18'; // совпадает с VERSION в sw.js (проверяет тест); меняется с каждым выпуском
 
   /* ---------- хранилище ---------- */
   const store = {
@@ -176,7 +176,7 @@
       routeTooMany: 'Слишком много остановок для расчёта. Разбейте маршрут на части.',
       routeAlong: 'Быстрые станции у маршрута (лучшая на каждые 10 км)', routeFail: 'Маршрут не найден. Проверьте адрес и интернет.',
       routeNotFound: 'Не нашёл такое место. Уточните название.',
-      routeClear: 'Сбросить маршрут', routeKm: 'на {n} км', routeOff: 'в {n} м от трассы', routeOffKm: 'в {n} км от трассы',
+      routeClear: 'Сбросить маршрут', routeEdit: 'Изменить маршрут', routeKm: 'на {n} км', routeOff: 'в {n} м от трассы', routeOffKm: 'в {n} км от трассы',
       routeArrive: 'приедете с {n}%', routeNoStations: 'Вдоль маршрута нет станций с вашими фильтрами.',
       routeWait: 'Ищу маршрут…',
       baltics: 'Литва и Эстония: станции из OpenStreetMap без статуса в реальном времени.',
@@ -342,7 +342,7 @@
       routeTooMany: 'Too many stops to plan. Split the route.',
       routeAlong: 'Fast stations along the route (best one per 10 km)', routeFail: 'Route not found. Check the address and your connection.',
       routeNotFound: 'Could not find that place. Be more specific.',
-      routeClear: 'Clear route', routeKm: 'at km {n}', routeOff: '{n} m off the road', routeOffKm: '{n} km off the road',
+      routeClear: 'Clear route', routeEdit: 'Edit route', routeKm: 'at km {n}', routeOff: '{n} m off the road', routeOffKm: '{n} km off the road',
       routeArrive: 'arrive with {n}%', routeNoStations: 'No stations along the route match your filters.',
       routeWait: 'Finding a route…',
       baltics: 'Lithuania and Estonia: OpenStreetMap stations without live status.',
@@ -1767,6 +1767,8 @@
       if (need.length) await Promise.all(need.map((cc) => loadCountry(cc, false)));
       state.route = { status: 'ok', from, to, km: r.km, min: r.min, line: r.line, cache: null };
       renderAll();
+      // после построения панель в среднем положении, а карта крупно показывает весь маршрут
+      if (sheetLevel() !== 'peek') { setSheetLevel('peek'); setTimeout(fitRoute, 380); }
       fitRoute();
     } catch (e) {
       state.route = { status: 'fail' };
@@ -1883,15 +1885,18 @@
   function renderRoute() {
     const f = state.routeForm;
     const r = state.route;
-    let html =
-      '<div class="origin-line"><span>' + esc(originText()) + '</span><button class="link-btn" id="btn-locate">' + esc(state.locating ? t('locating') : t('locate')) + '</button></div>' +
+    const originHtml = '<div class="origin-line"><span>' + esc(originText()) + '</span><button class="link-btn" id="btn-locate">' + esc(state.locating ? t('locating') : t('locate')) + '</button></div>';
+    const formHtml =
       '<form class="route-form" id="route-form" autocomplete="off">' +
       '<label><span>' + esc(t('routeFrom')) + '</span><input id="route-from" type="text" enterkeyhint="next" placeholder="' + esc(t('routeFromMine')) + '" value="' + esc(f.from) + '"></label>' +
       '<label><span>' + esc(t('routeTo')) + '</span><input id="route-to" type="text" enterkeyhint="search" placeholder="' + esc(t('routeToPh')) + '" value="' + esc(f.to) + '"></label>' +
       (state.car ? '<label class="soc"><span>' + esc(t('routeSoc')) + '</span><input id="route-soc" type="number" inputmode="numeric" min="15" max="100" value="' + esc(f.soc) + '"></label>' : '') +
       '<button class="btn btn-primary" type="submit" id="route-go">' + esc(t('routeGo')) + '</button></form>';
-
-    html += savedRoutesHtml();
+    const routeOk = !!(r && r.status === 'ok');
+    // маршрут построен: итог и остановки сразу под картой, форма сворачивается в «Изменить маршрут»
+    let html = routeOk
+      ? ''
+      : originHtml + formHtml + savedRoutesHtml();
     if (!r) {
       if (!state.car) html += '<p class="note">' + esc(t('routeNoCar')) + '</p>';
     } else if (r.status === 'wait') {
@@ -1904,7 +1909,8 @@
       const calc = routeCalc();
       html += '<div class="route-sum"><span>' + esc(t('routeLen', { km: Math.round(r.km), h: fmtDur(r.min) })) + '</span><button class="link-btn" data-act="routeClear">' + esc(t('routeClear')) + '</button></div>';
       html += '<p class="note">A: ' + esc(r.from.label) + '<br>B: ' + esc(r.to.label) + '</p>' +
-        '<div class="route-acts"><button class="chip" data-act="routeSave">' + esc(t('routeSave')) + '</button><button class="chip" data-act="routeShare">' + esc(t('routeShare')) + '</button></div>';
+        '<div class="route-acts"><button class="chip" data-act="routeSave">' + esc(t('routeSave')) + '</button><button class="chip" data-act="routeShare">' + esc(t('routeShare')) + '</button></div>' +
+        '<details class="route-edit"><summary>' + esc(t('routeEdit')) + '</summary><div class="route-edit-body">' + originHtml + formHtml + '</div></details>';
       if (!state.car) html += '<p class="note">' + esc(t('routeNoCar')) + '</p>';
       if (calc.plan) {
         const plan = calc.plan;
@@ -1932,6 +1938,7 @@
       } else {
         html += '<h3 class="sect">' + esc(t('routeAlong')) + '</h3><div class="rows">' + alongList(calc.along).map((c) => routeRow(c)).join('') + '</div>';
       }
+      html += savedRoutesHtml();
     }
     $('panel').innerHTML = html;
   }
@@ -1954,6 +1961,7 @@
   }
 
   function renderPanel() {
+    document.documentElement.dataset.view = state.detailId ? 'detail' : state.tab;
     if (state.detailId) return renderDetail();
     if (state.tab === 'go') return renderGo();
     if (state.tab === 'list') return renderList();
@@ -2151,11 +2159,16 @@
   document.addEventListener('visibilitychange', onResume);
   window.addEventListener('pageshow', (e) => { if (e.persisted) onResume(); });
 
-  function setSheetOpen(open) {
-    $('sheet').dataset.open = String(open);
-    $('grab').setAttribute('aria-expanded', String(open));
-    setTimeout(() => map && map.invalidateSize(), 260);
+  // Три положения панели: свёрнута (карта почти на весь экран), средняя и полная
+  function setSheetLevel(level) {
+    const sh = $('sheet');
+    sh.dataset.open = String(level === 'full');
+    if (level === 'mini') sh.dataset.size = 'mini'; else delete sh.dataset.size;
+    $('grab').setAttribute('aria-expanded', String(level === 'full'));
+    setTimeout(() => map && map.invalidateSize(), 360);
   }
+  const sheetLevel = () => ($('sheet').dataset.size === 'mini' ? 'mini' : $('sheet').dataset.open === 'true' ? 'full' : 'peek');
+  function setSheetOpen(open) { setSheetLevel(open ? 'full' : 'peek'); }
 
   /* ---------- события ---------- */
   // Панель можно тянуть вверх и вниз за ручку; обычное нажатие работает как раньше
@@ -2172,7 +2185,9 @@
       const dy = e.clientY - y0;
       y0 = null;
       if (Math.abs(dy) > 24) {
-        setSheetOpen(dy < 0);
+        const order = ['mini', 'peek', 'full'];
+        const i = order.indexOf(sheetLevel());
+        setSheetLevel(order[Math.max(0, Math.min(2, i + (dy < 0 ? 1 : -1)))]);
         dragSuppressClick = true;
         setTimeout(() => { dragSuppressClick = false; }, 60);
       }
@@ -2225,14 +2240,14 @@
     else if (el.id === 'btn-car') openCarDialog();
     else if (el.id === 'q-clear') { state.filters.query = ''; renderAll(); const q = $('q'); if (q) q.focus(); }
     else if (d.pwr) { state.filters.power = state.filters.power === d.pwr ? 'any' : d.pwr; state.detailId = null; renderAll(); }
-    else if (d.tab) { state.tab = d.tab; state.detailId = null; renderTabs(); renderMarkers(filtered()); renderPanel(); $('panel').scrollTop = 0; }
+    else if (d.tab) { if (sheetLevel() === 'mini') setSheetLevel('peek'); state.tab = d.tab; state.detailId = null; renderTabs(); renderMarkers(filtered()); renderPanel(); $('panel').scrollTop = 0; }
     else if (d.prio) { state.priority = d.prio; renderPanel(); }
     else if (d.detail) { openDetail(d.detail, true); setSheetOpen(true); }
     else if (el.id === 'btn-back') closeDetail();
     else if (el.id === 'btn-locate') locate({ zoom: 15 });
     else if (el.id === 'btn-gps') locate({ zoom: 16 });
     else if (el.id === 'btn-retry') { setStatus('loading'); loadStations(true); loadLive(true); }
-    else if (el.id === 'grab') { if (!dragSuppressClick) setSheetOpen($('sheet').dataset.open !== 'true'); }
+    else if (el.id === 'grab') { if (!dragSuppressClick) setSheetLevel(sheetLevel() === 'peek' ? 'full' : 'peek'); }
     else if (el.id === 'btn-lang') { lang = LANGS[(LANGS.indexOf(lang) + 1) % LANGS.length]; store.set('ur_lang', lang); renderAll(); }
     else if (el.id === 'btn-theme') {
       state.theme = state.theme === 'dark' ? 'light' : 'dark';
