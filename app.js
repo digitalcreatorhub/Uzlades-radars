@@ -5,7 +5,7 @@
   'use strict';
 
   const UR = window.UR;
-  const APP_VERSION = 'v21'; // совпадает с VERSION в sw.js (проверяет тест); меняется с каждым выпуском
+  const APP_VERSION = 'v22'; // совпадает с VERSION в sw.js (проверяет тест); меняется с каждым выпуском
 
   /* ---------- хранилище ---------- */
   const store = {
@@ -2526,6 +2526,12 @@
       await Promise.all(keys.map((k) => caches.delete(k)));
       const regs = await navigator.serviceWorker.getRegistrations();
       await Promise.all(regs.map((r) => r.unregister()));
+    } catch (e) { /* перезагрузим и так */ }
+    // Кэш самого браузера (GitHub Pages держит файлы до 10 минут) переживает очистку выше: без этого после перезагрузки
+    // мог открыться старый app.js. Заново скачиваем оболочку в обход этого кэша, и только потом перезагружаемся.
+    try {
+      const shell = ['./', 'index.html', 'styles.css', 'logic.js', 'app.js', 'lang-lv.js', 'manifest.webmanifest'];
+      await Promise.all(shell.map((f) => fetch(f, { cache: 'reload' }).catch(() => null)));
     } catch (e) { /* перезагрузим и так */ }
     location.reload();
   }
