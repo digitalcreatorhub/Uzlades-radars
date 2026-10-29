@@ -84,6 +84,8 @@ GitHub отключает запуски по расписанию в публи
 
 Раз в неделю (понедельник) `.github/workflows/worker-health.yml` проверяет, что Worker отвечает и что его ключ совпадает с ключом из секрета; при сбое запуск краснеет и GitHub присылает письмо.
 
+Один Worker обслуживает несколько приложений. У каждой подписки есть поле `app`: `ev` (зарядки, у старых записей поля нет, они считаются зарядками) или `fuel` (приложение «Degvielas Radars»). Рассылка зарядок запрашивает `/subs` без параметра и видит только свои подписки; рассылка топлива запрашивает `/subs?app=fuel`. Утренний отчёт по топливу шлёт `.github/workflows/send-fuel-morning.yml` (`scripts/send_fuel_push.mjs` и `fuel_logic.mjs`): каждые 20 минут утром проверяет, кому пора, берёт цены из `data/report.json` опубликованного сайта топлива и шлёт раз в сутки в выбранный человеком час (по Риге) или в следующий. Вчерашние цены как утренние не отправляются. Отдельных секретов не нужно: тот же `CLOUDFLARE_API_TOKEN`.
+
 Хранилище подписок: KV `uzlades-push-subs` (id в `worker/wrangler.toml`). Worker принимает подписки только от адресов настоящих push-сервисов и только со страницы приложения (CORS). Бесплатные лимиты Cloudflare Workers: 100 000 запросов в сутки и 10 мс процессора на запрос; пуши шифруются не в Worker, а в Action.
 
 ## Разработка
@@ -93,10 +95,11 @@ node tests/logic.test.js         # тесты логики: ранжирован
 python3 -I tests/build_live.test.py   # тесты сборщика live.json на реальных образцах данных
 node tests/worker.test.mjs       # тесты Worker: подписки, проверка адресов, пароль, страницы
 node tests/push.test.mjs         # тесты рассылки: кому слать, ключи, обработка ошибок
+node tests/fuel_push.test.mjs    # тесты утреннего отчёта по топливу (приложение Degvielas Radars)
 node tests/smoke.js . /tmp/shots      # браузерный дымовой тест (нужен Playwright с Chromium; путь к проекту может быть относительным)
 ```
 
-Файлы: `index.html`, `styles.css`, `app.js` (интерфейс), `logic.js` (логика без DOM), `lang-lv.js` (латышские строки), `sw.js` (офлайн и пуши), `manifest.webmanifest`, `icons/`, `scripts/build_live.py` (сборщик live.json), `scripts/send_push.mjs` и `push_logic.mjs`, `push_keys.mjs` (пуши), `worker/` (Worker подписок), `push-config.json` (адрес Worker), `data/sample_static.xml` (образец статики), `tests/`.
+Файлы: `index.html`, `styles.css`, `app.js` (интерфейс), `logic.js` (логика без DOM), `lang-lv.js` (латышские строки), `sw.js` (офлайн и пуши), `manifest.webmanifest`, `icons/`, `scripts/build_live.py` (сборщик live.json), `scripts/send_push.mjs` и `push_logic.mjs`, `scripts/send_fuel_push.mjs` и `fuel_logic.mjs`, `push_keys.mjs` (пуши), `worker/` (Worker подписок), `push-config.json` (адрес Worker), `data/sample_static.xml` (образец статики), `tests/`.
 
 Публикация: GitHub Pages из ветки `main`, корень репозитория.
 

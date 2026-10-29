@@ -1,0 +1,36 @@
+name: Fuel morning push
+
+# Утренний отчёт «самое дешёвое топливо» для приложения Degvielas Radars.
+# Подписки хранит тот же Worker uzlades-push (app = fuel), цены берём из data/report.json опубликованного сайта приложения.
+# Каждый человек сам выбирает час в приложении; скрипт шлёт отчёт раз в сутки в окне «выбранный час по Риге + ещё час».
+# Запуск каждые 20 минут с 02:00 до 10:59 UTC (это 04:00-13:59 по Риге зимой и 05:00-13:59 летом); вне окна скрипт ничего не шлёт.
+# Использует тот же секрет CLOUDFLARE_API_TOKEN, что и пуши зарядок: отдельных секретов не нужно.
+on:
+  schedule:
+    - cron: '7,27,47 2-10 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fuel-morning-push
+  cancel-in-progress: false
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      # Ошибка здесь не должна давать красный запуск каждые 20 минут; скрипт сам завершается кодом 0 и пишет причину в лог
+      - name: Send morning fuel report
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then echo "Секрет CLOUDFLARE_API_TOKEN не задан, пуши пропускаю"; exit 0; fi
+          node -e "process.exit(JSON.parse(require('fs').readFileSync('push-config.json','utf8')).api ? 0 : 1)" || { echo "В push-config.json нет адреса Worker, пуши пропускаю"; exit 0; }
+          npm install --no-save --ignore-scripts --no-audit --no-fund web-push@3.6.7
+          node scripts/send_fuel_push.mjs

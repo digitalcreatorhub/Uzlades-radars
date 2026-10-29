@@ -106,12 +106,43 @@ function cleanDigest(d) {
   return { hour: d.hour, favs: favs.slice(0, MAX_DIGEST_FAVS).map((f) => ({ napId: f.napId, name: f.name })) };
 }
 
+// Приложение, которому принадлежит подписка. Старые записи без поля app и любые неизвестные значения считаются зарядками ('ev').
+// Подписка у каждого приложения своя (у телефона для каждого адреса приложения свой endpoint), поэтому ключи не пересекаются.
+const APPS = ['ev', 'fuel'];
+export const appOf = (x) => (APPS.includes(x) ? x : 'ev');
+const FUEL_TYPES = ['95', '98', 'diesel', 'lpg'];
+
+// Утренний отчёт по топливу: { hour: 0..23, fuels: ['95', 'diesel', ...] } или null
+function cleanMorning(m) {
+  if (!m || typeof m !== 'object' || !Number.isInteger(m.hour) || m.hour < 0 || m.hour > 23) return null;
+  const fuels = [];
+  for (const f of Array.isArray(m.fuels) ? m.fuels : []) if (FUEL_TYPES.includes(f) && !fuels.includes(f)) fuels.push(f);
+  if (!fuels.length) return null;
+  return { hour: m.hour, fuels };
+}
+
 const subKey = async (endpoint) => 's:' + (await sha256Hex(endpoint));
+
+// Подписка приложения «Degvielas Radars»: утренний отчёт о самом дешёвом топливе
+async function handleFuelSync(r, sub, env, cors) {
+  const key = await subKey(sub.endpoint);
+  const morning = cleanMorning(r.data && r.data.morning);
+  if (!morning) { await env.SUBS.delete(key); return json({ ok: true, morning: false }, 200, cors); }
+  let old = null;
+  try { old = await env.SUBS.get(key, 'json'); } catch (e) { old = null; }
+  const lang = r.data.lang === 'en' || r.data.lang === 'lv' ? r.data.lang : 'ru';
+  // Дату последней отправки хранит сервер: приложение её не задаёт
+  if (old && old.morning && old.morning.last) morning.last = old.morning.last;
+  const rec = { app: 'fuel', sub, watch: [], lang, morning, t: Date.now() };
+  await env.SUBS.put(key, JSON.stringify(rec), { expirationTtl: TTL_SECONDS });
+  return json({ ok: true, morning: true, hour: morning.hour, fuels: morning.fuels.length }, 200, cors);
+}
 
 async function handleSync(request, env, cors) {
   const r = await readJson(request);
   if (r.error) return json({ error: r.error }, 400, cors);
   const sub = cleanSub(r.data && r.data.sub);
+  if (sub && appOf(r.data.app) === 'fuel') return handleFuelSync(r, sub, env, cors);
   const watch = cleanWatch(r.data && r.data.watch);
   if (!sub || !watch) return json({ error: 'bad_request' }, 400, cors);
   const key = await subKey(sub.endpoint);
@@ -142,15 +173,19 @@ async function handleUnsubscribe(request, env, cors) {
   return json({ ok: true }, 200, cors);
 }
 
-// Страница подписок для рассылки: ?cursor=...&limit=40 -> { items: [{ key, sub, watch, lang }], cursor }
+// Страница подписок для рассылки: ?app=ev|fuel&cursor=...&limit=40 -> { items: [{ key, sub, watch, lang }], cursor }
+// Без ?app отдаются только подписки зарядок: так рассылка зарядок не видит чужих и работает как раньше.
 async function handleSubs(request, env) {
   const url = new URL(request.url);
+  const want = appOf(url.searchParams.get('app'));
   const limit = Math.min(PAGE_MAX, Math.max(1, parseInt(url.searchParams.get('limit'), 10) || PAGE_MAX));
   const page = await env.SUBS.list({ prefix: 's:', limit, cursor: url.searchParams.get('cursor') || undefined });
   const items = [];
   for (const k of page.keys) {
     const v = await env.SUBS.get(k.name, 'json');
-    if (v && v.sub && Array.isArray(v.watch)) items.push({ key: k.name, sub: v.sub, watch: v.watch, lang: v.lang || 'ru', timers: v.timers || [], digest: v.digest || null });
+    if (!v || !v.sub || !Array.isArray(v.watch) || appOf(v.app) !== want) continue;
+    if (want === 'fuel') items.push({ key: k.name, sub: v.sub, lang: v.lang || 'ru', morning: v.morning || null });
+    else items.push({ key: k.name, sub: v.sub, watch: v.watch, lang: v.lang || 'ru', timers: v.timers || [], digest: v.digest || null });
   }
   return json({ items, cursor: page.list_complete ? null : page.cursor }, 200);
 }
@@ -168,10 +203,20 @@ async function handleState(request, env) {
   }
   for (const u of updates) {
     if (!u || typeof u.key !== 'string' || !/^s:[0-9a-f]{64}$/.test(u.key)) continue;
-    const watch = cleanWatch(u.watch);
-    if (!watch) continue;
     const old = await env.SUBS.get(u.key, 'json');
     if (!old) continue; // подписку уже удалили: не воскрешаем
+    if (appOf(old.app) === 'fuel') {
+      // Топливо: меняется только дата последнего утреннего отчёта
+      if (typeof u.morningLast !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(u.morningLast) || !old.morning) continue;
+      const nextFuel = Object.assign({}, old, { morning: Object.assign({}, old.morning, { last: u.morningLast }) });
+      // Срок жизни считаем от последнего открытия приложения (поле t), а не от рассылки: брошенная подписка должна истекать
+      const left = Math.max(60, Math.floor(TTL_SECONDS - (Date.now() - (old.t || Date.now())) / 1000));
+      await env.SUBS.put(u.key, JSON.stringify(nextFuel), { expirationTtl: left });
+      updated++;
+      continue;
+    }
+    const watch = cleanWatch(u.watch);
+    if (!watch) continue;
     const next = Object.assign({}, old, { watch });
     if (Array.isArray(u.timers)) {
       const keep = cleanTimers(u.timers, 0).slice(0, MAX_TIMERS); // сроки уже проверены при приёме; здесь только форма
@@ -217,4 +262,4 @@ export default {
   },
 };
 
-export { handle, cleanSub, cleanWatch, cleanTimers, cleanDigest, PUSH_HOSTS };
+export { handle, cleanSub, cleanWatch, cleanTimers, cleanDigest, cleanMorning, PUSH_HOSTS };
