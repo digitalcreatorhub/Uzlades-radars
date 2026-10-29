@@ -1,5 +1,5 @@
 /* Service worker: оболочка приложения работает офлайн. Данные станций кэширует само приложение. */
-const VERSION = 'ur-v18';
+const VERSION = 'ur-v19';
 const SHELL = [
   './',
   'index.html',
@@ -37,7 +37,8 @@ self.addEventListener('fetch', (event) => {
   if (url.origin === self.location.origin) {
     // Свои файлы: сначала сеть (чтобы обновления доходили), при её отсутствии кэш.
     event.respondWith(
-      fetch(req)
+      // no-cache: каждый раз сверяемся с сервером; GitHub Pages иначе держит файлы в кэше браузера до 10 минут
+      fetch(req, { cache: 'no-cache' })
         .then((res) => {
           const copy = res.clone();
           caches.open(VERSION).then((c) => c.put(req, copy));
