@@ -5,7 +5,7 @@
   'use strict';
 
   const UR = window.UR;
-  const APP_VERSION = 'v19'; // совпадает с VERSION в sw.js (проверяет тест); меняется с каждым выпуском
+  const APP_VERSION = 'v20'; // совпадает с VERSION в sw.js (проверяет тест); меняется с каждым выпуском
 
   /* ---------- хранилище ---------- */
   const store = {

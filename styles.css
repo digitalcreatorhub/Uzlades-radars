@@ -46,8 +46,8 @@
   color-scheme: dark;
 }
 
-/* вкладка «Куда» и карточка станции высокие: им нужна панель повыше, остальным (маршрут, список и т.д.) хватает меньшей, карта крупнее */
-:root[data-view="go"], :root[data-view="detail"] { --sheet-peek: 58dvh; }
+/* карточка станции длинная: ей нужна панель повыше; на остальных вкладках, включая «Куда», панель ниже и карта крупнее */
+:root[data-view="detail"] { --sheet-peek: 58dvh; }
 
 :root[data-theme="light"] {
   --bg: #e9eff7;
@@ -499,6 +499,13 @@ body:has(.sheet[data-size="mini"]) .toast { bottom: calc(var(--sheet-mini) + 14p
     var(--surface-2);
   box-shadow: var(--shadow-card), inset 0 1px 0 var(--sheet-top-edge);
   margin-bottom: 16px;
+}
+/* кнопки навигации всегда видны внизу панели, даже когда карточка не помещается и прокручивается */
+.best > .btn-row {
+  position: sticky; bottom: 0; z-index: 2;
+  margin: 0 -14px -14px; padding: 18px 14px 14px;
+  border-radius: 0 0 24px 24px;
+  background: linear-gradient(180deg, transparent, var(--surface-2) 42%);
 }
 .best-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .best h2 { margin: 0; font-size: 21px; line-height: 1.2; font-weight: 800; letter-spacing: -0.02em; }
