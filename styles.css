@@ -952,39 +952,54 @@ input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); ou
 @keyframes plshine { from { background-position: 0 0, 0% 0; } to { background-position: 0 0, -250% 0; } }
 @media (prefers-reduced-motion: reduce) { .ppill .pl.cheap { animation: none; } }
 
-/* самая низкая цена среди станций на экране: ярлык с переливающимся зелёным ободком, где кВт и цена сменяют друг друга */
+/* самая низкая цена среди станций на экране: ярлык с неоновой зелёной рамкой и мигающим свечением, где кВт и цена сменяют друг друга.
+   Все точки заняты: тот же ярлык, но красный, с надписью «Все заняты» */
 .leaflet-marker-icon.cdot { background: none; border: 0; }
 .cd {
-  --cd-fill: var(--c-unknown);
+  --cd-glow: 0, 230, 118;
   position: absolute; left: 0; top: 0; transform: translate(-50%, -50%);
-  display: grid; place-items: center; width: max-content; min-width: 64px; height: 28px; box-sizing: border-box;
-  padding: 0 8px; border-radius: 999px; border: 3px solid transparent;
-  background: linear-gradient(var(--cd-fill), var(--cd-fill)) padding-box,
-    linear-gradient(110deg, #19d6a4 0%, #c9ffe9 25%, #35f58f 50%, #c9ffe9 75%, #19d6a4 100%) border-box;
-  background-size: 100% 100%, 250% 100%;
-  animation: plshine 2.4s linear infinite;
-  box-shadow: 0 0 12px rgba(53, 245, 143, 0.6);
-  color: var(--ink-on-text); font: 800 12.5px/1 "Manrope", system-ui, sans-serif; white-space: nowrap;
+  display: grid; place-items: center; width: max-content; min-width: 72px; height: 30px; box-sizing: border-box;
+  padding: 0 10px; border-radius: 999px; border: 2px solid rgb(var(--cd-glow));
+  background: #07101a; color: rgb(var(--cd-glow));
+  box-shadow: 0 0 0 4px rgba(var(--cd-glow), 0.16), 0 0 20px 3px rgba(var(--cd-glow), 0.6);
+  animation: cdGlow 1.6s ease-in-out infinite;
+  font: 800 13px/1 "Manrope", system-ui, sans-serif; white-space: nowrap;
 }
 .cd i { grid-area: 1 / 1; font-style: normal; }
 .cd .cd-a { animation: cdA 4s ease-in-out infinite; }
 .cd .cd-b { animation: cdB 4s ease-in-out infinite; opacity: 0; }
 @keyframes cdA { 0%, 42% { opacity: 1; } 50%, 92% { opacity: 0; } 100% { opacity: 1; } }
 @keyframes cdB { 0%, 42% { opacity: 0; } 50%, 92% { opacity: 1; } 100% { opacity: 0; } }
-.cd-ac { --cd-fill: var(--c-ac); }
-.cd-dc { --cd-fill: var(--c-dc); }
-.cd-hpc { --cd-fill: var(--c-hpc); }
-.cd.lv-busy { opacity: 0.9; }
-/* все точки заняты: красный переливающийся ободок и тёмная заливка */
-.cd.bz {
-  background: linear-gradient(var(--cd-fill), var(--cd-fill)) padding-box,
-    linear-gradient(110deg, #e02f3d 0%, #ffb3ab 25%, #ff5b4d 50%, #ffb3ab 75%, #e02f3d 100%) border-box;
-  background-size: 100% 100%, 250% 100%;
-  box-shadow: 0 0 12px rgba(255, 91, 77, 0.6);
-  --cd-fill: #3d4150; color: #fff;
+@keyframes cdGlow {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(var(--cd-glow), 0.16), 0 0 20px 3px rgba(var(--cd-glow), 0.6); }
+  50% { box-shadow: 0 0 0 8px rgba(var(--cd-glow), 0.05), 0 0 34px 9px rgba(var(--cd-glow), 0.9); }
 }
-.cd.sel { outline: 2px solid var(--text); outline-offset: 2px; }
+.cd.bz { --cd-glow: 255, 82, 82; background: #1a0b0f; color: #ff8a80; }
+.cd.sel { outline: 2px solid var(--text); outline-offset: 3px; }
 @media (prefers-reduced-motion: reduce) { .cd, .cd .cd-a { animation: none; } .cd .cd-b { display: none; } }
+
+/* обычные метки: светящееся кольцо с молнией и ценой сверху; цвет по доступности: свободно зелёный, все заняты красный, нет данных оранжевый, не работает серый */
+.leaflet-marker-icon.gdot { background: none; border: 0; }
+.gd { --gd-c: 0, 230, 118; position: absolute; left: 0; top: 0; width: 0; height: 0; }
+.gd-busy { --gd-c: 255, 82, 82; }
+.gd-unknown { --gd-c: 255, 167, 38; }
+.gd-out { --gd-c: 127, 142, 168; opacity: 0.75; }
+.gd-dot {
+  position: absolute; left: -11px; top: -11px; width: 22px; height: 22px; box-sizing: border-box;
+  display: grid; place-items: center; border-radius: 50%;
+  background: #07101a; border: 2px solid rgb(var(--gd-c)); color: rgb(var(--gd-c));
+  box-shadow: 0 0 0 5px rgba(var(--gd-c), 0.14), 0 0 18px 3px rgba(var(--gd-c), 0.5);
+}
+.gd-dot svg { width: 11px; height: 11px; fill: currentColor; }
+.gd-tag {
+  position: absolute; left: 0; bottom: 18px; transform: translateX(-50%);
+  padding: 4px 7px; border-radius: 9px; background: rgba(10, 16, 30, 0.9); border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.5); color: #ffffff; white-space: nowrap;
+  font: 700 12px/1 "Manrope", system-ui, sans-serif;
+}
+.gd.sel .gd-dot { left: -17px; top: -17px; width: 34px; height: 34px; border-width: 3px; box-shadow: 0 0 0 7px rgba(var(--gd-c), 0.18), 0 0 30px 7px rgba(var(--gd-c), 0.65); }
+.gd.sel .gd-dot svg { width: 16px; height: 16px; }
+.gd.sel .gd-tag { bottom: 28px; padding: 5px 10px; font-size: 15px; font-weight: 800; color: rgb(var(--gd-c)); border-color: rgba(var(--gd-c), 0.7); }
 
 /* ---------- скидки сетей ---------- */
 .disc { margin: 14px 0 6px; }

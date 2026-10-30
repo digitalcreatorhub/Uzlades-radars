@@ -5,7 +5,7 @@
   'use strict';
 
   const UR = window.UR;
-  const APP_VERSION = 'v23'; // совпадает с VERSION в sw.js (проверяет тест); меняется с каждым выпуском
+  const APP_VERSION = 'v24'; // совпадает с VERSION в sw.js (проверяет тест); меняется с каждым выпуском
 
   /* ---------- хранилище ---------- */
   const store = {
@@ -912,7 +912,6 @@
   function cssVar(name) {
     return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   }
-  const classColor = (cls) => cssVar('--c-' + cls) || cssVar('--c-unknown');
 
   function initMap() {
     map = L.map('map', { zoomControl: false, attributionControl: false, preferCanvas: true }).setView([RIGA.lat, RIGA.lon], 12);
@@ -931,7 +930,7 @@
       if (!lastMarkerList.length) return;
       clearTimeout(moveTimer);
       moveTimer = setTimeout(() => {
-        const key = alertKey(lastMarkerList, pillSet(lastMarkerList));
+        const key = markKey(lastMarkerList, pillSet(lastMarkerList));
         if (state.pills || key !== lastCheapKey) renderMarkers(lastMarkerList);
       }, 250);
     });
@@ -975,6 +974,14 @@
   // Самые дешёвые станции среди тех, что в кадре (от масштаба 11): у них переливающийся зелёный ободок
   let lastCheapKey = '';
   const alertKey = (list, pillIds) => [...cheapSet(list, pillIds)].sort().join(',') + '|' + [...busySet(list, pillIds)].sort().join(',');
+  // Станции с ценой над меткой: ближайшие к центру карты, от масштаба 12 (в скрытом режиме ?pills=1 рисуются выноски, а не эти метки)
+  function tagSet(list) {
+    if (state.pills || !map || !map.getZoom) return new Set();
+    const z = map.getZoom();
+    if (z < 12) return new Set();
+    return new Set(viewCandidates(list, z >= 15 ? 70 : z >= 14 ? 50 : z >= 13 ? 34 : 24).map((st) => st.id));
+  }
+  const markKey = (list, pillIds) => alertKey(list, pillIds) + '|' + [...tagSet(list)].sort().join(',');
   // Станции, где заняты все точки: красный ободок, «все заняты» вместо кВт (от масштаба 11, не больше 30 ближайших)
   function busySet(list, pillIds) {
     if (!map || !map.getZoom || map.getZoom() < 11) return new Set();
@@ -999,6 +1006,16 @@
     return '<span class="cd cd-' + esc(st.cls) + ' lv-' + level + (kind === 'busy' ? ' bz' : '') + (selected ? ' sel' : '') + '"><i class="cd-a">' + esc(kw) + '</i>' + (alt ? '<i class="cd-b">' + esc(alt) + '</i>' : '') + '</span>';
   }
 
+  // Цвет обода метки по доступности: свободно зелёный, все заняты красный, нет данных оранжевый, не работает серый
+  const STATUS_RING = { free: '#00E676', busy: '#FF5252', unknown: '#FFA726', out: '#7f8ea8' };
+  // Обычная метка с ценой сверху: светящееся кольцо с молнией; если цены нет, над ней мощность
+  function gdotHtml(st, level, selected) {
+    const p = UR.priceOf(st, state.filters);
+    const tag = p && isFinite(p.mid) ? fmtEur(p.mid) + '€' : st.kw ? Math.round(st.kw) + ' ' + t('unitKw') : '';
+    return '<span class="gd gd-' + level + (selected ? ' sel' : '') + '">' + (tag ? '<i class="gd-tag">' + esc(tag) + '</i>' : '') +
+      '<i class="gd-dot"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z"/></svg></i></span>';
+  }
+
   const PLUG_SVG = '<svg viewBox="0 0 16 16" aria-hidden="true"><rect width="16" height="16" rx="4" fill="#123a63"/><circle cx="8" cy="8" r="3.4" fill="none" stroke="#cfe8ff" stroke-width="1.5"/><circle cx="8" cy="8" r="1" fill="#cfe8ff"/></svg>';
   function pillHtml(st, sum, level, selected, cheap) {
     const kw = st.kw ? String(Math.round(st.kw)) : '?';
@@ -1011,13 +1028,12 @@
     lastMarkerList = list;
     markerLayer.clearLayers();
     markers.clear();
-    const stroke = cssVar('--bg');
-    const okColor = cssVar('--ok');
     const textColor = cssVar('--text');
     const pillIds = pillSet(list);
     const cheapIds = cheapSet(list, pillIds);
     const busyIds = busySet(list, pillIds);
-    lastCheapKey = alertKey(list, pillIds);
+    const tagIds = tagSet(list);
+    lastCheapKey = alertKey(list, pillIds) + '|' + [...tagIds].sort().join(',');
     for (const st of list) {
       const selected = st.id === state.detailId;
       const sum = UR.liveSummary(st, state.filters);
@@ -1034,16 +1050,17 @@
         markers.set(st.id, pm);
         continue;
       }
-      // свободно: зелёная рамка и мягкое свечение; все заняты: тусклая метка; не работает: ещё бледнее
-      const ring = level === 'free' ? okColor : stroke;
+      // обод по доступности: свободно зелёный, все заняты красный, нет данных оранжевый, не работает серый
+      const ringColor = STATUS_RING[level] || STATUS_RING.unknown;
       const zoomed = !map || !map.getZoom || map.getZoom() >= 12;
-      if (zoomed && (selected || level === 'free')) {
-        // ореол под меткой: свечение у свободных и выбранной станции
+      const tagged = tagIds.has(st.id);
+      if (zoomed && !tagged && (selected || level === 'free' || level === 'busy')) {
+        // ореол под меткой: свечение у станций с известной занятостью и у выбранной
         L.circleMarker([st.lat, st.lon], {
           radius: selected ? 20 : 15,
           weight: 0,
-          fillColor: selected ? textColor : okColor,
-          fillOpacity: selected ? 0.2 : 0.2,
+          fillColor: selected ? textColor : ringColor,
+          fillOpacity: 0.2,
           interactive: false,
           halo: true,
         }).addTo(markerLayer);
@@ -1061,12 +1078,24 @@
         markers.set(st.id, cm);
         continue;
       }
+      if (tagged) {
+        const gm = L.marker([st.lat, st.lon], {
+          icon: L.divIcon({ className: 'gdot', html: gdotHtml(st, level, selected), iconSize: [0, 0] }),
+          zIndexOffset: selected ? 1000 : level === 'free' ? 300 : 100,
+          title: stationTitle(st),
+          keyboard: true,
+        });
+        gm.on('click', () => openFromMap(st.id));
+        gm.addTo(markerLayer);
+        markers.set(st.id, gm);
+        continue;
+      }
       const m = L.circleMarker([st.lat, st.lon], {
         radius: selected ? 11 : zoomed ? 8 : 5,
-        weight: selected ? 3 : level === 'free' ? 3 : 2,
-        color: selected ? textColor : ring,
-        fillColor: classColor(st.cls),
-        fillOpacity: level === 'out' ? 0.3 : level === 'busy' ? 0.55 : 1,
+        weight: zoomed ? 3 : 2,
+        color: selected ? textColor : ringColor,
+        fillColor: '#07101a',
+        fillOpacity: level === 'out' ? 0.5 : 0.92,
       });
       m.on('click', () => openFromMap(st.id));
       m.addTo(markerLayer);
