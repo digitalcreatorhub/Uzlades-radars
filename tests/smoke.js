@@ -23,7 +23,7 @@ const LEAFLET_STUB = `
 window.__groups = []; Object.defineProperty(window, '__markers', { get(){ return window.__groups.reduce((a,g)=>a+g.n,0); } }); window.__circles = 0; window.__center = null;
 function Layer(){ this.on=function(ev,fn){ if(ev==='click') (window.__clicks=window.__clicks||[]).push(fn); return this}; this.addTo=function(){return this}; this.remove=function(){return this}; }
 window.L = {
-  map(){ const m={ setView(c,z){ window.__center=[c[0],c[1],z]; return m}, flyTo(c,z){ window.__center=[c[0],c[1],z]; return m}, getZoom(){return 12}, invalidateSize(){}, on(ev,fn){ if(ev==='click') window.__mapClick=fn; return m}, fitBounds(b){ window.__fit = b; return m}, getCenter(){ return {lat:56.95,lng:24.1}; } }; return m; },
+  map(){ const m={ setView(c,z){ window.__center=[c[0],c[1],z]; (window.__centers=window.__centers||[]).push([c[0],c[1],z]); return m}, flyTo(c,z){ window.__center=[c[0],c[1],z]; return m}, getZoom(){return 12}, invalidateSize(){}, on(ev,fn){ if(ev==='click') window.__mapClick=fn; return m}, fitBounds(b){ window.__fit = b; return m}, getCenter(){ return {lat:56.95,lng:24.1}; } }; return m; },
   control:{ zoom(){ return new Layer(); } },
   layerGroup(){ const g=new Layer(); g.n=0; window.__groups.push(g); g.clearLayers=function(){ g.n=0; }; g.addTo=function(){return g}; return g; },
   polyline(l){ const m=new Layer(); m.addTo=function(){ window.__polylines=(window.__polylines||0)+1; return m; }; return m; },
@@ -380,6 +380,50 @@ const check = (name, ok, extra) => { results.push([name, !!ok]); console.log((ok
   check('возврат через 2 минуты: место обновилось', near(await p6.evaluate(() => window.__center), 56.97, 24.15));
   check('GPS: нет JS-ошибок', errors6.length === 0, errors6.join(' || '));
   await ctx6.close();
+
+  /* ---------- запомненное место ---------- */
+  {
+    const ctxM = await browser.newContext({
+      viewport: { width: 390, height: 780 }, serviceWorkers: 'block',
+      permissions: ['geolocation'], geolocation: { latitude: 56.946, longitude: 24.1, accuracy: 40 },
+    });
+    // «в прошлый раз вы были в другом месте»; только при первой загрузке, чтобы перезагрузка не затирала свежее
+    await ctxM.addInitScript(() => { try { if (!window.name) { localStorage.setItem('ur_last_fix', JSON.stringify({ lat: 56.8, lon: 24.0, ts: Date.now() })); window.name = 'seeded'; } } catch (e) { /* не критично */ } });
+    const pM = await ctxM.newPage();
+    const errM = [];
+    pM.on('pageerror', (e) => errM.push('pageerror: ' + e.message));
+    await routeFor(pM, liveDoc(minsAgo(4)));
+    await pM.goto(base + '/');
+    await pM.waitForFunction(() => /±40 м/.test(document.querySelector('.origin-line')?.innerText || ''), null, { timeout: 8000 });
+    const centersM = await pM.evaluate(() => window.__centers || []);
+    check('запомненное место: карта сразу открывается там, где вы были, а не в центре Риги', near(centersM[0], 56.8, 24.0), JSON.stringify(centersM[0]));
+    check('запомненное место: потом карта перешла на свежее место', near(await pM.evaluate(() => window.__center), 56.946, 24.1), JSON.stringify(await pM.evaluate(() => window.__center)));
+    const savedM = await pM.evaluate(() => JSON.parse(localStorage.getItem('ur_last_fix') || 'null'));
+    check('запомненное место: свежее место сохранено в телефоне', savedM && Math.abs(savedM.lat - 56.946) < 1e-6 && Math.abs(savedM.lon - 24.1) < 1e-6, JSON.stringify(savedM));
+    check('запомненное место: нет JS-ошибок', errM.length === 0, errM.join(' || '));
+    await ctxM.close();
+
+    // доступ закрыт: запомненное место не используем, возвращаемся к центру Риги
+    const ctxD = await browser.newContext({ viewport: { width: 390, height: 780 }, serviceWorkers: 'block' });
+    await ctxD.addInitScript(() => { try { localStorage.setItem('ur_last_fix', JSON.stringify({ lat: 56.8, lon: 24.0, ts: Date.now() })); } catch (e) { /* не критично */ } });
+    const pD = await ctxD.newPage();
+    await routeFor(pD, liveDoc(minsAgo(4)));
+    await pD.goto(base + '/');
+    await pD.waitForFunction(() => /Нет доступа/.test(document.querySelector('.origin-line')?.innerText || ''), null, { timeout: 8000 });
+    check('нет доступа к месту: запомненное место стёрто, расчёт от центра Риги', (await pD.evaluate(() => localStorage.getItem('ur_last_fix'))) === '' && (await pD.locator('.origin-line').innerText()).includes('Нет доступа к месту'));
+    await ctxD.close();
+
+    // слишком старое запомненное место не используем
+    const ctxO = await browser.newContext({ viewport: { width: 390, height: 780 }, serviceWorkers: 'block' });
+    await ctxO.addInitScript(() => { try { localStorage.setItem('ur_last_fix', JSON.stringify({ lat: 56.8, lon: 24.0, ts: Date.now() - 8 * 24 * 3600 * 1000 })); } catch (e) { /* не критично */ } });
+    const pO = await ctxO.newPage();
+    await routeFor(pO, liveDoc(minsAgo(4)));
+    await pO.goto(base + '/');
+    await pO.waitForFunction(() => (window.__centers || []).length > 0, null, { timeout: 8000 });
+    const cO = await pO.evaluate(() => window.__centers[0]);
+    check('запомненное место старше 7 дней не берём: карта открывается на центре Риги', Math.abs(cO[0] - 56.9496) < 1e-4 && Math.abs(cO[1] - 24.1052) < 1e-4, JSON.stringify(cO));
+    await ctxO.close();
+  }
 
   /* ---------- установка на телефон ---------- */
   const IOS_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1';

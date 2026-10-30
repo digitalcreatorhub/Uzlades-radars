@@ -5,7 +5,7 @@
   'use strict';
 
   const UR = window.UR;
-  const APP_VERSION = 'v24'; // совпадает с VERSION в sw.js (проверяет тест); меняется с каждым выпуском
+  const APP_VERSION = 'v25'; // совпадает с VERSION в sw.js (проверяет тест); меняется с каждым выпуском
 
   /* ---------- хранилище ---------- */
   const store = {
@@ -376,13 +376,23 @@
 
   /* ---------- состояние ---------- */
   const RIGA = { lat: 56.9496, lon: 24.1052 };
+  // Последнее найденное место хранится только в телефоне: при открытии карта сразу там, а не в центре Риги, пока приходит свежее
+  const LAST_FIX_KEY = 'ur_last_fix';
+  const LAST_FIX_MAX_AGE = 7 * 24 * 3600 * 1000;
+  function initialOrigin() {
+    const c = readJson(LAST_FIX_KEY, null);
+    if (c && typeof c.lat === 'number' && typeof c.lon === 'number' && Math.abs(c.lat) <= 90 && Math.abs(c.lon) <= 180 && typeof c.ts === 'number' && Date.now() - c.ts < LAST_FIX_MAX_AGE) {
+      return { lat: c.lat, lon: c.lon, real: true, cached: true, accuracy: null };
+    }
+    return { lat: RIGA.lat, lon: RIGA.lon, real: false };
+  }
   const state = {
     osm: [], // станции из OpenStreetMap
     live: null, // live.json из национальной точки доступа
     patterns: null, // patterns.json: «когда обычно занято»
     stations: [], // результат слияния: их показываем
     liveError: false,
-    origin: { lat: RIGA.lat, lon: RIGA.lon, real: false },
+    origin: initialOrigin(),
     filters: { connector: 'any', power: 'any', operator: 'all', freeNow: false, open247: false, cardPay: false, maxPrice: null, free: false, discount: false, indoor: false, mine: {}, tou: true, query: '', car: null },
     car: null, // профиль машины (logic.normalizeCar) или null
     prefs: { petrol: null, petrolCons: 7, home: null }, // бензин и домашний тариф
@@ -914,7 +924,10 @@
   }
 
   function initMap() {
-    map = L.map('map', { zoomControl: false, attributionControl: false, preferCanvas: true }).setView([RIGA.lat, RIGA.lon], 12);
+    // карта сразу там, где вы были в прошлый раз (если помним), иначе центр Риги
+    const start = state.origin.cached ? [state.origin.lat, state.origin.lon] : [RIGA.lat, RIGA.lon];
+    map = L.map('map', { zoomControl: false, attributionControl: false, preferCanvas: true }).setView(start, state.origin.cached ? 15 : 12);
+    if (state.origin.cached) map.setView(viewCenter(start, 15), 15);
     L.control.zoom({ position: 'topright' }).addTo(map);
     // подпись источника карты нельзя прятать; снизу её закрывает панель, поэтому она сверху слева
     if (L.control.attribution) L.control.attribution({ position: 'topleft', prefix: false }).addTo(map);
@@ -2149,21 +2162,28 @@
     setGpsBusy(true);
     if (!o.auto) renderPanel();
 
-    const onFix = (pos) => {
-      state.locating = false;
+    // применяем найденное место; refine: уточнение после быстрого результата (карту двигаем, только если ушли заметно)
+    const apply = (pos, refine) => {
       state.geoDenied = false;
       lastFixAt = Date.now();
-      setGpsBusy(false);
+      const prev = state.origin;
       state.origin = { lat: pos.coords.latitude, lon: pos.coords.longitude, real: true, accuracy: pos.coords.accuracy };
+      writeJson(LAST_FIX_KEY, { lat: state.origin.lat, lon: state.origin.lon, ts: Date.now() });
       loadWeather();
+      const jump = !refine || !prev.real || UR.haversine(prev.lat, prev.lon, state.origin.lat, state.origin.lon) > 0.06;
       // карта остаётся на человеке: перерисовка не должна увести её к «лучшей» станции
-      if (map) {
+      if (map && jump) {
         const z = firstFix || o.zoom ? Math.max(o.zoom || 15, 14) : Math.max(map.getZoom(), 14);
         map.setView(viewCenter([state.origin.lat, state.origin.lon], z), z);
       }
       firstFix = false;
       quietRender = true;
       try { renderAll(); } finally { quietRender = false; }
+    };
+    const onFix = (pos) => {
+      state.locating = false;
+      setGpsBusy(false);
+      apply(pos, false);
     };
     const onFail = (err, retried) => {
       // слабый сигнал или таймаут при высокой точности: один раз пробуем грубее, но быстрее
@@ -2173,11 +2193,31 @@
       }
       state.locating = false;
       setGpsBusy(false);
-      if (err && err.code === 1) state.geoDenied = true;
+      if (err && err.code === 1) {
+        state.geoDenied = true;
+        // доступ закрыт: запомненное место больше не используем
+        if (state.origin.cached) {
+          state.origin = { lat: RIGA.lat, lon: RIGA.lon, real: false };
+          store.set(LAST_FIX_KEY, '');
+          renderAll();
+        }
+      }
       if (!o.auto) toast(err && err.code === 1 ? t('toastLocDenied') : t('toastLocUnavailable'));
       renderPanel();
     };
-    navigator.geolocation.getCurrentPosition(onFix, (e) => onFail(e, false), { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+    const precise = { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 };
+    if (o.auto) {
+      // при открытии: сначала быстро (недавнее или грубое место по сети), потом в фоне уточняем по GPS
+      navigator.geolocation.getCurrentPosition((pos) => {
+        onFix(pos);
+        navigator.geolocation.getCurrentPosition((p2) => apply(p2, true), () => { /* уточнение не вышло: остаёмся на быстром */ }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
+      }, (e) => {
+        if (e && e.code === 1) { onFail(e, true); return; }
+        navigator.geolocation.getCurrentPosition(onFix, (e2) => onFail(e2, false), precise);
+      }, { enableHighAccuracy: false, timeout: 6000, maximumAge: 60000 });
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(onFix, (e) => onFail(e, false), precise);
   }
 
   function setGpsBusy(on) {
