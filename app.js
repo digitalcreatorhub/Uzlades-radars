@@ -5,7 +5,7 @@
   'use strict';
 
   const UR = window.UR;
-  const APP_VERSION = 'v22'; // совпадает с VERSION в sw.js (проверяет тест); меняется с каждым выпуском
+  const APP_VERSION = 'v23'; // совпадает с VERSION в sw.js (проверяет тест); меняется с каждым выпуском
 
   /* ---------- хранилище ---------- */
   const store = {
@@ -1974,9 +1974,17 @@
 
   function renderTabs() {
     const tabs = [['go', 'tabGo'], ['list', 'tabList'], ['route', 'tabRoute'], ['fav', 'tabFav'], ['prices', 'tabPrices']];
+    const svg = (inner) => '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + inner + '</svg>';
+    const icons = {
+      go: svg('<path d="M12 21s-7-6.2-7-11a7 7 0 1 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>'),
+      list: svg('<path d="M3 11 21 3l-8 18-2-8-8-2z"/>'),
+      route: svg('<circle cx="6" cy="19" r="2.5"/><circle cx="18" cy="5" r="2.5"/><path d="M8.5 19H15a3.5 3.5 0 0 0 0-7H9a3.5 3.5 0 0 1 0-7h6.5"/>'),
+      fav: svg('<path d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.2 4.3 4.3 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z"/>'),
+      prices: svg('<path d="M3 12V4h8l10 10-8 8L3 12z"/><circle cx="7.5" cy="8.5" r="1.2"/>'),
+    };
     $('tabs').innerHTML = tabs
       .map(([id, key]) => '<button class="tab" role="tab" data-tab="' + id + '" aria-selected="' + (state.tab === id && !state.detailId) + '">' +
-        (id === 'fav' ? '<span class="tab-star">★</span>' : '') + esc(t(key)) + (id === 'fav' && state.favs.length ? '<em>' + state.favs.length + '</em>' : '') + '</button>')
+        icons[id] + '<span>' + esc(t(key)) + '</span>' + (id === 'fav' && state.favs.length ? '<em>' + state.favs.length + '</em>' : '') + '</button>')
       .join('');
   }
 

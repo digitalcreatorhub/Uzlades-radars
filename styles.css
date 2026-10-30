@@ -38,16 +38,17 @@
   --scrim: rgba(6, 11, 22, 0.9);
   --header-h: 58px;
   --filters-h: 52px;
-  --sheet-peek: 44dvh;
-  --sheet-mini: calc(98px + env(safe-area-inset-bottom));
-  --sheet-full: 84dvh;
+  --sheet-peek: calc(44dvh - 36px);
+  --nav-h: calc(66px + env(safe-area-inset-bottom));
+  --sheet-mini: 30px;
+  --sheet-full: calc(84dvh - var(--nav-h));
   --map-top: calc(var(--header-h) + var(--filters-h) + env(safe-area-inset-top) + 6px);
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   color-scheme: dark;
 }
 
 /* карточка станции длинная: ей нужна панель повыше; на остальных вкладках, включая «Куда», панель ниже и карта крупнее */
-:root[data-view="detail"] { --sheet-peek: 58dvh; }
+:root[data-view="detail"] { --sheet-peek: calc(58dvh - 36px); }
 
 :root[data-theme="light"] {
   --bg: #e9eff7;
@@ -301,8 +302,8 @@ main { position: fixed; inset: 0; z-index: 0; }
   gap: 10px;
   animation: rise 0.28s var(--ease);
 }
-.toast { top: auto; right: 16px; bottom: calc(var(--sheet-peek) + 14px); }
-body:has(.sheet[data-size="mini"]) .toast { bottom: calc(var(--sheet-mini) + 14px); }
+.toast { top: auto; right: 16px; bottom: calc(var(--nav-h) + var(--sheet-peek) + 14px); }
+body:has(.sheet[data-size="mini"]) .toast { bottom: calc(var(--nav-h) + var(--sheet-mini) + 14px); }
 .status[hidden], .toast[hidden] { display: none; }
 .status button {
   flex: none;
@@ -339,7 +340,7 @@ body:has(.sheet[data-size="mini"]) .toast { bottom: calc(var(--sheet-mini) + 14p
 /* нижняя панель */
 .sheet {
   position: fixed;
-  left: 0; right: 0; bottom: 0;
+  left: 0; right: 0; bottom: var(--nav-h);
   z-index: 800;
   height: var(--sheet-peek);
   display: flex;
@@ -366,37 +367,46 @@ body:has(.sheet[data-size="mini"]) .toast { bottom: calc(var(--sheet-mini) + 14p
 }
 .grab span { width: 42px; height: 5px; border-radius: 3px; background: var(--line-2); transition: width 0.2s var(--ease), background-color 0.2s; }
 .grab:hover span, .grab:active span { width: 54px; background: var(--muted); }
+/* нижнее меню: пять разделов с иконками, всегда на экране под панелью */
 .tabs {
-  flex: none;
-  display: flex;
-  gap: 4px;
-  margin: 0 16px 10px;
-  padding: 4px;
-  border-radius: 16px;
-  background: var(--surface-2);
-  border: 1px solid var(--line);
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 810;
+  height: var(--nav-h);
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  padding: 6px 8px env(safe-area-inset-bottom);
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  backdrop-filter: blur(20px) saturate(1.4);
+  border-top: 1px solid var(--line);
 }
 .tab {
-  flex: 1;
-  height: 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 52px;
+  padding: 0;
   border: 0;
-  border-radius: 12px;
+  border-radius: 14px;
   background: transparent;
   color: var(--muted);
   font-weight: 600;
-  font-size: 14px;
+  font-size: 12px;
 }
+.tab svg { width: 24px; height: 24px; flex: none; }
 .tab[aria-selected="true"] {
-  background: var(--surface-3);
-  color: var(--text);
+  color: var(--accent);
   font-weight: 800;
-  box-shadow: inset 0 0 0 1px var(--line-2), 0 2px 8px rgba(0, 0, 0, 0.18);
 }
+.tab[aria-selected="true"] svg { filter: drop-shadow(0 0 8px color-mix(in srgb, var(--accent) 60%, transparent)); }
 .panel {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 2px 16px calc(20px + env(safe-area-inset-bottom));
+  padding: 2px 16px 20px;
   overscroll-behavior: contain;
   scrollbar-width: none;
 }
@@ -598,12 +608,12 @@ select {
 .empty { color: var(--muted); padding: 28px 4px; text-align: center; }
 
 @media (min-width: 760px) {
-  .sheet { left: 16px; right: auto; width: 424px; top: var(--map-top); bottom: 16px; height: auto; border-radius: 28px; box-shadow: var(--shadow-card), 0 0 0 1px var(--line-2); }
+  .sheet { left: 16px; right: auto; width: 424px; top: var(--map-top); bottom: calc(16px + var(--nav-h)); height: auto; border-radius: 28px 28px 0 0; box-shadow: var(--shadow-card), 0 0 0 1px var(--line-2); }
   .sheet[data-open="true"], .sheet[data-size="mini"] { height: auto; }
   .sheet[data-size="mini"] .panel { overflow-y: auto; visibility: visible; }
   body:has(.sheet[data-size="mini"]) .toast { bottom: 16px; }
   .grab { display: none; }
-  .tabs { margin-top: 16px; }
+  .tabs { left: 16px; right: auto; width: 424px; bottom: 16px; border-radius: 0 0 28px 28px; box-shadow: var(--shadow-card), 0 0 0 1px var(--line-2); }
   .toast { bottom: 16px; left: 460px; }
   .status { left: 460px; }
   :root, :root[data-view] { --sheet-peek: 0px; }
@@ -732,11 +742,9 @@ input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); ou
 .pill-icon.on { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 50%, transparent); }
 .chip svg { width: 16px; height: 16px; margin-right: 6px; flex: none; }
 
-/* вкладки: пять штук, подписи короче */
-.tabs { gap: 2px; }
-.tab { font-size: 12.5px; padding: 0 2px; min-width: 0; white-space: nowrap; position: relative; }
-.tab-star { color: var(--c-dc); margin-right: 3px; font-size: 12px; }
-.tab em { font-style: normal; font-size: 10.5px; font-weight: 800; margin-left: 4px; padding: 1px 5px; border-radius: 8px; background: var(--accent-soft); color: var(--accent); }
+/* вкладки: пять штук, подписи короче; число сохранённых станций значком над иконкой */
+.tab { min-width: 0; white-space: nowrap; position: relative; }
+.tab em { position: absolute; top: 2px; left: calc(50% + 7px); font-style: normal; font-size: 10.5px; line-height: 14px; min-width: 16px; text-align: center; font-weight: 800; padding: 1px 4px; border-radius: 8px; background: var(--accent); color: var(--accent-ink); }
 
 .icon-btn {
   width: 34px; height: 34px; padding: 0; flex: none;
@@ -872,8 +880,6 @@ input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); ou
 
 /* низкие экраны (iPhone SE/mini и т.п.): плотнее, чтобы кнопки маршрута были видны без прокрутки */
 @media (max-height: 820px) {
-  .tabs { margin-bottom: 6px; }
-  .tab { height: 34px; }
   .seg { margin-bottom: 4px; }
   .seg button { height: 32px; }
   .origin-line { margin-bottom: 4px; }
